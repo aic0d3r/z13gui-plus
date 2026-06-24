@@ -34,7 +34,6 @@ type Backend struct {
 	pointerInside    bool      // true when pointer is over the drawer surface
 	showTime         time.Time // when Show() was last called; used to ignore early focus loss
 	focusedSinceShow bool      // true once compositor grants focus after Show()
-	startup          bool      // true until first Show() reveals the surface
 }
 
 // New creates a layer-shell backend. drawerWidth is the drawer panel width in pixels.
@@ -45,7 +44,6 @@ func New(appWin *gtk.ApplicationWindow, gtkWin *gtk.Window, drawerWidth int) *Ba
 		drawerWidth:  drawerWidth,
 		hiddenMargin: -(drawerWidth - 1),
 		margin:       -(drawerWidth - 1),
-		startup:      true,
 	}
 }
 
@@ -180,10 +178,7 @@ func (b *Backend) WrapContent(drawer gtk.Widgetter) gtk.Widgetter {
 // Show starts the slide-in animation using a smoothstep easing curve.
 func (b *Backend) Show() {
 	slog.Debug("backend.Show", "startMargin", b.margin)
-	if b.startup {
-		b.appWin.SetOpacity(1)
-		b.startup = false
-	}
+	b.appWin.SetOpacity(1)
 	b.showTime = time.Now()
 	b.focusedSinceShow = false
 
@@ -204,6 +199,7 @@ func (b *Backend) Hide() {
 	b.pointerInside = false // clear stale state; surface stays mapped off-screen
 	b.slideMargin(b.hiddenMargin, func() {
 		b.animating = false
+		b.appWin.SetOpacity(0)
 	})
 }
 
