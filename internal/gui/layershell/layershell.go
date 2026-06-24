@@ -32,8 +32,7 @@ type Backend struct {
 	animGen          uint64    // incremented to cancel in-flight animations
 	animating        bool      // true during show/hide slide animation
 	pointerInside    bool      // true when pointer is over the drawer surface
-	showTime         time.Time // when Show() was last called; used to ignore early focus loss
-	focusedSinceShow bool      // true once compositor grants focus after Show()
+	showTime time.Time // when Show() was last called; used to ignore early focus loss
 }
 
 // New creates a layer-shell backend. drawerWidth is the drawer panel width in pixels.
@@ -127,12 +126,11 @@ func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 		active := b.appWin.IsActive()
 		vis := isVisible()
 		slog.Debug("focus changed", "is-active", active, "visible", vis,
-			"focusedSinceShow", b.focusedSinceShow, "pointerInside", b.pointerInside)
+			"pointerInside", b.pointerInside)
 		if active {
-			b.focusedSinceShow = true
 			return
 		}
-		if !vis || !b.focusedSinceShow {
+		if !vis {
 			return
 		}
 		if time.Since(b.showTime) < showSettleTime {
@@ -180,7 +178,6 @@ func (b *Backend) Show() {
 	slog.Debug("backend.Show", "startMargin", b.margin)
 	b.appWin.SetOpacity(1)
 	b.showTime = time.Now()
-	b.focusedSinceShow = false
 
 	gtk4layershell.SetKeyboardMode(b.gtkWin, gtk4layershell.LayerShellKeyboardModeOnDemand)
 	b.slideMargin(0, func() {
