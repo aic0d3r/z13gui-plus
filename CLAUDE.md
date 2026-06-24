@@ -66,8 +66,8 @@ contrib/
 - **Layer-shell** (KDE): `github.com/diamondburned/gotk4-layer-shell/pkg/gtk4layershell`
   (NOT `gtklayershell` which is GTK3). pkg-config name: `gtk4-layer-shell-0`.
 - **Anchor**: right + top + bottom edges. Top/bottom margins set to 5% of screen height
-  on realize. The surface is pinned to its monitor via `SetMonitor` to prevent bleed
-  onto adjacent displays.
+  on realize. The surface is pinned to its monitor via `SetMonitor` (helps wlroots
+  compositors clip overflow; KWin does NOT clip, see conditional fade below).
 - **Keyboard mode**: `LayerShellKeyboardModeOnDemand` — gets focus when visible.
 - **Animation**: layer-shell right-margin animation (`gtk4layershell.SetMargin`).
   `margin=0` → on-screen; `margin=-320` → off-screen to the right.
@@ -78,9 +78,17 @@ contrib/
   shows when remapping a surface. The 1px margin keeps the surface in KWin's composited
   output for damage tracking; opacity 0 makes the sliver invisible to the user.
 - **Width**: `SetSizeRequest(320, -1)`. Height is natural (content-driven, scrolled).
-- **Slide animation**: smoothstep easing via `AddTickCallback` (VSync-synced).
-  Tracks current margin in `Backend.margin` field; generation counter prevents overlapping.
-  Show sets opacity=1 before sliding in; Hide sets opacity=0 after sliding out.
+- **Show/hide animation**: smoothstep easing via `AddTickCallback` (VSync-synced),
+  with a shared `animGen` generation counter so a show cancels an in-flight hide
+  (and vice versa). Two paths, chosen per Show/Hide by `hasRightNeighbor()`:
+  - **No monitor to the right** → slide the right margin (`slideMargin`). Show sets
+    opacity=1 then slides in; Hide slides out then sets opacity=0 (hides the 1px
+    sliver on the primary's own right edge).
+  - **A monitor to the right** → fade in place (`fadeOpacity`) at margin 0, fully on
+    the primary, then park the transparent surface off-screen. A rightward slide
+    would otherwise bleed onto that monitor because KWin doesn't clip layer-surface
+    overflow to the assigned output. `Backend.margin`/`Backend.opacity` track current
+    state; use `setMargin`/`setOpacity` to keep them in sync.
 - **State source of truth**: daemon is the source of truth. On show, `api.SendGetState()`
   is called and `syncState()` updates widgets. Widget signals are suppressed during sync
   via `Window.syncing bool`.
