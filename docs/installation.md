@@ -102,7 +102,7 @@ system package manager first.
 
 === "From source"
 
-    Requires Go 1.23+, CGO enabled, and GTK4 development libraries.
+    Requires Go 1.25+, CGO enabled, and GTK4 development libraries.
 
     **Arch Linux:**
 

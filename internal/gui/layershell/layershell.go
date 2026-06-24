@@ -26,15 +26,14 @@ type Backend struct {
 	appWin *gtk.ApplicationWindow
 	gtkWin *gtk.Window
 
-	drawerWidth      int
-	hiddenMargin     int
-	margin           int       // current right margin: 0=on-screen, hiddenMargin=1px visible
-	animGen          uint64    // incremented to cancel in-flight animations
-	animating        bool      // true during show/hide slide animation
-	pointerInside    bool      // true when pointer is over the drawer surface
-	showTime         time.Time // when Show() was last called; used to ignore early focus loss
-	focusedSinceShow bool      // true once compositor grants focus after Show()
-	startup          bool      // true until first Show() reveals the surface
+	drawerWidth   int
+	hiddenMargin  int
+	margin        int       // current right margin: 0=on-screen, hiddenMargin=1px visible
+	opacity       float64   // current window opacity, tracked for fade interpolation
+	animGen       uint64    // incremented to cancel in-flight animations
+	animating     bool      // true during show/hide slide animation
+	pointerInside bool      // true when pointer is over the drawer surface
+	showTime      time.Time // when Show() was last called; used to ignore early focus loss
 }
 
 // New creates a layer-shell backend. drawerWidth is the drawer panel width in pixels.
@@ -45,7 +44,6 @@ func New(appWin *gtk.ApplicationWindow, gtkWin *gtk.Window, drawerWidth int) *Ba
 		drawerWidth:  drawerWidth,
 		hiddenMargin: -(drawerWidth - 1),
 		margin:       -(drawerWidth - 1),
-		startup:      true,
 	}
 }
 
@@ -88,7 +86,7 @@ func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 	// Opacity starts at 0 so the surface is in KWin's composited output (for
 	// damage tracking) but invisible to the user. Show() sets opacity to 1.
 	b.appWin.SetVisible(true)
-	b.appWin.SetOpacity(0)
+	b.setOpacity(0)
 
 	// After the surface is mapped, poll until the compositor configures the
 	// actual width (which may exceed drawerWidth due to CSS borders/styling).
@@ -102,8 +100,7 @@ func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 				return true // compositor hasn't configured yet, retry
 			}
 			b.hiddenMargin = -(w - 1)
-			b.margin = b.hiddenMargin
-			gtk4layershell.SetMargin(b.gtkWin, gtk4layershell.LayerShellEdgeRight, b.hiddenMargin)
+			b.setMargin(b.hiddenMargin)
 			return false
 		})
 	})
@@ -129,12 +126,11 @@ func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 		active := b.appWin.IsActive()
 		vis := isVisible()
 		slog.Debug("focus changed", "is-active", active, "visible", vis,
-			"focusedSinceShow", b.focusedSinceShow, "pointerInside", b.pointerInside)
+			"pointerInside", b.pointerInside)
 		if active {
-			b.focusedSinceShow = true
 			return
 		}
-		if !vis || !b.focusedSinceShow {
+		if !vis {
 			return
 		}
 		if time.Since(b.showTime) < showSettleTime {
@@ -179,32 +175,45 @@ func (b *Backend) WrapContent(drawer gtk.Widgetter) gtk.Widgetter {
 
 // Show starts the slide-in animation using a smoothstep easing curve.
 func (b *Backend) Show() {
-	slog.Debug("backend.Show", "startMargin", b.margin)
-	if b.startup {
-		b.appWin.SetOpacity(1)
-		b.startup = false
-	}
+	slog.Debug("backend.Show", "startMargin", b.margin, "rightNeighbor", b.hasRightNeighbor())
 	b.showTime = time.Now()
-	b.focusedSinceShow = false
 
 	gtk4layershell.SetKeyboardMode(b.gtkWin, gtk4layershell.LayerShellKeyboardModeOnDemand)
-	b.slideMargin(0, func() {
-		b.animating = false
-	})
+	if b.hasRightNeighbor() {
+		// A monitor sits to the right: a rightward slide-off would cross onto it
+		// while opaque (KWin does not clip layer-surface overflow to the assigned
+		// output). Fade in place at margin 0, fully on the primary instead.
+		b.setMargin(0)
+		b.setOpacity(0)
+		b.fadeOpacity(1, func() { b.animating = false })
+	} else {
+		b.setOpacity(1)
+		b.slideMargin(0, func() { b.animating = false })
+	}
 	b.appWin.Present()
 }
 
-// Hide starts the slide-out animation.
+// Hide starts the slide-out (or fade-out) animation.
 func (b *Backend) Hide() {
-	slog.Debug("backend.Hide", "startMargin", b.margin)
+	slog.Debug("backend.Hide", "startMargin", b.margin, "rightNeighbor", b.hasRightNeighbor())
 	if w := b.gtkWin.Width(); w > 0 {
 		b.hiddenMargin = -(w - 1)
 	}
 	gtk4layershell.SetKeyboardMode(b.gtkWin, gtk4layershell.LayerShellKeyboardModeNone)
 	b.pointerInside = false // clear stale state; surface stays mapped off-screen
-	b.slideMargin(b.hiddenMargin, func() {
-		b.animating = false
-	})
+	if b.hasRightNeighbor() {
+		// Fade out in place (margin 0, on the primary), then park the now-invisible
+		// surface off-screen. The drawer never crosses onto the right monitor.
+		b.fadeOpacity(0, func() {
+			b.animating = false
+			b.setMargin(b.hiddenMargin)
+		})
+	} else {
+		b.slideMargin(b.hiddenMargin, func() {
+			b.animating = false
+			b.setOpacity(0) // hide the 1px sliver on the primary's own right edge
+		})
+	}
 }
 
 // slideMargin animates b.margin from its current value to target over
@@ -247,6 +256,85 @@ func (b *Backend) slideMargin(target int, onDone func()) uint64 {
 	})
 
 	return gen
+}
+
+// setMargin sets the right margin and keeps b.margin in sync.
+func (b *Backend) setMargin(m int) {
+	b.margin = m
+	gtk4layershell.SetMargin(b.gtkWin, gtk4layershell.LayerShellEdgeRight, m)
+}
+
+// setOpacity sets the window opacity and keeps b.opacity in sync.
+func (b *Backend) setOpacity(o float64) {
+	b.opacity = o
+	b.appWin.SetOpacity(o)
+}
+
+// fadeOpacity animates the window opacity from its current value to target over
+// animDuration using smoothstep easing. onDone runs on the main thread when the
+// animation completes. Shares animGen with slideMargin so the two cancel each
+// other when a show interrupts a hide (or vice versa).
+func (b *Backend) fadeOpacity(target float64, onDone func()) {
+	b.animGen++
+	gen := b.animGen
+	b.animating = true
+	start := b.opacity
+	t0 := time.Now()
+
+	b.gtkWin.AddTickCallback(func(_ gtk.Widgetter, _ gdk.FrameClocker) bool {
+		if b.animGen != gen {
+			slog.Debug("fade cancelled", "gen", gen, "currentGen", b.animGen)
+			return false
+		}
+		t := float64(time.Since(t0)) / float64(animDuration)
+		if t >= 1.0 {
+			b.setOpacity(target)
+			b.invalidateSurface()
+			slog.Debug("fade complete", "gen", gen, "opacity", target)
+			if onDone != nil {
+				onDone()
+			}
+			return false
+		}
+		t = t * t * (3 - 2*t) // smoothstep
+		b.setOpacity(start + (target-start)*t)
+		b.invalidateSurface()
+		return true
+	})
+}
+
+// hasRightNeighbor reports whether any monitor sits to the right of the drawer's
+// monitor (vertically overlapping its band). When true, hiding by sliding the
+// surface rightward off the primary would bleed onto that monitor, so a fade is
+// used instead. Recomputed per Show/Hide so monitor hotplug is handled.
+func (b *Backend) hasRightNeighbor() bool {
+	surface := b.appWin.Surface()
+	if surface == nil {
+		return false
+	}
+	display := gdk.DisplayGetDefault()
+	if display == nil {
+		return false
+	}
+	self := display.MonitorAtSurface(surface)
+	if self == nil {
+		return false
+	}
+	g := self.Geometry()
+	rightEdge := g.X() + g.Width()
+	monitors := display.Monitors()
+	n := monitors.NItems()
+	for i := uint(0); i < n; i++ {
+		m, ok := monitors.Item(i).Cast().(*gdk.Monitor)
+		if !ok || m == nil {
+			continue
+		}
+		mg := m.Geometry()
+		if mg.X() >= rightEdge && mg.Y() < g.Y()+g.Height() && mg.Y()+mg.Height() > g.Y() {
+			return true
+		}
+	}
+	return false
 }
 
 // invalidateSurface forces both widget-level and GDK surface-level

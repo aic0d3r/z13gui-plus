@@ -13,13 +13,12 @@ It has two display backends:
 
 - Module: `github.com/dahui/z13gui`
 - Binary: `z13gui`
-- Repo: `/home/jeff/dev/z13gui`
 
 ## Companion project: z13ctl
 
-The `z13ctl` daemon lives at `/home/jeff/dev/z13rgb` (module `github.com/dahui/z13ctl`).
-Its `api/` submodule (`github.com/dahui/z13ctl/api`) is at `/home/jeff/dev/z13rgb/api/`
-and is also published at tag `api/v1.1.3` on GitHub.
+The `z13ctl` daemon (module `github.com/dahui/z13ctl`) is a sibling repo.
+Its `api/` submodule (`github.com/dahui/z13ctl/api`) is published at tag `api/v1.1.6`
+on GitHub.
 
 During local development, a `go.work` file in this repo (if present, gitignored) provides
 the local override. In production the `go.mod` imports the published tag.
@@ -66,18 +65,30 @@ contrib/
 
 - **Layer-shell** (KDE): `github.com/diamondburned/gotk4-layer-shell/pkg/gtk4layershell`
   (NOT `gtklayershell` which is GTK3). pkg-config name: `gtk4-layer-shell-0`.
-- **Anchor**: right edge only (`LayerShellEdgeRight`). No top/bottom anchor — compositor
-  centers the window vertically at natural height.
+- **Anchor**: right + top + bottom edges. Top/bottom margins set to 5% of screen height
+  on realize. The surface is pinned to its monitor via `SetMonitor` (helps wlroots
+  compositors clip overflow; KWin does NOT clip, see conditional fade below).
 - **Keyboard mode**: `LayerShellKeyboardModeOnDemand` — gets focus when visible.
 - **Animation**: layer-shell right-margin animation (`gtk4layershell.SetMargin`).
   `margin=0` → on-screen; `margin=-320` → off-screen to the right.
   Avoids GTK Revealer which causes pixman errors and smearing artifacts in Wayland.
 - **Window visibility**: window is kept `SetVisible(true)` at all times after creation.
-  It's "hidden" by setting margin = -320 (off-screen), not by destroying/hiding the surface.
-  This prevents the ghost-surface artifact that KDE Plasma shows when remapping a surface.
+  It's "hidden" by setting margin = -(width-1) (off-screen) and opacity = 0, not by
+  destroying/hiding the surface. This prevents the ghost-surface artifact that KDE Plasma
+  shows when remapping a surface. The 1px margin keeps the surface in KWin's composited
+  output for damage tracking; opacity 0 makes the sliver invisible to the user.
 - **Width**: `SetSizeRequest(320, -1)`. Height is natural (content-driven, scrolled).
-- **Slide animation**: smoothstep timer loop via `glib.TimeoutAdd(16, ...)`.
-  Tracks current margin in `Window.margin` field; generation counter prevents overlapping.
+- **Show/hide animation**: smoothstep easing via `AddTickCallback` (VSync-synced),
+  with a shared `animGen` generation counter so a show cancels an in-flight hide
+  (and vice versa). Two paths, chosen per Show/Hide by `hasRightNeighbor()`:
+  - **No monitor to the right** → slide the right margin (`slideMargin`). Show sets
+    opacity=1 then slides in; Hide slides out then sets opacity=0 (hides the 1px
+    sliver on the primary's own right edge).
+  - **A monitor to the right** → fade in place (`fadeOpacity`) at margin 0, fully on
+    the primary, then park the transparent surface off-screen. A rightward slide
+    would otherwise bleed onto that monitor because KWin doesn't clip layer-surface
+    overflow to the assigned output. `Backend.margin`/`Backend.opacity` track current
+    state; use `setMargin`/`setOpacity` to keep them in sync.
 - **State source of truth**: daemon is the source of truth. On show, `api.SendGetState()`
   is called and `syncState()` updates widgets. Widget signals are suppressed during sync
   via `Window.syncing bool`.
@@ -98,9 +109,12 @@ contrib/
 - **Profile selector**: buttons (`gtk.Button`), stored in
   `w.profileBtns map[string]*gtk.Button`. Not DropDown (popup broken in gamescope).
 - **Focus-loss dismiss** (layer-shell): `EventControllerMotion` tracks `pointerInside`
-  on the backend. On `notify::is-active` focus loss: if pointer is inside, the drop is
-  spurious (KDE Plasma briefly drops focus during keyboard-mode transitions) → ignored.
+  on the backend. On `notify::is-active` focus loss: if within 500ms of Show, ignored
+  (compositor settle time for keyboard-mode transition). If pointer is inside, the drop
+  is spurious (KDE Plasma briefly drops focus during keyboard-mode transitions) → ignored.
   If pointer is outside, user clicked elsewhere → dismiss after 200ms confirmation delay.
+  Do NOT add a `focusedSinceShow` guard — it causes first-show dismiss regression on KDE
+  where the compositor drops focus during keyboard-mode transition and never re-grants it.
   Escape key also dismisses in both backends.
 - **GTK_A11Y=none**: set in `main.go` and `contrib/z13gui.service`. Disables GTK4
   AT-SPI accessibility bridge, which sends D-Bus events on every widget state change.
@@ -148,6 +162,7 @@ Functions used:
 - `api.SendGetState() (bool, *api.State, error)` — fetch full daemon state on show
 - `api.Subscribe([]string{"gui-toggle"}) (<-chan string, func(), error)` — event stream
 - `api.SendApply(device, color1, color2, mode, speed string, brightness int) (bool, error)`
+- `api.SendOff(device string) (bool, error)` — turn off lighting for a device
 - `api.SendProfileSet(profile string) (bool, error)`
 - `api.SendBatteryLimitSet(limit int) (bool, error)`
 - `api.SendPanelOverdriveSet(value int) (bool, error)` — 0 or 1
@@ -176,7 +191,7 @@ type State struct {
     FanRPM             int   // fan1 speed in RPM
 }
 type LightingState struct {
-    Mode string; Color string; Color2 string
+    Enabled bool; Mode string; Color string; Color2 string
     Speed string; Brightness int
 }
 type TDPState struct {
