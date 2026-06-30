@@ -17,6 +17,7 @@ import (
 	"github.com/dahui/z13gui/internal/gui/gamescope"
 	"github.com/dahui/z13gui/internal/gui/layershell"
 	"github.com/dahui/z13gui/internal/theme"
+	"github.com/dahui/z13gui/internal/togglegate"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
@@ -31,18 +32,22 @@ var defaultThemeCSS string
 //go:embed theme-default.toml
 var defaultThemeTOML string
 
-const drawerWidth = 320 // drawer panel width in pixels
+const (
+	drawerWidth          = 320 // drawer panel width in pixels
+	daemonToggleDebounce = 250 * time.Millisecond
+)
 
 // Window is the overlay drawer. All methods must be called from the GTK main
 // thread except subscribeLoop, which runs in a background goroutine.
 type Window struct {
-	win       *gtk.ApplicationWindow
-	gtkWin    *gtk.Window // alias for backend calls
-	backend   Backend     // display backend (layer-shell or gamescope)
-	gamescope bool        // true when running under gamescope (X11 overlay mode)
-	state     *api.State  // latest daemon state; nil until first successful fetch
-	tab       string      // active device tab: "keyboard" or "lightbar"
-	visible   bool        // true when the drawer is on-screen or animating in
+	win              *gtk.ApplicationWindow
+	gtkWin           *gtk.Window // alias for backend calls
+	backend          Backend     // display backend (layer-shell or gamescope)
+	gamescope        bool        // true when running under gamescope (X11 overlay mode)
+	state            *api.State  // latest daemon state; nil until first successful fetch
+	tab              string      // active device tab: "keyboard" or "lightbar"
+	visible          bool        // true when the drawer is on-screen or animating in
+	lastDaemonToggle time.Time   // last accepted gui-toggle event from the daemon; suppresses duplicate bursts
 
 	swatchProvider *gtk.CSSProvider // dynamic swatch background colors
 	themeProvider  *gtk.CSSProvider // current theme; replaced on applyTheme()
@@ -79,16 +84,16 @@ type Window struct {
 	tdpPL3Label        *gtk.Label
 	tdpWarningLabel    *gtk.Label
 	fanCurve           *fanCurveEditor
-	saveTdpBtn  *gtk.Button
-	saveFanBtn  *gtk.Button
-	saveBothBtn *gtk.Button
-	resetTdpBtn *gtk.Button
-	resetFanBtn *gtk.Button
-	uvBox       *gtk.Box    // undervolt container, hidden when unavailable
-	uvCpuScale  *gtk.Scale
-	uvCpuLabel  *gtk.Label
-	saveUvBtn   *gtk.Button
-	resetUvBtn  *gtk.Button
+	saveTdpBtn         *gtk.Button
+	saveFanBtn         *gtk.Button
+	saveBothBtn        *gtk.Button
+	resetTdpBtn        *gtk.Button
+	resetFanBtn        *gtk.Button
+	uvBox              *gtk.Box // undervolt container, hidden when unavailable
+	uvCpuScale         *gtk.Scale
+	uvCpuLabel         *gtk.Label
+	saveUvBtn          *gtk.Button
+	resetUvBtn         *gtk.Button
 	headerTelemetry    *gtk.Label // "45°C · 3200 RPM" in main header
 	telemetryTempLabel *gtk.Label
 	telemetryFanLabel  *gtk.Label
@@ -366,14 +371,22 @@ func (w *Window) subscribeLoop() {
 		slog.Info("daemon connected")
 		backoff = time.Second
 		for event := range ch {
-			if event == "gui-toggle" {
-				slog.Debug("gui-toggle received, dispatching")
-				glib.TimeoutAdd(0, func() bool {
-					w.Toggle()
-					return false
-				})
-				glib.MainContextDefault().Wakeup()
+			if event != "gui-toggle" {
+				continue
 			}
+			receivedAt := time.Now()
+			lastAccepted, ok := togglegate.Accept(w.lastDaemonToggle, receivedAt, daemonToggleDebounce)
+			if !ok {
+				slog.Warn("gui-toggle suppressed", "since", receivedAt.Sub(w.lastDaemonToggle))
+				continue
+			}
+			w.lastDaemonToggle = lastAccepted
+			slog.Debug("gui-toggle received, dispatching")
+			glib.TimeoutAdd(0, func() bool {
+				w.Toggle()
+				return false
+			})
+			glib.MainContextDefault().Wakeup()
 		}
 		cancel()
 	}
