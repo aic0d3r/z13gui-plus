@@ -141,6 +141,7 @@ func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
 	inner.Append(groupLabel("POWER"))
 	inner.Append(w.buildProfileSection())
 	inner.Append(w.buildCPUPowerSection())
+	inner.Append(w.buildFanPresetSection())
 	inner.Append(w.buildBatterySection())
 
 	scroll := gtk.NewScrolledWindow()
@@ -198,6 +199,7 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	inner.SetMarginEnd(12)
 
 	inner.Append(groupLabel("SYSTEM"))
+	inner.Append(w.buildRefreshRateSection())
 	inner.Append(w.buildToggle("Panel Overdrive", "Enable panel overdrive for faster pixel response (may cause ghosting)", &w.overdriveSwitch, func(active bool) {
 		v := 0
 		if active {
@@ -585,9 +587,14 @@ func (w *Window) buildTabRow() *gtk.Box {
 const dotsPerRow = 7
 
 // modeOrder defines the display order for lighting mode buttons.
+// 5 verified modes + 5 additional modes from g-helper's AuraMode enum.
+// The Z13 panel may not visually distinguish all of them; the unverified set
+// is grouped at the end so users can find what works on their hardware.
 var modeOrder = []string{
 	"static", "breathe", "cycle",
-	"rainbow", "strobe", "off",
+	"rainbow", "rainbow2", "strobe",
+	"star", "rain", "laser",
+	"reactive", "off",
 }
 
 // buildModeSection creates the 3x2 grid of lighting mode buttons.
@@ -731,7 +738,8 @@ func (w *Window) buildProfileSection() *gtk.Box {
 	return box
 }
 
-// buildBatterySection creates the battery charge limit scale (40–100%).
+// buildBatterySection creates the battery charge limit scale (40–100%) with
+// preset quick-pick buttons below it.
 func (w *Window) buildBatterySection() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
 	box.Append(sectionLabel("BATTERY LIMIT"))
@@ -743,9 +751,107 @@ func (w *Window) buildBatterySection() *gtk.Box {
 	sc.SetFocusable(false)
 	w.battScale = sc
 	w.initBatteryDebounce(sc)
-
 	box.Append(sc)
+
+	// Preset row: Standard (100%) / Balanced (80%) / Max Life (60%).
+	box.Append(w.buildBatteryPresets())
 	return box
+}
+
+// batteryPresets maps preset label → percentage. Order defines UI order.
+var batteryPresets = []struct {
+	pct   int
+	label string
+}{
+	{100, "Standard"},
+	{80, "Balanced"},
+	{60, "Max Life"},
+}
+
+// buildBatteryPresets creates the Standard / Balanced / Max Life preset row.
+func (w *Window) buildBatteryPresets() *gtk.Box {
+	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	row.AddCSSClass("btn-group")
+	for _, p := range batteryPresets {
+		p := p
+		btn := gtk.NewButtonWithLabel(p.label)
+		btn.ConnectClicked(func() {
+			if w.syncing {
+				return
+			}
+			setActiveIntButton(w.battPresetBtns, p.pct)
+			w.battScale.SetValue(float64(p.pct))
+			w.sendBatteryLimitSet(p.pct)
+		})
+		w.battPresetBtns[p.pct] = btn
+		row.Append(btn)
+	}
+	return row
+}
+
+// fanPresets defines the named fan curve presets.
+var fanPresets = []string{"silent", "balanced", "turbo"}
+
+// buildFanPresetSection creates the Silent / Balanced / Turbo fan curve
+// preset row. Clicking a preset sends the corresponding curve to the daemon
+// via the existing fancurve command (no new protocol).
+func (w *Window) buildFanPresetSection() *gtk.Box {
+	box := gtk.NewBox(gtk.OrientationVertical, 4)
+	box.Append(sectionLabel("FAN PRESET"))
+	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	row.AddCSSClass("btn-group")
+	for _, name := range fanPresets {
+		name := name
+		btn := gtk.NewButtonWithLabel(strings.Title(name)) //nolint:staticcheck // ASCII-only preset labels
+		btn.ConnectClicked(func() {
+			if w.syncing {
+				return
+			}
+			setActiveButton(w.fanPresetBtns, name)
+			w.sendFanPreset(name)
+		})
+		w.fanPresetBtns[name] = btn
+		row.Append(btn)
+	}
+	box.Append(row)
+	return box
+}
+
+// refreshRates defines the available eDP-1 refresh rates in display order.
+var refreshRates = []int{60, 180}
+
+// buildRefreshRateSection creates the 60Hz / 180Hz segmented control.
+func (w *Window) buildRefreshRateSection() *gtk.Box {
+	box := gtk.NewBox(gtk.OrientationVertical, 4)
+	box.Append(sectionLabel("REFRESH RATE"))
+	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	row.AddCSSClass("btn-group")
+	for _, hz := range refreshRates {
+		hz := hz
+		btn := gtk.NewButtonWithLabel(fmt.Sprintf("%d Hz", hz))
+		btn.ConnectClicked(func() {
+			if w.syncing {
+				return
+			}
+			setActiveIntButton(w.refreshBtns, hz)
+			w.sendRefreshRateSet(hz)
+		})
+		w.refreshBtns[hz] = btn
+		row.Append(btn)
+	}
+	box.Append(row)
+	return box
+}
+
+// setActiveIntButton is the int-keyed variant of setActiveButton.
+func setActiveIntButton(btns map[int]*gtk.Button, active int) {
+	for k, b := range btns {
+		if k == active {
+			b.AddCSSClass("active")
+		} else {
+			b.RemoveCSSClass("active")
+		}
+	}
 }
 
 var cpuEPPs = []struct {
@@ -918,6 +1024,28 @@ func (w *Window) powerTabFocusItems() []focusItem {
 		onLeft:   battLeft, onRight: battRight,
 		getValue: battGet, setValue: battSet,
 	})
+	row++
+
+	// Battery preset buttons.
+	for col, p := range batteryPresets {
+		btn := w.battPresetBtns[p.pct]
+		items = append(items, focusItem{
+			widget: btn, row: row, col: col,
+			section:    "battery-preset",
+			onActivate: func() { btn.Activate() },
+		})
+	}
+	row++
+
+	// Fan preset buttons.
+	for col, name := range fanPresets {
+		btn := w.fanPresetBtns[name]
+		items = append(items, focusItem{
+			widget: btn, row: row, col: col,
+			section:    "fan-preset",
+			onActivate: func() { btn.Activate() },
+		})
+	}
 	return items
 }
 
@@ -1015,6 +1143,18 @@ func (w *Window) rgbTabFocusItems() []focusItem {
 func (w *Window) systemTabFocusItems() []focusItem {
 	var items []focusItem
 	row := 1
+
+	// Refresh rate buttons.
+	for col, hz := range refreshRates {
+		btn := w.refreshBtns[hz]
+		items = append(items, focusItem{
+			widget: btn, row: row, col: col,
+			section:    "refresh-rate",
+			onActivate: func() { btn.Activate() },
+		})
+	}
+	row++
+
 	if w.overdriveSwitch != nil {
 		sw := w.overdriveSwitch
 		items = append(items, focusItem{

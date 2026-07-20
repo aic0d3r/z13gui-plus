@@ -68,6 +68,9 @@ type Window struct {
 	cpuEPPBtns      map[string]*gtk.Button
 	cpuBoostSwitch  *gtk.Switch
 	battScale       *gtk.Scale
+	battPresetBtns  map[int]*gtk.Button    // battery presets: 100/80/60 %
+	fanPresetBtns   map[string]*gtk.Button // fan curve presets: silent/balanced/turbo
+	refreshBtns     map[int]*gtk.Button    // eDP-1 refresh rate: 60/180 Hz
 	overdriveSwitch *gtk.Switch
 	bootSoundSwitch *gtk.Switch
 
@@ -152,14 +155,17 @@ type Window struct {
 // GTK Activate signal.
 func New(app *gtk.Application) *Window {
 	w := &Window{
-		tab:         "keyboard",
-		activeTab:   "power",
-		gamescope:   os.Getenv("GAMESCOPE_WAYLAND_DISPLAY") != "",
-		modeButtons: make(map[string]*gtk.Button),
-		speedBtns:   make(map[string]*gtk.Button),
-		profileBtns: make(map[string]*gtk.Button),
-		cpuEPPBtns:  make(map[string]*gtk.Button),
-		mainTabBtns: make(map[string]*gtk.Button),
+		tab:            "keyboard",
+		activeTab:      "power",
+		gamescope:      os.Getenv("GAMESCOPE_WAYLAND_DISPLAY") != "",
+		modeButtons:    make(map[string]*gtk.Button),
+		speedBtns:      make(map[string]*gtk.Button),
+		profileBtns:    make(map[string]*gtk.Button),
+		cpuEPPBtns:     make(map[string]*gtk.Button),
+		mainTabBtns:    make(map[string]*gtk.Button),
+		battPresetBtns: make(map[int]*gtk.Button),
+		fanPresetBtns:  make(map[string]*gtk.Button),
+		refreshBtns:    make(map[int]*gtk.Button),
 	}
 
 	w.win = gtk.NewApplicationWindow(app)

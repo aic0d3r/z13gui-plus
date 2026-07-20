@@ -80,6 +80,7 @@ func (w *Window) syncState() {
 	w.syncProfile()
 	w.syncCPUPower()
 	w.syncBattery()
+	w.syncRefreshRate()
 	w.syncOverdrive()
 	w.syncBootSound()
 	w.syncCustomView()
@@ -190,11 +191,23 @@ func (w *Window) syncProfile() {
 }
 
 // syncBattery sets the battery limit scale to match the daemon state.
+// Also highlights the matching preset button (if any).
 func (w *Window) syncBattery() {
-	if w.state == nil || w.state.Battery == 0 || w.battScale == nil {
+	if w.state == nil || w.battScale == nil {
 		return
 	}
-	w.battScale.SetValue(float64(w.state.Battery))
+	if w.state.Battery != 0 {
+		w.battScale.SetValue(float64(w.state.Battery))
+	}
+	setActiveIntButton(w.battPresetBtns, w.state.Battery)
+}
+
+// syncRefreshRate highlights the refresh rate button matching the daemon state.
+func (w *Window) syncRefreshRate() {
+	if w.state == nil {
+		return
+	}
+	setActiveIntButton(w.refreshBtns, w.state.RefreshRate)
 }
 
 // queueApply debounces rapid API calls from continuous inputs (color wheel,
@@ -330,4 +343,68 @@ func (w *Window) sendBootSoundSet(value int) {
 	} else {
 		slog.Debug("sendBootSoundSet: done", "elapsed", time.Since(start))
 	}
+}
+
+// sendRefreshRateSet switches eDP-1 to the requested refresh rate.
+func (w *Window) sendRefreshRateSet(hz int) {
+	slog.Debug("sendRefreshRateSet: calling daemon", "hz", hz)
+	start := time.Now()
+	if _, err := api.SendRefreshRateSet(hz); err != nil {
+		slog.Warn("refresh rate set failed", "hz", hz, "err", err, "elapsed", time.Since(start))
+	} else {
+		slog.Debug("sendRefreshRateSet: done", "elapsed", time.Since(start))
+	}
+}
+
+// sendBatteryLimitSet sends a battery charge limit change to the daemon.
+// Called by the preset buttons; the scale's value-change path uses an inline
+// debounce in initBatteryDebounce.
+func (w *Window) sendBatteryLimitSet(limit int) {
+	slog.Debug("sendBatteryLimitSet: calling daemon", "limit", limit)
+	start := time.Now()
+	if _, err := api.SendBatteryLimitSet(limit); err != nil {
+		slog.Warn("battery limit set failed", "limit", limit, "err", err, "elapsed", time.Since(start))
+	} else {
+		slog.Debug("sendBatteryLimitSet: done", "elapsed", time.Since(start))
+	}
+}
+
+// sendFanPreset encodes the named preset curve as "temp:pwm,..." and sends it
+// to the daemon via the existing fancurve command — no new protocol needed.
+func (w *Window) sendFanPreset(name string) {
+	points := fanPresetPoints(name)
+	if points == "" {
+		slog.Warn("fan preset has no curve", "name", name)
+		return
+	}
+	slog.Debug("sendFanPreset: calling daemon", "preset", name)
+	start := time.Now()
+	if _, err := api.SendFanCurveSet(points); err != nil {
+		slog.Warn("fan preset set failed", "preset", name, "err", err, "elapsed", time.Since(start))
+	} else {
+		slog.Debug("sendFanPreset: done", "preset", name, "elapsed", time.Since(start))
+	}
+}
+
+// fanPresetPoints returns the named preset encoded as the wire-format curve
+// string ("temp:pwm,..." with 8 points). Empty string for unknown presets.
+// Mirrors internal/cli/fan.go FanCurvePreset() in z13ctl so the GUI does not
+// need a new daemon command.
+func fanPresetPoints(name string) string {
+	var pts [][2]int
+	switch name {
+	case "silent":
+		pts = [][2]int{{25, 0}, {40, 0}, {50, 13}, {60, 38}, {70, 76}, {80, 128}, {85, 178}, {90, 255}}
+	case "balanced":
+		pts = [][2]int{{30, 13}, {45, 25}, {55, 51}, {65, 89}, {75, 140}, {82, 191}, {88, 229}, {95, 255}}
+	case "turbo":
+		pts = [][2]int{{30, 76}, {45, 128}, {55, 178}, {65, 216}, {75, 242}, {80, 255}, {85, 255}, {90, 255}}
+	default:
+		return ""
+	}
+	parts := make([]string, len(pts))
+	for i, p := range pts {
+		parts[i] = fmt.Sprintf("%d:%d", p[0], p[1])
+	}
+	return strings.Join(parts, ",")
 }
