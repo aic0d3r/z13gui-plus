@@ -60,6 +60,10 @@ type Window struct {
 	speedBtns       map[string]*gtk.Button
 	brightScale     *gtk.Scale
 	profileBtns     map[string]*gtk.Button
+	cpuPowerBox     *gtk.Box
+	cpuMinScale     *gtk.Scale
+	cpuEPPBtns      map[string]*gtk.Button
+	cpuBoostSwitch  *gtk.Switch
 	battScale       *gtk.Scale
 	overdriveSwitch *gtk.Switch
 	bootSoundSwitch *gtk.Switch
@@ -147,6 +151,7 @@ func New(app *gtk.Application) *Window {
 		modeButtons: make(map[string]*gtk.Button),
 		speedBtns:   make(map[string]*gtk.Button),
 		profileBtns: make(map[string]*gtk.Button),
+		cpuEPPBtns:  make(map[string]*gtk.Button),
 	}
 
 	w.win = gtk.NewApplicationWindow(app)

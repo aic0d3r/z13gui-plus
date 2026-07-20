@@ -78,12 +78,72 @@ func (w *Window) syncState() {
 	defer func() { w.syncing = false }()
 	w.syncLightingSection()
 	w.syncProfile()
+	w.syncCPUPower()
 	w.syncBattery()
 	w.syncOverdrive()
 	w.syncBootSound()
 	w.syncCustomView()
 	if w.headerTelemetry != nil {
 		w.headerTelemetry.SetLabel(fmt.Sprintf("%d°C · %d RPM", w.state.Temperature, w.state.FanRPM))
+	}
+}
+
+func (w *Window) syncCPUPower() {
+	if w.cpuPowerBox == nil {
+		return
+	}
+	state := w.state.CPUPower
+	if state == nil {
+		w.cpuPowerBox.SetVisible(false)
+		return
+	}
+	w.cpuPowerBox.SetVisible(true)
+	w.cpuMinScale.SetRange(float64(state.MinLimitKHz)/1000, float64(state.MaxLimitKHz)/1000)
+	w.cpuMinScale.SetValue(float64(state.MinFrequencyKHz) / 1000)
+	setActiveButton(w.cpuEPPBtns, state.EPP)
+	for value, btn := range w.cpuEPPBtns {
+		available := false
+		for _, choice := range state.EPPChoices {
+			if choice == value {
+				available = true
+				break
+			}
+		}
+		btn.SetSensitive(available)
+	}
+	w.cpuBoostSwitch.SetActive(state.Boost)
+}
+
+func (w *Window) initCPUMinDebounce(sc *gtk.Scale) {
+	var debounce *time.Timer
+	sc.ConnectValueChanged(func() {
+		if w.syncing {
+			return
+		}
+		if debounce != nil {
+			debounce.Stop()
+		}
+		debounce = time.AfterFunc(200*time.Millisecond, func() {
+			glib.IdleAdd(func() bool {
+				khz := int(sc.Value()) * 1000
+				if _, err := api.SendCPUMinFrequencySet(khz); err != nil {
+					slog.Warn("CPU minimum frequency set failed", "khz", khz, "err", err)
+				}
+				return false
+			})
+		})
+	})
+}
+
+func (w *Window) sendCPUEPPSet(value string) {
+	if _, err := api.SendCPUEPPSet(value); err != nil {
+		slog.Warn("CPU EPP set failed", "value", value, "err", err)
+	}
+}
+
+func (w *Window) sendCPUBoostSet(enabled bool) {
+	if _, err := api.SendCPUBoostSet(enabled); err != nil {
+		slog.Warn("CPU boost set failed", "enabled", enabled, "err", err)
 	}
 }
 

@@ -14,6 +14,7 @@ Press it again, click anywhere outside the drawer, or press **Escape** to close 
 | Section | What it does |
 |---------|-------------|
 | **Profile** | Switch between quiet, balanced, performance, and custom TDP profiles. Selecting custom opens a dedicated view. |
+| **CPU Power** | Set the CPU minimum frequency, AMD energy performance preference (EPP), and CPU boost without changing GPU clocks. |
 | **Custom TDP** | Configurable power limits with basic (single slider) and advanced (PL1 sustained / PL2 short boost / PL3 fast boost) modes |
 | **Fan Curve** | Edit the fan response curve per-profile (custom profile, advanced mode) |
 | **Undervolt** | CPU Curve Optimizer offset (custom profile, advanced mode; requires `ryzen_smu`). iGPU CO is not supported on Strix Halo. |
@@ -27,8 +28,8 @@ Press it again, click anywhere outside the drawer, or press **Escape** to close 
 | **Panel Overdrive** | Toggle faster pixel response (may cause slight ghosting) |
 | **Boot Sound** | Enable or disable the startup POST sound |
 
-Changes take effect immediately and are sent to the z13ctl daemon. Settings
-persist across reboots while the daemon is running.
+Changes take effect immediately and are sent to the z13ctl daemon. Saved device
+settings persist across reboots; CPU power controls reflect live kernel state.
 
 The theme picker button at the bottom-left of the drawer opens the theme view.
 See [Theming](theming.md) for details.

@@ -64,6 +64,7 @@ func (w *Window) buildContent() gtk.Widgetter {
 	// TDP AND POWER section.
 	inner.Append(groupLabel("TDP AND POWER"))
 	inner.Append(w.buildProfileSection())
+	inner.Append(w.buildCPUPowerSection())
 	inner.Append(w.buildBatterySection())
 	inner.Append(separator())
 
@@ -631,10 +632,11 @@ func (w *Window) buildProfileSection() *gtk.Box {
 				go func() {
 					ok, state, err := api.SendGetState()
 					if ok && err == nil {
-						glib.IdleAdd(func() {
-							w.state = state
-							w.syncing = true
-							w.syncCustomView()
+					glib.IdleAdd(func() {
+						w.state = state
+						w.syncing = true
+						w.syncCPUPower()
+						w.syncCustomView()
 							w.syncing = false
 						})
 					}
@@ -663,6 +665,57 @@ func (w *Window) buildBatterySection() *gtk.Box {
 	w.initBatteryDebounce(sc)
 
 	box.Append(sc)
+	return box
+}
+
+var cpuEPPs = []struct {
+	value string
+	label string
+}{
+	{"performance", "Performance"},
+	{"balance_performance", "Balanced Perf"},
+	{"balance_power", "Balanced Power"},
+	{"power", "Power Saver"},
+}
+
+func (w *Window) buildCPUPowerSection() *gtk.Box {
+	box := gtk.NewBox(gtk.OrientationVertical, 4)
+	box.Append(sectionLabel("CPU POWER"))
+
+	box.Append(sectionLabel("MINIMUM FREQUENCY (MHz)"))
+	minScale := gtk.NewScaleWithRange(gtk.OrientationHorizontal, 400, 3000, 25)
+	minScale.SetDigits(0)
+	minScale.SetDrawValue(true)
+	minScale.SetValue(625)
+	minScale.SetFocusable(false)
+	w.cpuMinScale = minScale
+	w.initCPUMinDebounce(minScale)
+	box.Append(minScale)
+
+	box.Append(sectionLabel("ENERGY PERFORMANCE PREFERENCE"))
+	grid := gtk.NewGrid()
+	grid.SetColumnSpacing(4)
+	grid.SetRowSpacing(4)
+	grid.SetColumnHomogeneous(true)
+	grid.AddCSSClass("btn-group")
+	for i, option := range cpuEPPs {
+		option := option
+		btn := gtk.NewButtonWithLabel(option.label)
+		btn.ConnectClicked(func() {
+			if w.syncing {
+				return
+			}
+			setActiveButton(w.cpuEPPBtns, option.value)
+			w.sendCPUEPPSet(option.value)
+		})
+		w.cpuEPPBtns[option.value] = btn
+		grid.Attach(btn, i%2, i/2, 1, 1)
+	}
+	box.Append(grid)
+
+	box.Append(w.buildToggle("CPU Boost", "Allow CPU frequencies above the nominal maximum", &w.cpuBoostSwitch, w.sendCPUBoostSet))
+	box.SetVisible(false)
+	w.cpuPowerBox = box
 	return box
 }
 
@@ -714,10 +767,34 @@ func (w *Window) buildMainFocusList() {
 		})
 	}
 
+	// CPU power controls.
+	cpuVisible := boxVisible(w.cpuPowerBox)
+	cpuLeft, cpuRight, cpuGet, cpuSet := scaleAdjust(w.cpuMinScale, 25)
+	items = append(items, focusItem{
+		widget: w.cpuMinScale, row: 2, col: 0,
+		section: "cpu-power", isVisible: cpuVisible,
+		editable: true,
+		onLeft:   cpuLeft, onRight: cpuRight,
+		getValue: cpuGet, setValue: cpuSet,
+	})
+	for i, option := range cpuEPPs {
+		btn := w.cpuEPPBtns[option.value]
+		items = append(items, focusItem{
+			widget: btn, row: 3 + i/2, col: i % 2,
+			section: "cpu-power", isVisible: cpuVisible,
+			onActivate: func() { btn.Activate() },
+		})
+	}
+	items = append(items, focusItem{
+		widget: w.cpuBoostSwitch, row: 5, col: 0,
+		section: "cpu-power", isVisible: cpuVisible,
+		onActivate: func() { w.cpuBoostSwitch.SetActive(!w.cpuBoostSwitch.Active()) },
+	})
+
 	// Battery slider.
 	battLeft, battRight, battGet, battSet := scaleAdjust(w.battScale, 5)
 	items = append(items, focusItem{
-		widget: w.battScale, row: 2, col: 0,
+		widget: w.battScale, row: 6, col: 0,
 		section:  "battery",
 		editable: true,
 		onLeft:   battLeft, onRight: battRight,
@@ -728,7 +805,7 @@ func (w *Window) buildMainFocusList() {
 	for col, btn := range []*gtk.CheckButton{w.tabKB, w.tabLB} {
 		btn := btn
 		items = append(items, focusItem{
-			widget: btn, row: 3, col: col,
+			widget: btn, row: 7, col: col,
 			section:    "tabs",
 			onActivate: func() { btn.SetActive(true) },
 		})
@@ -738,7 +815,7 @@ func (w *Window) buildMainFocusList() {
 	for i, m := range modeOrder {
 		btn := w.modeButtons[m]
 		items = append(items, focusItem{
-			widget: btn, row: 4 + i/3, col: i % 3,
+			widget: btn, row: 8 + i/3, col: i % 3,
 			section:    "mode",
 			onActivate: func() { btn.Activate() },
 		})
@@ -750,14 +827,14 @@ func (w *Window) buildMainFocusList() {
 		for col, btn := range w.color1.presetBtns {
 			btn := btn
 			items = append(items, focusItem{
-				widget: btn, row: 6, col: col,
+				widget: btn, row: 10, col: col,
 				section: "color1", isVisible: vis,
 				onActivate: func() { btn.Activate() },
 			})
 		}
 		// Custom button on its own row below presets.
 		items = append(items, focusItem{
-			widget: w.color1.customBtn, row: 7, col: 0,
+			widget: w.color1.customBtn, row: 11, col: 0,
 			section: "color1", isVisible: vis,
 			onActivate: func() { w.showColorView(w.color1) },
 		})
@@ -769,13 +846,13 @@ func (w *Window) buildMainFocusList() {
 		for col, btn := range w.color2.presetBtns {
 			btn := btn
 			items = append(items, focusItem{
-				widget: btn, row: 8, col: col,
+				widget: btn, row: 12, col: col,
 				section: "color2", isVisible: vis,
 				onActivate: func() { btn.Activate() },
 			})
 		}
 		items = append(items, focusItem{
-			widget: w.color2.customBtn, row: 9, col: 0,
+			widget: w.color2.customBtn, row: 13, col: 0,
 			section: "color2", isVisible: vis,
 			onActivate: func() { w.showColorView(w.color2) },
 		})
@@ -785,7 +862,7 @@ func (w *Window) buildMainFocusList() {
 	for col, s := range speeds {
 		btn := w.speedBtns[s]
 		items = append(items, focusItem{
-			widget: btn, row: 10, col: col,
+			widget: btn, row: 14, col: col,
 			section: "speed", isVisible: boxVisible(w.speedBox),
 			onActivate: func() { btn.Activate() },
 		})
@@ -794,7 +871,7 @@ func (w *Window) buildMainFocusList() {
 	// Brightness slider.
 	brLeft, brRight, brGet, brSet := scaleAdjust(w.brightScale, 1)
 	items = append(items, focusItem{
-		widget: w.brightScale, row: 11, col: 0,
+		widget: w.brightScale, row: 15, col: 0,
 		section: "brightness", isVisible: boxVisible(w.brightBox),
 		editable: true,
 		onLeft:   brLeft, onRight: brRight,
@@ -804,7 +881,7 @@ func (w *Window) buildMainFocusList() {
 	// Footer: theme button, overdrive, boot sound.
 	col := 0
 	items = append(items, focusItem{
-		widget: w.paletteBtn, row: 12, col: col,
+		widget: w.paletteBtn, row: 16, col: col,
 		section:    "footer",
 		onActivate: func() { w.showThemeView() },
 	})
@@ -812,7 +889,7 @@ func (w *Window) buildMainFocusList() {
 	if w.overdriveSwitch != nil {
 		sw := w.overdriveSwitch
 		items = append(items, focusItem{
-			widget: sw, row: 12, col: col,
+			widget: sw, row: 16, col: col,
 			section:    "footer",
 			onActivate: func() { sw.SetActive(!sw.Active()) },
 		})
@@ -821,7 +898,7 @@ func (w *Window) buildMainFocusList() {
 	if w.bootSoundSwitch != nil {
 		sw := w.bootSoundSwitch
 		items = append(items, focusItem{
-			widget: sw, row: 12, col: col,
+			widget: sw, row: 16, col: col,
 			section:    "footer",
 			onActivate: func() { sw.SetActive(!sw.Active()) },
 		})
