@@ -49,9 +49,9 @@ type Handler func(Action)
 type deviceClass int
 
 const (
-	deviceIgnore  deviceClass = iota // not gamepad-related; skip
-	deviceGamepad                    // full gamepad: read events + EVIOCGRAB
-	deviceGrabOnly                   // related device (e.g. PS touchpad): EVIOCGRAB only
+	deviceIgnore   deviceClass = iota // not gamepad-related; skip
+	deviceGamepad                     // full gamepad: read events + EVIOCGRAB
+	deviceGrabOnly                    // related device (e.g. PS touchpad): EVIOCGRAB only
 )
 
 // gamepadButtons are evdev button codes that identify a device as a gamepad.
@@ -270,6 +270,14 @@ func classifyDevice(dev *evdev.InputDevice) deviceClass {
 
 	// Check for touchpad (PS controller touchpad): has multitouch but no
 	// gamepad buttons. Must be grabbed to prevent it acting as a mouse.
+	// Skip direct-input touchscreens (INPUT_PROP_DIRECT) — they are the
+	// actual touchscreen and must NOT be grabbed, or the compositor loses
+	// all touch events while the overlay is visible.
+	for _, p := range dev.Properties() {
+		if p == evdev.INPUT_PROP_DIRECT {
+			return deviceIgnore
+		}
+	}
 	abs := dev.CapableEvents(evdev.EV_ABS)
 	for _, a := range abs {
 		if a == evdev.ABS_MT_POSITION_X {
