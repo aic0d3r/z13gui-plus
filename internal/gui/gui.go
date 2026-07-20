@@ -42,6 +42,7 @@ type Window struct {
 	gamescope bool        // true when running under gamescope (X11 overlay mode)
 	state     *api.State  // latest daemon state; nil until first successful fetch
 	tab       string      // active device tab: "keyboard" or "lightbar"
+	activeTab string      // active main tab: "power", "rgb", "system" (persisted)
 	visible   bool        // true when the drawer is on-screen or animating in
 
 	swatchProvider *gtk.CSSProvider // dynamic swatch background colors
@@ -50,6 +51,8 @@ type Window struct {
 	// Widget references for syncState.
 	tabKB           *gtk.CheckButton
 	tabLB           *gtk.CheckButton
+	mainTabBtns     map[string]*gtk.Button // top-level Power/RGB/System tabs
+	tabStack        *gtk.Stack             // switches between Power/RGB/System tab content
 	modeButtons     map[string]*gtk.Button
 	color1          *colorInput
 	color2          *colorInput
@@ -83,16 +86,16 @@ type Window struct {
 	tdpPL3Label        *gtk.Label
 	tdpWarningLabel    *gtk.Label
 	fanCurve           *fanCurveEditor
-	saveTdpBtn  *gtk.Button
-	saveFanBtn  *gtk.Button
-	saveBothBtn *gtk.Button
-	resetTdpBtn *gtk.Button
-	resetFanBtn *gtk.Button
-	uvBox       *gtk.Box    // undervolt container, hidden when unavailable
-	uvCpuScale  *gtk.Scale
-	uvCpuLabel  *gtk.Label
-	saveUvBtn   *gtk.Button
-	resetUvBtn  *gtk.Button
+	saveTdpBtn         *gtk.Button
+	saveFanBtn         *gtk.Button
+	saveBothBtn        *gtk.Button
+	resetTdpBtn        *gtk.Button
+	resetFanBtn        *gtk.Button
+	uvBox              *gtk.Box // undervolt container, hidden when unavailable
+	uvCpuScale         *gtk.Scale
+	uvCpuLabel         *gtk.Label
+	saveUvBtn          *gtk.Button
+	resetUvBtn         *gtk.Button
 	headerTelemetry    *gtk.Label // "45°C · 3200 RPM" in main header
 	telemetryTempLabel *gtk.Label
 	telemetryFanLabel  *gtk.Label
@@ -103,7 +106,10 @@ type Window struct {
 	applyTimer *time.Timer // debounce for continuous inputs (brightness, color wheel)
 
 	// View switching (main/theme/color views).
-	mainScroll         *gtk.ScrolledWindow // scrollable area in main drawer view
+	mainScroll         *gtk.ScrolledWindow // scrollable area in main drawer view (legacy, unused with tabs)
+	powerScroll        *gtk.ScrolledWindow // Power tab scroll
+	rgbScroll          *gtk.ScrolledWindow // RGB tab scroll
+	systemScroll       *gtk.ScrolledWindow // System tab scroll
 	themeScroll        *gtk.ScrolledWindow // scrollable area in theme picker view
 	viewStack          *gtk.Stack          // switches between main/theme/color views
 	editingColor       *colorInput         // which color the color-picker view is editing
@@ -147,11 +153,13 @@ type Window struct {
 func New(app *gtk.Application) *Window {
 	w := &Window{
 		tab:         "keyboard",
+		activeTab:   "power",
 		gamescope:   os.Getenv("GAMESCOPE_WAYLAND_DISPLAY") != "",
 		modeButtons: make(map[string]*gtk.Button),
 		speedBtns:   make(map[string]*gtk.Button),
 		profileBtns: make(map[string]*gtk.Button),
 		cpuEPPBtns:  make(map[string]*gtk.Button),
+		mainTabBtns: make(map[string]*gtk.Button),
 	}
 
 	w.win = gtk.NewApplicationWindow(app)

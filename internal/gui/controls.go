@@ -37,7 +37,7 @@ func (w *Window) buildContent() gtk.Widgetter {
 	outer := gtk.NewBox(gtk.OrientationVertical, 0)
 	outer.AddCSSClass("drawer")
 
-	// Fixed title row — sits above the scroll area, always visible.
+	// Fixed title row — sits above the tab row, always visible.
 	titleRow := gtk.NewBox(gtk.OrientationHorizontal, 0)
 	titleRow.SetMarginTop(10)
 	titleRow.SetMarginBottom(6)
@@ -55,20 +55,110 @@ func (w *Window) buildContent() gtk.Widgetter {
 	w.headerTelemetry.AddCSSClass("header-telemetry")
 	titleRow.Append(w.headerTelemetry)
 
+	// Main tab row — Power / RGB / System. Active tab persists across drawer opens.
+	tabRow := w.buildMainTabRow()
+
+	// Tab content stack — each tab has its own scroll area.
+	w.tabStack = gtk.NewStack()
+	w.tabStack.SetTransitionType(gtk.StackTransitionTypeCrossfade)
+	w.tabStack.SetVExpand(true)
+	w.tabStack.AddNamed(w.buildPowerTab(), "power")
+	w.tabStack.AddNamed(w.buildRGBTab(), "rgb")
+	w.tabStack.AddNamed(w.buildSystemTab(), "system")
+	w.tabStack.SetVisibleChildName(w.activeTab)
+	setActiveButton(w.mainTabBtns, w.activeTab)
+
+	mainPage := gtk.NewBox(gtk.OrientationVertical, 0)
+	mainPage.Append(titleRow)
+	mainPage.Append(tabRow)
+	mainPage.Append(w.tabStack)
+
+	// Stack with main, custom, theme, and color views.
+	w.viewStack = gtk.NewStack()
+	w.viewStack.SetTransitionType(gtk.StackTransitionTypeNone)
+	w.viewStack.SetVExpand(true)
+	w.viewStack.AddNamed(mainPage, "main")
+	// Theme and color views are lazy-loaded on first navigation
+	// to keep the initial widget tree small for fast animation.
+	w.viewStack.SetVisibleChildName("main")
+	outer.Append(w.viewStack)
+
+	outer.Append(w.buildBottomBar())
+
+	w.buildMainFocusList()
+	w.focusItems = w.mainFocusItems
+
+	return outer
+}
+
+// buildMainTabRow creates the top-level Power / RGB / System tab buttons.
+func (w *Window) buildMainTabRow() *gtk.Box {
+	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	row.SetMarginStart(12)
+	row.SetMarginEnd(12)
+	row.SetMarginBottom(4)
+	row.AddCSSClass("main-tab-row")
+
+	tabs := []struct{ name, label string }{
+		{"power", "Power"},
+		{"rgb", "RGB"},
+		{"system", "System"},
+	}
+	for _, t := range tabs {
+		t := t
+		btn := gtk.NewButtonWithLabel(t.label)
+		btn.SetHExpand(true)
+		btn.ConnectClicked(func() { w.switchTab(t.name) })
+		if w.gamescope {
+			addTouchActivate(btn, func() { btn.Activate() })
+		}
+		w.mainTabBtns[t.name] = btn
+		row.Append(btn)
+	}
+	return row
+}
+
+// switchTab changes the visible tab content and rebuilds the focus list.
+func (w *Window) switchTab(name string) {
+	if w.tabStack == nil {
+		return
+	}
+	w.activeTab = name
+	w.tabStack.SetVisibleChildName(name)
+	setActiveButton(w.mainTabBtns, name)
+	w.buildMainFocusList()
+	w.swapFocusList(w.mainFocusItems)
+}
+
+// buildPowerTab builds the Power tab: profile, CPU power, battery.
+func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
 	inner := gtk.NewBox(gtk.OrientationVertical, 8)
 	inner.SetMarginTop(4)
 	inner.SetMarginBottom(12)
 	inner.SetMarginStart(12)
 	inner.SetMarginEnd(12)
 
-	// TDP AND POWER section.
-	inner.Append(groupLabel("TDP AND POWER"))
+	inner.Append(groupLabel("POWER"))
 	inner.Append(w.buildProfileSection())
 	inner.Append(w.buildCPUPowerSection())
 	inner.Append(w.buildBatterySection())
-	inner.Append(separator())
 
-	// RGB section.
+	scroll := gtk.NewScrolledWindow()
+	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
+	scroll.SetVExpand(true)
+	scroll.SetChild(inner)
+	w.powerScroll = scroll
+	return scroll
+}
+
+// buildRGBTab builds the RGB tab: device tabs, mode, colors, speed, brightness.
+func (w *Window) buildRGBTab() *gtk.ScrolledWindow {
+	inner := gtk.NewBox(gtk.OrientationVertical, 8)
+	inner.SetMarginTop(4)
+	inner.SetMarginBottom(12)
+	inner.SetMarginStart(12)
+	inner.SetMarginEnd(12)
+
 	inner.Append(groupLabel("RGB"))
 	inner.Append(w.buildTabRow())
 	inner.Append(w.buildModeSection())
@@ -95,33 +185,43 @@ func (w *Window) buildContent() gtk.Widgetter {
 	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
 	scroll.SetVExpand(true)
 	scroll.SetChild(inner)
-	w.mainScroll = scroll
-
-	// Stack with main, theme, and color views — used in both modes.
-	w.viewStack = gtk.NewStack()
-	w.viewStack.SetTransitionType(gtk.StackTransitionTypeNone)
-	w.viewStack.SetVExpand(true)
-
-	mainPage := gtk.NewBox(gtk.OrientationVertical, 0)
-	mainPage.Append(titleRow)
-	mainPage.Append(scroll)
-	w.viewStack.AddNamed(mainPage, "main")
-	// Theme and color views are lazy-loaded on first navigation
-	// to keep the initial widget tree small for fast animation.
-	w.viewStack.SetVisibleChildName("main")
-	outer.Append(w.viewStack)
-
-	outer.Append(w.buildBottomBar())
-
-	w.buildMainFocusList()
-	w.focusItems = w.mainFocusItems
-
-	return outer
+	w.rgbScroll = scroll
+	return scroll
 }
 
-// buildBottomBar returns the fixed bottom bar containing the theme picker button
-// and system toggles (panel overdrive, boot sound). It sits below the scroll
-// area and is always visible (not scrolled).
+// buildSystemTab builds the System tab: panel overdrive and boot sound.
+func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
+	inner := gtk.NewBox(gtk.OrientationVertical, 8)
+	inner.SetMarginTop(4)
+	inner.SetMarginBottom(12)
+	inner.SetMarginStart(12)
+	inner.SetMarginEnd(12)
+
+	inner.Append(groupLabel("SYSTEM"))
+	inner.Append(w.buildToggle("Panel Overdrive", "Enable panel overdrive for faster pixel response (may cause ghosting)", &w.overdriveSwitch, func(active bool) {
+		v := 0
+		if active {
+			v = 1
+		}
+		w.sendOverdriveSet(v)
+	}))
+	inner.Append(w.buildToggle("Boot Sound", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
+		v := 0
+		if active {
+			v = 1
+		}
+		w.sendBootSoundSet(v)
+	}))
+
+	scroll := gtk.NewScrolledWindow()
+	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
+	scroll.SetVExpand(true)
+	scroll.SetChild(inner)
+	w.systemScroll = scroll
+	return scroll
+}
+
+// buildBottomBar returns the fixed bottom bar containing the theme picker button.
 func (w *Window) buildBottomBar() *gtk.Box {
 	bar := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	bar.AddCSSClass("bottom-bar")
@@ -134,26 +234,6 @@ func (w *Window) buildBottomBar() *gtk.Box {
 	w.paletteBtn.SetTooltipText("Choose theme")
 	w.paletteBtn.ConnectClicked(func() { w.showThemeView() })
 	bar.Append(w.paletteBtn)
-
-	// Spacer pushes toggles to the right.
-	spacer := gtk.NewBox(gtk.OrientationHorizontal, 0)
-	spacer.SetHExpand(true)
-	bar.Append(spacer)
-
-	bar.Append(w.buildToggle("Panel Overdrive", "Enable panel overdrive for faster pixel response (may cause ghosting)", &w.overdriveSwitch, func(active bool) {
-		v := 0
-		if active {
-			v = 1
-		}
-		w.sendOverdriveSet(v)
-	}))
-	bar.Append(w.buildToggle("Boot Sound", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
-		v := 0
-		if active {
-			v = 1
-		}
-		w.sendBootSoundSet(v)
-	}))
 
 	return bar
 }
@@ -632,11 +712,11 @@ func (w *Window) buildProfileSection() *gtk.Box {
 				go func() {
 					ok, state, err := api.SendGetState()
 					if ok && err == nil {
-					glib.IdleAdd(func() {
-						w.state = state
-						w.syncing = true
-						w.syncCPUPower()
-						w.syncCustomView()
+						glib.IdleAdd(func() {
+							w.state = state
+							w.syncing = true
+							w.syncCPUPower()
+							w.syncCustomView()
 							w.syncing = false
 						})
 					}
@@ -753,158 +833,206 @@ func separator() *gtk.Separator {
 // Items are arranged by visual row/col matching the drawer layout.
 func (w *Window) buildMainFocusList() {
 	var items []focusItem
-	boxVisible := func(box *gtk.Box) func() bool {
-		return func() bool { return box.IsVisible() }
+
+	// Top-level tab row — always at row 0.
+	for col, name := range []string{"power", "rgb", "system"} {
+		btn := w.mainTabBtns[name]
+		items = append(items, focusItem{
+			widget: btn, row: 0, col: col,
+			section:    "main-tabs",
+			onActivate: func() { btn.Activate() },
+		})
 	}
+
+	// Tab-specific content.
+	switch w.activeTab {
+	case "power":
+		items = append(items, w.powerTabFocusItems()...)
+	case "rgb":
+		items = append(items, w.rgbTabFocusItems()...)
+	case "system":
+		items = append(items, w.systemTabFocusItems()...)
+	}
+
+	// Palette button (bottom bar) — reachable from every tab.
+	items = append(items, focusItem{
+		widget: w.paletteBtn, row: 30, col: 0,
+		section:    "footer",
+		onActivate: func() { w.showThemeView() },
+	})
+
+	w.mainFocusItems = items
+}
+
+// powerTabFocusItems builds the gamepad focus list for the Power tab.
+func (w *Window) powerTabFocusItems() []focusItem {
+	var items []focusItem
+	row := 1
 
 	// Profiles — 2x2 grid.
 	for i, p := range profiles {
 		btn := w.profileBtns[p]
 		items = append(items, focusItem{
-			widget: btn, row: i / 2, col: i % 2,
+			widget: btn, row: row + i/2, col: i % 2,
 			section:    "profile",
 			onActivate: func() { btn.Activate() },
 		})
 	}
+	row += 2
 
-	// CPU power controls.
-	cpuVisible := boxVisible(w.cpuPowerBox)
-	cpuLeft, cpuRight, cpuGet, cpuSet := scaleAdjust(w.cpuMinScale, 25)
-	items = append(items, focusItem{
-		widget: w.cpuMinScale, row: 2, col: 0,
-		section: "cpu-power", isVisible: cpuVisible,
-		editable: true,
-		onLeft:   cpuLeft, onRight: cpuRight,
-		getValue: cpuGet, setValue: cpuSet,
-	})
-	for i, option := range cpuEPPs {
-		btn := w.cpuEPPBtns[option.value]
+	// CPU power controls (if visible).
+	if w.cpuPowerBox != nil {
+		cpuVisible := func() bool { return w.cpuPowerBox.IsVisible() }
+		cpuLeft, cpuRight, cpuGet, cpuSet := scaleAdjust(w.cpuMinScale, 25)
 		items = append(items, focusItem{
-			widget: btn, row: 3 + i/2, col: i % 2,
+			widget: w.cpuMinScale, row: row, col: 0,
 			section: "cpu-power", isVisible: cpuVisible,
-			onActivate: func() { btn.Activate() },
+			editable: true,
+			onLeft:   cpuLeft, onRight: cpuRight,
+			getValue: cpuGet, setValue: cpuSet,
 		})
+		row++
+		for i, option := range cpuEPPs {
+			btn := w.cpuEPPBtns[option.value]
+			items = append(items, focusItem{
+				widget: btn, row: row + i/2, col: i % 2,
+				section: "cpu-power", isVisible: cpuVisible,
+				onActivate: func() { btn.Activate() },
+			})
+		}
+		row += 2
+		items = append(items, focusItem{
+			widget: w.cpuBoostSwitch, row: row, col: 0,
+			section: "cpu-power", isVisible: cpuVisible,
+			onActivate: func() { w.cpuBoostSwitch.SetActive(!w.cpuBoostSwitch.Active()) },
+		})
+		row++
 	}
-	items = append(items, focusItem{
-		widget: w.cpuBoostSwitch, row: 5, col: 0,
-		section: "cpu-power", isVisible: cpuVisible,
-		onActivate: func() { w.cpuBoostSwitch.SetActive(!w.cpuBoostSwitch.Active()) },
-	})
 
 	// Battery slider.
 	battLeft, battRight, battGet, battSet := scaleAdjust(w.battScale, 5)
 	items = append(items, focusItem{
-		widget: w.battScale, row: 6, col: 0,
+		widget: w.battScale, row: row, col: 0,
 		section:  "battery",
 		editable: true,
 		onLeft:   battLeft, onRight: battRight,
 		getValue: battGet, setValue: battSet,
 	})
+	return items
+}
+
+// rgbTabFocusItems builds the gamepad focus list for the RGB tab.
+func (w *Window) rgbTabFocusItems() []focusItem {
+	var items []focusItem
+	row := 1
 
 	// Device tabs — horizontal row.
 	for col, btn := range []*gtk.CheckButton{w.tabKB, w.tabLB} {
 		btn := btn
 		items = append(items, focusItem{
-			widget: btn, row: 7, col: col,
+			widget: btn, row: row, col: col,
 			section:    "tabs",
 			onActivate: func() { btn.SetActive(true) },
 		})
 	}
+	row++
 
 	// Mode buttons — 3x2 grid.
 	for i, m := range modeOrder {
 		btn := w.modeButtons[m]
 		items = append(items, focusItem{
-			widget: btn, row: 8 + i/3, col: i % 3,
+			widget: btn, row: row + i/3, col: i % 3,
 			section:    "mode",
 			onActivate: func() { btn.Activate() },
 		})
 	}
+	row += 2
 
 	// Color 1 presets — horizontal row of 8 buttons.
 	if w.color1 != nil {
-		vis := boxVisible(w.color1Box)
+		vis := func() bool { return w.color1Box.IsVisible() }
 		for col, btn := range w.color1.presetBtns {
 			btn := btn
 			items = append(items, focusItem{
-				widget: btn, row: 10, col: col,
+				widget: btn, row: row, col: col,
 				section: "color1", isVisible: vis,
 				onActivate: func() { btn.Activate() },
 			})
 		}
-		// Custom button on its own row below presets.
+		row++
 		items = append(items, focusItem{
-			widget: w.color1.customBtn, row: 11, col: 0,
+			widget: w.color1.customBtn, row: row, col: 0,
 			section: "color1", isVisible: vis,
 			onActivate: func() { w.showColorView(w.color1) },
 		})
+		row++
 	}
 
 	// Color 2 presets.
 	if w.color2 != nil {
-		vis := boxVisible(w.color2Box)
+		vis := func() bool { return w.color2Box.IsVisible() }
 		for col, btn := range w.color2.presetBtns {
 			btn := btn
 			items = append(items, focusItem{
-				widget: btn, row: 12, col: col,
+				widget: btn, row: row, col: col,
 				section: "color2", isVisible: vis,
 				onActivate: func() { btn.Activate() },
 			})
 		}
+		row++
 		items = append(items, focusItem{
-			widget: w.color2.customBtn, row: 13, col: 0,
+			widget: w.color2.customBtn, row: row, col: 0,
 			section: "color2", isVisible: vis,
 			onActivate: func() { w.showColorView(w.color2) },
 		})
+		row++
 	}
 
 	// Speed buttons — horizontal row.
 	for col, s := range speeds {
 		btn := w.speedBtns[s]
 		items = append(items, focusItem{
-			widget: btn, row: 14, col: col,
-			section: "speed", isVisible: boxVisible(w.speedBox),
+			widget: btn, row: row, col: col,
+			section: "speed", isVisible: func() bool { return w.speedBox.IsVisible() },
 			onActivate: func() { btn.Activate() },
 		})
 	}
+	row++
 
 	// Brightness slider.
 	brLeft, brRight, brGet, brSet := scaleAdjust(w.brightScale, 1)
 	items = append(items, focusItem{
-		widget: w.brightScale, row: 15, col: 0,
-		section: "brightness", isVisible: boxVisible(w.brightBox),
+		widget: w.brightScale, row: row, col: 0,
+		section: "brightness", isVisible: func() bool { return w.brightBox.IsVisible() },
 		editable: true,
 		onLeft:   brLeft, onRight: brRight,
 		getValue: brGet, setValue: brSet,
 	})
+	return items
+}
 
-	// Footer: theme button, overdrive, boot sound.
-	col := 0
-	items = append(items, focusItem{
-		widget: w.paletteBtn, row: 16, col: col,
-		section:    "footer",
-		onActivate: func() { w.showThemeView() },
-	})
-	col++
+// systemTabFocusItems builds the gamepad focus list for the System tab.
+func (w *Window) systemTabFocusItems() []focusItem {
+	var items []focusItem
+	row := 1
 	if w.overdriveSwitch != nil {
 		sw := w.overdriveSwitch
 		items = append(items, focusItem{
-			widget: sw, row: 16, col: col,
-			section:    "footer",
+			widget: sw, row: row, col: 0,
+			section:    "system",
 			onActivate: func() { sw.SetActive(!sw.Active()) },
 		})
-		col++
+		row++
 	}
 	if w.bootSoundSwitch != nil {
 		sw := w.bootSoundSwitch
 		items = append(items, focusItem{
-			widget: sw, row: 16, col: col,
-			section:    "footer",
+			widget: sw, row: row, col: 0,
+			section:    "system",
 			onActivate: func() { sw.SetActive(!sw.Active()) },
 		})
 	}
-
-	w.mainFocusItems = items
+	return items
 }
 
 // buildThemeFocusList builds the 2D focus grid for the theme picker view.

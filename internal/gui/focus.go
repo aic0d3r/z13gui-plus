@@ -19,15 +19,15 @@ import (
 
 // focusItem represents a single gamepad-navigable element.
 type focusItem struct {
-	widget     gtk.Widgetter // widget to highlight with .gamepad-focus
-	row        int           // visual row number
-	col        int           // column within row
-	section    string        // section name for shoulder-button jumping
-	isVisible  func() bool   // false if parent section is hidden; nil = always visible
-	onActivate func()        // A button: toggle/activate (non-editable items)
-	editable   bool          // true for sliders — A enters edit mode instead of activating
-	onLeft     func()        // D-pad left while editing: decrease value
-	onRight    func()        // D-pad right while editing: increase value
+	widget     gtk.Widgetter  // widget to highlight with .gamepad-focus
+	row        int            // visual row number
+	col        int            // column within row
+	section    string         // section name for shoulder-button jumping
+	isVisible  func() bool    // false if parent section is hidden; nil = always visible
+	onActivate func()         // A button: toggle/activate (non-editable items)
+	editable   bool           // true for sliders — A enters edit mode instead of activating
+	onLeft     func()         // D-pad left while editing: decrease value
+	onRight    func()         // D-pad right while editing: increase value
 	getValue   func() float64 // read current value (for cancel/restore)
 	setValue   func(float64)  // restore value on cancel
 }
@@ -327,7 +327,14 @@ func (w *Window) ensureVisible(widget gtk.Widgetter) {
 	if w.viewStack != nil {
 		switch w.viewStack.VisibleChildName() {
 		case "main":
-			scroll = w.mainScroll
+			switch w.activeTab {
+			case "rgb":
+				scroll = w.rgbScroll
+			case "system":
+				scroll = w.systemScroll
+			default:
+				scroll = w.powerScroll
+			}
 		case "theme":
 			scroll = w.themeScroll
 		case "custom":

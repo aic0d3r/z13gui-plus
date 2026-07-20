@@ -8,23 +8,30 @@
     padding: 0;
 }
 
-/* Touch targets — button group controls minimum 48px tall */
+/* Touch targets — button group controls minimum 36px tall */
 .drawer .btn-group button {
-    min-height: 48px;
+    min-height: 36px;
     padding: 4px 10px;
     border-radius: 6px;
 }
 
-/* Tab buttons (still CheckButton) */
+/* Main tab row — Power / RGB / System */
+.drawer .main-tab-row button {
+    min-height: 36px;
+    padding: 4px 8px;
+    border-radius: 6px 6px 0 0;
+}
+
+/* Device tab buttons (Keyboard / Lightbar CheckButton) */
 .drawer checkbutton {
-    min-height: 48px;
+    min-height: 36px;
     padding: 4px 10px;
     border-radius: 6px;
 }
 
-/* Mode grid buttons are slightly taller */
+/* Mode grid buttons */
 .drawer .mode-grid.btn-group button {
-    min-height: 52px;
+    min-height: 40px;
 }
 
 /* TDP warning text */
@@ -55,10 +62,10 @@
     border-radius: 6px;
 }
 
-/* Tab buttons stretch to fill available width */
+/* Device tab buttons stretch to fill available width */
 .tab-btn {
     -gtk-icon-size: 0;  /* hide the checkbox indicator */
-    min-height: 48px;
+    min-height: 36px;
 }
 
 
