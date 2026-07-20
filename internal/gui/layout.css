@@ -8,30 +8,112 @@
     padding: 0;
 }
 
-/* Touch targets — button group controls minimum 36px tall */
-.drawer .btn-group button {
-    min-height: 36px;
-    padding: 4px 10px;
-    border-radius: 6px;
+/* Premium structural typography — Cantarell + Meslo numerals.
+   Mono stack is overridden per-widget via .card-value / .header-telemetry etc. */
+.drawer, window.z13-drawer-window {
+    font-feature-settings: "tnum" 0;
 }
 
-/* Main tab row — Power / RGB / System */
+/* Touch targets — button group controls minimum 36px tall */
+.drawer .btn-group button {
+    min-height: 38px;
+    padding: 6px 12px;
+    border-radius: 8px;
+}
+
+/* Main tab row — pill buttons with breathing room */
+.drawer .main-tab-row {
+    padding: 4px;
+    background: transparent;
+    border-radius: 10px;
+}
+
 .drawer .main-tab-row button {
-    min-height: 36px;
-    padding: 4px 8px;
-    border-radius: 6px 6px 0 0;
+    min-height: 40px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
 }
 
 /* Device tab buttons (Keyboard / Lightbar CheckButton) */
 .drawer checkbutton {
-    min-height: 36px;
-    padding: 4px 10px;
+    min-height: 38px;
+    padding: 6px 12px;
+    border-radius: 8px;
+}
+
+/* Mode grid buttons — taller, more substantial */
+.drawer .mode-grid.btn-group button {
+    min-height: 44px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+/* Premium card — for hero widgets (battery, gauges, status) */
+.drawer .card {
+    border-radius: 12px;
+    padding: 14px;
+}
+
+/* Card title — small caps mono */
+.drawer .card-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+/* Card primary value — large mono (gauges, %s) */
+.drawer .card-value {
+    font-size: 24px;
+    font-weight: 700;
+    font-feature-settings: "tnum";
+}
+
+/* Card sub-row — secondary value */
+.drawer .card-sub {
+    font-size: 11px;
+    font-feature-settings: "tnum";
+}
+
+/* Pill — status chip */
+.drawer .pill {
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* Hero card with horizontal split (ring on left, details on right) */
+.drawer .hero-card {
+    padding: 16px;
+}
+
+/* Gauge container — for circular gauges in headers */
+.drawer .gauge {
+    min-width: 80px;
+    min-height: 80px;
+    padding: 4px;
+}
+
+/* Sparkline area — for 30s rolling history */
+.drawer .sparkline {
+    min-height: 40px;
     border-radius: 6px;
 }
 
-/* Mode grid buttons */
-.drawer .mode-grid.btn-group button {
-    min-height: 40px;
+/* Gauge label below */
+.drawer .gauge-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
 }
 
 /* TDP warning text */
@@ -45,76 +127,80 @@
 /* Fan curve drawing area */
 .fan-curve-area {
     min-height: 240px;
-    border-radius: 6px;
+    border-radius: 8px;
 }
 
 /* Custom view action buttons */
 .custom-actions button {
-    min-height: 36px;
-    padding: 4px 8px;
-    border-radius: 6px;
+    min-height: 38px;
+    padding: 6px 10px;
+    border-radius: 8px;
 }
 
 /* Advanced checkbox — touch target */
 .advanced-check {
-    min-height: 36px;
-    padding: 4px 10px;
-    border-radius: 6px;
+    min-height: 38px;
+    padding: 6px 12px;
+    border-radius: 8px;
 }
 
 /* Device tab buttons stretch to fill available width */
 .tab-btn {
     -gtk-icon-size: 0;  /* hide the checkbox indicator */
-    min-height: 36px;
+    min-height: 38px;
 }
 
 
 /* Sliders — fat touch targets */
 .drawer scale slider {
-    min-width: 24px;
-    min-height: 24px;
+    min-width: 22px;
+    min-height: 22px;
 }
 
 /* Scale value label — push above the slider handle so it isn't obscured */
 .drawer scale value {
     margin-bottom: 6px;
+    font-feature-settings: "tnum";
 }
 
 /* Drawer title — "z13ctl" fixed above scroll area */
 .drawer-title {
-    font-size: 11px;
-    font-weight: bold;
-    letter-spacing: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
 }
 
-/* Header telemetry readout — compact, right-aligned */
+/* Header telemetry readout — compact, right-aligned, mono */
 .header-telemetry {
     font-size: 10px;
     letter-spacing: 0.5px;
 }
 
-/* Section group headings — larger, used for "TDP AND POWER" / "RGB" */
+/* Section group headings — larger, used for "POWER" / "RGB" / "SYSTEM" */
 .section-group {
-    font-size: 13px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    margin-top: 2px;
-    margin-bottom: 0px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 4px;
+    margin-bottom: 2px;
 }
 
 /* Section labels — small caps */
 .section-label {
-    font-size: 11px;
-    font-weight: bold;
-    letter-spacing: 1px;
-    margin-top: 6px;
-    margin-bottom: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 8px;
+    margin-bottom: 4px;
 }
 
 /* Slider value readouts — subordinate to section labels */
 .scale-value {
-    font-size: 10px;
-    font-weight: normal;
+    font-size: 11px;
+    font-weight: 600;
     letter-spacing: 0;
     margin-top: 2px;
     margin-bottom: 2px;
@@ -123,40 +209,42 @@
 /* Slider name labels — identifies what a slider controls */
 .scale-name {
     font-size: 10px;
-    font-weight: bold;
-    letter-spacing: 0;
-    margin-top: 4px;
-    margin-bottom: 0px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 6px;
+    margin-bottom: 2px;
 }
 
 /* Current-color swatch — the non-interactive colored square. */
 .color-swatch {
-    border-radius: 4px;
-    min-width: 28px;
-    min-height: 28px;
+    border-radius: 6px;
+    min-width: 32px;
+    min-height: 32px;
 }
 
 /* Preset color buttons — compact square touch targets. */
 .color-preset {
     padding: 0;
-    min-width: 28px;
-    min-height: 28px;
-    border-radius: 4px;
+    min-width: 32px;
+    min-height: 32px;
+    border-radius: 6px;
 }
 
 /* Bottom bar — palette and future gear button */
 .bottom-bar button {
-    min-width: 32px;
-    min-height: 32px;
-    padding: 4px;
-    border-radius: 6px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    border-radius: 8px;
 }
 
 /* Accent label in theme picker popover */
 .accent-label {
     font-size: 9px;
-    font-weight: bold;
+    font-weight: 700;
     letter-spacing: 1px;
+    text-transform: uppercase;
 }
 
 /* Active accent swatch — thicker border on the selected accent color */
@@ -169,12 +257,14 @@
 .bottom-bar .toggle-label {
     font-size: 10px;
     letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-weight: 600;
 }
 
 /* Footer switches — keep compact */
 .bottom-bar switch {
-    min-height: 20px;
-    min-width: 36px;
+    min-height: 22px;
+    min-width: 40px;
 }
 
 /* Scrolled container inside theme picker popover */

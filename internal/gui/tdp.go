@@ -829,6 +829,25 @@ func (w *Window) startTelemetryPolling() {
 					w.headerTelemetry.SetLabel(fmt.Sprintf("%d°C · %d RPM", state.Temperature, state.FanRPM))
 				}
 
+				// Power tab hero — gauges + sparkline.
+				if w.tempGauge != nil {
+					w.tempGauge.SetValue(float64(state.Temperature))
+				}
+				if w.fanGauge != nil {
+					w.fanGauge.SetValue(float64(state.FanRPM))
+				}
+				if w.tdpGauge != nil && state.TDP != nil {
+					w.tdpGauge.SetValue(float64(state.TDP.PL1SPL))
+				}
+				if w.tempSpark != nil && state.Temperature > 0 {
+					w.tempSpark.Push(float64(state.Temperature))
+				}
+
+				// Battery hero card.
+				if state.BatteryDetail != nil {
+					w.updateBatteryHero(state.BatteryDetail)
+				}
+
 				// Custom view telemetry (only when active).
 				if w.viewStack != nil && w.viewStack.VisibleChildName() == "custom" {
 					if w.telemetryTempLabel != nil {
@@ -865,7 +884,7 @@ func (w *Window) buildCustomFocusList() {
 			widget: w.tdpBasicScale, row: 1, col: 0,
 			section:  "tdp",
 			editable: true,
-			onLeft: oL, onRight: oR,
+			onLeft:   oL, onRight: oR,
 			getValue: gV, setValue: sV,
 			isVisible: func() bool { return w.tdpBasicScale.IsVisible() },
 		})
@@ -889,7 +908,7 @@ func (w *Window) buildCustomFocusList() {
 			section:   "tdp",
 			editable:  true,
 			isVisible: advVis,
-			onLeft: oL, onRight: oR,
+			onLeft:    oL, onRight: oR,
 			getValue: gV, setValue: sV,
 		})
 	}
@@ -897,7 +916,7 @@ func (w *Window) buildCustomFocusList() {
 	// Row 6: fan curve (editable with custom behavior).
 	if w.fanCurve != nil {
 		items = append(items, focusItem{
-			widget:  w.fanCurve.area, row: 6, col: 0,
+			widget: w.fanCurve.area, row: 6, col: 0,
 			section: "fan",
 			// Fan curve is navigable but not editable via gamepad in this first pass.
 			// Touch/mouse drag handles interaction.

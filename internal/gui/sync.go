@@ -87,6 +87,21 @@ func (w *Window) syncState() {
 	if w.headerTelemetry != nil {
 		w.headerTelemetry.SetLabel(fmt.Sprintf("%d°C · %d RPM", w.state.Temperature, w.state.FanRPM))
 	}
+	// Battery hero card — also updates on sync (initial show) so the card
+	// isn't stale before the first telemetry tick (1 s later).
+	if w.state.BatteryDetail != nil {
+		w.updateBatteryHero(w.state.BatteryDetail)
+	}
+	// Initial gauge values from current state (subsequent updates from polling).
+	if w.tempGauge != nil {
+		w.tempGauge.SetValue(float64(w.state.Temperature))
+	}
+	if w.fanGauge != nil {
+		w.fanGauge.SetValue(float64(w.state.FanRPM))
+	}
+	if w.tdpGauge != nil && w.state.TDP != nil {
+		w.tdpGauge.SetValue(float64(w.state.TDP.PL1SPL))
+	}
 }
 
 func (w *Window) syncCPUPower() {
@@ -208,6 +223,51 @@ func (w *Window) syncRefreshRate() {
 		return
 	}
 	setActiveIntButton(w.refreshBtns, w.state.RefreshRate)
+}
+
+// updateBatteryHero updates the System tab battery card from live telemetry.
+// Called from syncState (initial) and from the 1s telemetry poll.
+func (w *Window) updateBatteryHero(b *api.BatteryState) {
+	if w.battCapacityGauge != nil {
+		w.battCapacityGauge.SetValue(float64(b.CapacityPct))
+	}
+	if w.battStatusLabel != nil {
+		w.battStatusLabel.SetLabel(b.Status)
+	}
+	if w.battHealthLabel != nil {
+		// Health row includes current/last-full Wh and design Wh so the user
+		// sees the underlying numbers, not just the rounded %.
+		w.battHealthLabel.SetLabel(fmt.Sprintf("Health %d%%  ·  %d / %d Wh", b.HealthPct, b.WhCurrent, b.WhDesign))
+	}
+	if w.battPowerLabel != nil {
+		// Charging shows "+W", discharging shows "W draw", idle shows voltage only.
+		if b.Charging {
+			w.battPowerLabel.SetLabel(fmt.Sprintf("+%s W  ·  %s V", b.PowerWatts, b.VoltageVolts))
+		} else if b.PowerWatts != "0" {
+			w.battPowerLabel.SetLabel(fmt.Sprintf("-%s W  ·  %s V", b.PowerWatts, b.VoltageVolts))
+		} else {
+			w.battPowerLabel.SetLabel(fmt.Sprintf("%s V", b.VoltageVolts))
+		}
+	}
+	if w.battPill != nil {
+		// Threshold preset chip: 100=Standard, 80=Balanced, <80=Max Life.
+		w.battPill.RemoveCSSClass("success")
+		w.battPill.RemoveCSSClass("warning")
+		w.battPill.RemoveCSSClass("accent")
+		var label, cls string
+		switch {
+		case b.ThresholdPct >= 100:
+			label, cls = "STANDARD", "accent"
+		case b.ThresholdPct >= 80:
+			label, cls = fmt.Sprintf("BALANCED · %d%%", b.ThresholdPct), "warning"
+		default:
+			label, cls = fmt.Sprintf("MAX LIFE · %d%%", b.ThresholdPct), "success"
+		}
+		w.battPill.SetLabel(label)
+		if cls != "" {
+			w.battPill.AddCSSClass(cls)
+		}
+	}
 }
 
 // queueApply debounces rapid API calls from continuous inputs (color wheel,

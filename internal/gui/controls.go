@@ -139,6 +139,7 @@ func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
 	inner.SetMarginEnd(12)
 
 	inner.Append(groupLabel("POWER"))
+	inner.Append(w.buildPowerHero())
 	inner.Append(w.buildProfileSection())
 	inner.Append(w.buildCPUPowerSection())
 	inner.Append(w.buildFanPresetSection())
@@ -199,6 +200,7 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	inner.SetMarginEnd(12)
 
 	inner.Append(groupLabel("SYSTEM"))
+	inner.Append(w.buildBatteryHero())
 	inner.Append(w.buildRefreshRateSection())
 	inner.Append(w.buildToggle("Panel Overdrive", "Enable panel overdrive for faster pixel response (may cause ghosting)", &w.overdriveSwitch, func(active bool) {
 		v := 0
@@ -852,6 +854,101 @@ func setActiveIntButton(btns map[int]*gtk.Button, active int) {
 			b.RemoveCSSClass("active")
 		}
 	}
+}
+
+// buildPowerHero builds the gauges + sparkline header for the Power tab.
+// Three radial gauges (CPU temp, fan RPM, TDP) sit in a row, with a 30s
+// temperature sparkline below. All values update from the telemetry poll.
+func (w *Window) buildPowerHero() *gtk.Box {
+	box := gtk.NewBox(gtk.OrientationVertical, 8)
+	box.SetMarginBottom(6)
+
+	card := gtk.NewBox(gtk.OrientationVertical, 10)
+	card.AddCSSClass("card")
+
+	// Gauge row — 3 equal-width gauges.
+	gaugeRow := gtk.NewBox(gtk.OrientationHorizontal, 6)
+	gaugeRow.SetHomogeneous(true)
+
+	w.tempGauge = NewRadialGauge("TEMP", "°")
+	w.tempGauge.SetRange(20, 100)
+	w.tempGauge.SetHot(true)
+	w.tempGauge.Widget().SetSizeRequest(-1, 92)
+	gaugeRow.Append(w.tempGauge.Widget())
+
+	w.fanGauge = NewRadialGauge("FAN", "")
+	w.fanGauge.SetRange(0, 5500)
+	w.fanGauge.Widget().SetSizeRequest(-1, 92)
+	gaugeRow.Append(w.fanGauge.Widget())
+
+	w.tdpGauge = NewRadialGauge("TDP", "W")
+	w.tdpGauge.SetRange(5, 90)
+	w.tdpGauge.Widget().SetSizeRequest(-1, 92)
+	gaugeRow.Append(w.tdpGauge.Widget())
+
+	card.Append(gaugeRow)
+
+	// Sparkline — 30s temperature trend.
+	w.tempSpark = NewSparkline(30)
+	w.tempSpark.SetRange(20, 100)
+	w.tempSpark.SetHot(true)
+	w.tempSpark.Widget().SetSizeRequest(-1, 44)
+	card.Append(w.tempSpark.Widget())
+
+	box.Append(card)
+	w.powerHero = box
+	return box
+}
+
+// buildBatteryHero builds the System tab hero card: a large circular
+// capacity ring with status, health, power draw, and threshold chip.
+func (w *Window) buildBatteryHero() *gtk.Box {
+	box := gtk.NewBox(gtk.OrientationVertical, 8)
+
+	card := gtk.NewBox(gtk.OrientationHorizontal, 14)
+	card.AddCSSClass("card")
+	card.AddCSSClass("hero-card")
+	card.SetMarginBottom(4)
+
+	// Left: capacity ring gauge (bigger than the power-tab gauges).
+	w.battCapacityGauge = NewRadialGauge("BATTERY", "%")
+	w.battCapacityGauge.SetRange(0, 100)
+	w.battCapacityGauge.Widget().SetSizeRequest(108, 108)
+	card.Append(w.battCapacityGauge.Widget())
+
+	// Right: details column.
+	details := gtk.NewBox(gtk.OrientationVertical, 6)
+	details.SetHExpand(true)
+	details.SetVAlign(gtk.AlignCenter)
+
+	// Status pill at top.
+	w.battPill = gtk.NewLabel("—")
+	w.battPill.AddCSSClass("pill")
+	w.battPill.SetHAlign(gtk.AlignStart)
+	details.Append(w.battPill)
+
+	// Big status text.
+	w.battStatusLabel = gtk.NewLabel("—")
+	w.battStatusLabel.AddCSSClass("card-value")
+	w.battStatusLabel.SetHAlign(gtk.AlignStart)
+	details.Append(w.battStatusLabel)
+
+	// Health row.
+	w.battHealthLabel = gtk.NewLabel("—")
+	w.battHealthLabel.AddCSSClass("card-sub")
+	w.battHealthLabel.SetHAlign(gtk.AlignStart)
+	details.Append(w.battHealthLabel)
+
+	// Power draw row.
+	w.battPowerLabel = gtk.NewLabel("—")
+	w.battPowerLabel.AddCSSClass("card-sub")
+	w.battPowerLabel.SetHAlign(gtk.AlignStart)
+	details.Append(w.battPowerLabel)
+
+	card.Append(details)
+	box.Append(card)
+	w.batteryHero = box
+	return box
 }
 
 var cpuEPPs = []struct {

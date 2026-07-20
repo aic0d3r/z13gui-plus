@@ -74,6 +74,19 @@ type Window struct {
 	overdriveSwitch *gtk.Switch
 	bootSoundSwitch *gtk.Switch
 
+	// Premium hero widgets — gauges, sparkline, battery card.
+	powerHero         *gtk.Box     // container for the Power tab hero header
+	tempGauge         *RadialGauge // CPU temperature
+	fanGauge          *RadialGauge // fan RPM
+	tdpGauge          *RadialGauge // current TDP (PL1 SPL)
+	tempSpark         *Sparkline   // 30s temperature history
+	batteryHero       *gtk.Box     // container for the System tab battery card
+	battCapacityGauge *RadialGauge // battery capacity ring
+	battStatusLabel   *gtk.Label   // status text (Charging / Discharging / Not charging)
+	battHealthLabel   *gtk.Label   // "Health 91%"
+	battPowerLabel    *gtk.Label   // "12.3 W · 17.5 V"
+	battPill          *gtk.Label   // threshold preset chip
+
 	// Custom profile view.
 	customScroll       *gtk.ScrolledWindow
 	customBackBtn      *gtk.Button
