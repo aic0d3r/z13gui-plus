@@ -60,7 +60,7 @@ func (w *Window) buildContent() gtk.Widgetter {
 
 	// Tab content stack — each tab has its own scroll area.
 	w.tabStack = gtk.NewStack()
-	w.tabStack.SetTransitionType(gtk.StackTransitionTypeCrossfade)
+	w.tabStack.SetTransitionType(gtk.StackTransitionTypeNone)
 	w.tabStack.SetVExpand(true)
 	w.tabStack.AddNamed(w.buildPowerTab(), "power")
 	w.tabStack.AddNamed(w.buildRGBTab(), "rgb")
