@@ -278,7 +278,6 @@ func (b *Backend) scaledCSS() string {
 .drawer scale slider { min-width: %.0fpx; min-height: %.0fpx; }
 .drawer scale value { margin-bottom: %.0fpx; }
 .drawer-title { font-size: %.0fpx; letter-spacing: %.0fpx; }
-.header-telemetry { font-size: %.0fpx; letter-spacing: %.1fpx; }
 .section-group { font-size: %.0fpx; letter-spacing: %.0fpx; margin-top: %.0fpx; }
 .section-label { font-size: %.0fpx; letter-spacing: %.0fpx; margin-top: %.0fpx; margin-bottom: %.0fpx; }
 .scale-value { font-size: %.0fpx; margin-top: %.0fpx; margin-bottom: %.0fpx; }
@@ -307,7 +306,6 @@ func (b *Backend) scaledCSS() string {
 		24*s, 24*s,               // scale slider
 		6*s,                      // scale value margin
 		11*s, 3*s,                // drawer-title
-		10*s, 0.5*s,              // header-telemetry (font-size, letter-spacing)
 		13*s, 2*s, 2*s,           // section-group
 		11*s, 1*s, 6*s, 2*s,     // section-label
 		10*s, 2*s, 2*s,           // scale-value

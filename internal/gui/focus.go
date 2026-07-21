@@ -328,6 +328,8 @@ func (w *Window) ensureVisible(widget gtk.Widgetter) {
 		switch w.viewStack.VisibleChildName() {
 		case "main":
 			switch w.activeTab {
+			case "overview":
+				scroll = w.overviewScroll
 			case "rgb":
 				scroll = w.rgbScroll
 			case "system":

@@ -42,7 +42,7 @@ type Window struct {
 	gamescope bool        // true when running under gamescope (X11 overlay mode)
 	state     *api.State  // latest daemon state; nil until first successful fetch
 	tab       string      // active device tab: "keyboard" or "lightbar"
-	activeTab string      // active main tab: "power", "rgb", "system" (persisted)
+	activeTab string      // active main tab: "overview", "power", "rgb", "system" (persisted)
 	visible   bool        // true when the drawer is on-screen or animating in
 
 	swatchProvider *gtk.CSSProvider // dynamic swatch background colors
@@ -71,21 +71,37 @@ type Window struct {
 	battPresetBtns  map[int]*gtk.Button    // battery presets: 100/80/60 %
 	fanPresetBtns   map[string]*gtk.Button // fan curve presets: silent/balanced/turbo
 	refreshBtns     map[int]*gtk.Button    // eDP-1 refresh rate: 60/180 Hz
+	npuPowerBtns    map[int]*gtk.Button    // NPU DPM mode: 0=default ... 4=turbo
+	npuHeader       *collapsibleHeader     // so sync can update "NPU POWER · TURBO" suffix
 	overdriveSwitch *gtk.Switch
 	bootSoundSwitch *gtk.Switch
 
-	// Premium hero widgets — gauges, sparkline, battery card.
-	powerHero         *gtk.Box     // container for the Power tab hero header
-	tempGauge         *RadialGauge // CPU temperature
-	fanGauge          *RadialGauge // fan RPM
-	tdpGauge          *RadialGauge // current TDP (PL1 SPL)
-	tempSpark         *Sparkline   // 30s temperature history
+	// Premium hero widgets — battery card (System tab).
+	// Power tab telemetry gauges removed; live stats live on Overview tab only.
 	batteryHero       *gtk.Box     // container for the System tab battery card
 	battCapacityGauge *RadialGauge // battery capacity ring
 	battStatusLabel   *gtk.Label   // status text (Charging / Discharging / Not charging)
 	battHealthLabel   *gtk.Label   // "Health 91%"
 	battPowerLabel    *gtk.Label   // "12.3 W · 17.5 V"
 	battPill          *gtk.Label   // threshold preset chip
+
+	// Overview tab — full live telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
+	overviewScroll     *gtk.ScrolledWindow
+	overviewHero       *gtk.Box     // container for the Overview tab hero header
+	cpuTempGauge       *RadialGauge // CPU temperature (Overview)
+	gpuTempGauge       *RadialGauge // GPU temperature (Overview)
+	cpuUtilGauge       *RadialGauge // CPU utilisation %
+	gpuUtilGauge       *RadialGauge // GPU utilisation %
+	overviewSpark      *Sparkline   // 30s CPU temp history (Overview)
+	cpuFanLabel        *gtk.Label   // "3300 RPM"
+	gpuFanLabel        *gtk.Label   // "2800 RPM"
+	overviewCPUClock   *gtk.Label   // "3.8 GHz"
+	overviewGPUClock   *gtk.Label   // "1.7 GHz"
+	npuLabel           *gtk.Label   // "25% · 1.2 GHz · 8 W"
+	overviewVRAMBar    *gtk.ProgressBar // VRAM usage bar (0..1)
+	overviewVRAMLbl    *gtk.Label   // "4.2 / 16 GB"
+	overviewMemClock   *gtk.Label   // "6400 MT/s"
+	overviewGen        int          // animation generation counter
 
 	// Custom profile view.
 	customScroll       *gtk.ScrolledWindow
@@ -112,7 +128,6 @@ type Window struct {
 	uvCpuLabel         *gtk.Label
 	saveUvBtn          *gtk.Button
 	resetUvBtn         *gtk.Button
-	headerTelemetry    *gtk.Label // "45°C · 3200 RPM" in main header
 	telemetryTempLabel *gtk.Label
 	telemetryFanLabel  *gtk.Label
 	telemetryGen       int
@@ -169,7 +184,7 @@ type Window struct {
 func New(app *gtk.Application) *Window {
 	w := &Window{
 		tab:            "keyboard",
-		activeTab:      "power",
+		activeTab:      "overview",
 		gamescope:      os.Getenv("GAMESCOPE_WAYLAND_DISPLAY") != "",
 		modeButtons:    make(map[string]*gtk.Button),
 		speedBtns:      make(map[string]*gtk.Button),
@@ -179,6 +194,7 @@ func New(app *gtk.Application) *Window {
 		battPresetBtns: make(map[int]*gtk.Button),
 		fanPresetBtns:  make(map[string]*gtk.Button),
 		refreshBtns:    make(map[int]*gtk.Button),
+		npuPowerBtns:   make(map[int]*gtk.Button),
 	}
 
 	w.win = gtk.NewApplicationWindow(app)

@@ -39,8 +39,8 @@ func (w *Window) buildContent() gtk.Widgetter {
 
 	// Fixed title row — sits above the tab row, always visible.
 	titleRow := gtk.NewBox(gtk.OrientationHorizontal, 0)
-	titleRow.SetMarginTop(10)
-	titleRow.SetMarginBottom(6)
+	titleRow.SetMarginTop(6)
+	titleRow.SetMarginBottom(4)
 	titleRow.SetMarginStart(14)
 	titleRow.SetMarginEnd(14)
 
@@ -49,19 +49,14 @@ func (w *Window) buildContent() gtk.Widgetter {
 	titleLabel.AddCSSClass("drawer-title")
 	titleRow.Append(titleLabel)
 
-	w.headerTelemetry = gtk.NewLabel("")
-	w.headerTelemetry.SetHAlign(gtk.AlignEnd)
-	w.headerTelemetry.SetHExpand(true)
-	w.headerTelemetry.AddCSSClass("header-telemetry")
-	titleRow.Append(w.headerTelemetry)
-
-	// Main tab row — Power / RGB / System. Active tab persists across drawer opens.
+	// Main tab row — Overview / Power / RGB / System. Active tab persists across drawer opens.
 	tabRow := w.buildMainTabRow()
 
 	// Tab content stack — each tab has its own scroll area.
 	w.tabStack = gtk.NewStack()
 	w.tabStack.SetTransitionType(gtk.StackTransitionTypeNone)
 	w.tabStack.SetVExpand(true)
+	w.tabStack.AddNamed(w.buildOverviewTab(), "overview")
 	w.tabStack.AddNamed(w.buildPowerTab(), "power")
 	w.tabStack.AddNamed(w.buildRGBTab(), "rgb")
 	w.tabStack.AddNamed(w.buildSystemTab(), "system")
@@ -100,6 +95,7 @@ func (w *Window) buildMainTabRow() *gtk.Box {
 	row.AddCSSClass("main-tab-row")
 
 	tabs := []struct{ name, label string }{
+		{"overview", "Overview"},
 		{"power", "Power"},
 		{"rgb", "RGB"},
 		{"system", "System"},
@@ -130,20 +126,26 @@ func (w *Window) switchTab(name string) {
 	w.swapFocusList(w.mainFocusItems)
 }
 
-// buildPowerTab builds the Power tab: profile, CPU power, battery.
+// buildPowerTab builds the Power tab: profile, fan preset, battery.
+// Telemetry lives on the Overview tab; this tab is controls-only.
+// Tight spacing (2px gaps, 2/4 margins) so the tab fits without scroll at
+// 170% scale with all sections expanded.
 func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
-	inner := gtk.NewBox(gtk.OrientationVertical, 8)
-	inner.SetMarginTop(4)
-	inner.SetMarginBottom(12)
+	inner := gtk.NewBox(gtk.OrientationVertical, 2)
+	inner.SetMarginTop(2)
+	inner.SetMarginBottom(4)
 	inner.SetMarginStart(12)
 	inner.SetMarginEnd(12)
 
 	inner.Append(groupLabel("POWER"))
-	inner.Append(w.buildPowerHero())
 	inner.Append(w.buildProfileSection())
 	inner.Append(w.buildCPUPowerSection())
-	inner.Append(w.buildFanPresetSection())
-	inner.Append(w.buildBatterySection())
+	// Collapsible secondary sections — defaults expanded, tap header to collapse.
+	npuBox, npuH := collapsibleSectionWithSuffix("NPU POWER", true, w.buildNpuPowerSection())
+	w.npuHeader = npuH
+	inner.Append(npuBox)
+	inner.Append(collapsibleSection("FAN PRESET", true, w.buildFanPresetSection()))
+	inner.Append(collapsibleSection("BATTERY LIMIT", true, w.buildBatterySection()))
 
 	scroll := gtk.NewScrolledWindow()
 	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
@@ -700,12 +702,12 @@ var speeds = []string{"slow", "normal", "fast"}
 
 // buildProfileSection creates the 2x2 profile button grid.
 func (w *Window) buildProfileSection() *gtk.Box {
-	box := gtk.NewBox(gtk.OrientationVertical, 4)
+	box := gtk.NewBox(gtk.OrientationVertical, 2)
 	box.Append(sectionLabel("PROFILE"))
 
 	grid := gtk.NewGrid()
 	grid.SetColumnSpacing(4)
-	grid.SetRowSpacing(4)
+	grid.SetRowSpacing(2)
 	grid.SetColumnHomogeneous(true)
 	grid.AddCSSClass("btn-group")
 
@@ -742,9 +744,11 @@ func (w *Window) buildProfileSection() *gtk.Box {
 
 // buildBatterySection creates the battery charge limit scale (40–100%) with
 // preset quick-pick buttons below it.
+//
+// Section label is provided by the caller (collapsibleSection wrapper in
+// buildPowerTab) to avoid double-labeling when wrapped.
 func (w *Window) buildBatterySection() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
-	box.Append(sectionLabel("BATTERY LIMIT"))
 
 	sc := gtk.NewScaleWithRange(gtk.OrientationHorizontal, 40, 100, 1)
 	sc.SetDigits(0)
@@ -797,9 +801,11 @@ var fanPresets = []string{"silent", "balanced", "turbo"}
 // buildFanPresetSection creates the Silent / Balanced / Turbo fan curve
 // preset row. Clicking a preset sends the corresponding curve to the daemon
 // via the existing fancurve command (no new protocol).
+//
+// Section label is provided by the caller (collapsibleSection wrapper in
+// buildPowerTab) to avoid double-labeling when wrapped.
 func (w *Window) buildFanPresetSection() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
-	box.Append(sectionLabel("FAN PRESET"))
 	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	row.AddCSSClass("btn-group")
 	for _, name := range fanPresets {
@@ -813,6 +819,44 @@ func (w *Window) buildFanPresetSection() *gtk.Box {
 			w.sendFanPreset(name)
 		})
 		w.fanPresetBtns[name] = btn
+		row.Append(btn)
+	}
+	box.Append(row)
+	return box
+}
+
+// npuPowerModes defines the five NPU DPM modes (amdxdna SET_STATE).
+// Labels are intentionally short so all five fit one row at 320px drawer width.
+var npuPowerModes = []struct {
+	value int
+	label string
+}{
+	{0, "DEF"},
+	{1, "LOW"},
+	{2, "MED"},
+	{3, "HIGH"},
+	{4, "TURBO"},
+}
+
+// buildNpuPowerSection creates the segmented row of NPU DPM buttons.
+// amdxdna SET_STATE is DRM_ROOT_ONLY, so the click handler escalates via
+// pkexec when the daemon-side write fails with a permission error.
+func (w *Window) buildNpuPowerSection() *gtk.Box {
+	box := gtk.NewBox(gtk.OrientationVertical, 4)
+	row := gtk.NewBox(gtk.OrientationHorizontal, 2)
+	row.AddCSSClass("btn-group")
+	row.SetHomogeneous(true)
+	for _, m := range npuPowerModes {
+		m := m
+		btn := gtk.NewButtonWithLabel(m.label)
+		btn.ConnectClicked(func() {
+			if w.syncing {
+				return
+			}
+			setActiveIntButton(w.npuPowerBtns, m.value)
+			w.sendNPUPowerMode(m.value)
+		})
+		w.npuPowerBtns[m.value] = btn
 		row.Append(btn)
 	}
 	box.Append(row)
@@ -856,64 +900,20 @@ func setActiveIntButton(btns map[int]*gtk.Button, active int) {
 	}
 }
 
-// buildPowerHero builds the gauges + sparkline header for the Power tab.
-// Three radial gauges (CPU temp, fan RPM, TDP) sit in a row, with a 30s
-// temperature sparkline below. All values update from the telemetry poll.
-func (w *Window) buildPowerHero() *gtk.Box {
-	box := gtk.NewBox(gtk.OrientationVertical, 8)
-	box.SetMarginBottom(6)
-
-	card := gtk.NewBox(gtk.OrientationVertical, 10)
-	card.AddCSSClass("card")
-
-	// Gauge row — 3 equal-width gauges.
-	gaugeRow := gtk.NewBox(gtk.OrientationHorizontal, 6)
-	gaugeRow.SetHomogeneous(true)
-
-	w.tempGauge = NewRadialGauge("TEMP", "°")
-	w.tempGauge.SetRange(20, 100)
-	w.tempGauge.SetHot(true)
-	w.tempGauge.Widget().SetSizeRequest(-1, 92)
-	gaugeRow.Append(w.tempGauge.Widget())
-
-	w.fanGauge = NewRadialGauge("FAN", "")
-	w.fanGauge.SetRange(0, 5500)
-	w.fanGauge.Widget().SetSizeRequest(-1, 92)
-	gaugeRow.Append(w.fanGauge.Widget())
-
-	w.tdpGauge = NewRadialGauge("TDP", "W")
-	w.tdpGauge.SetRange(5, 90)
-	w.tdpGauge.Widget().SetSizeRequest(-1, 92)
-	gaugeRow.Append(w.tdpGauge.Widget())
-
-	card.Append(gaugeRow)
-
-	// Sparkline — 30s temperature trend.
-	w.tempSpark = NewSparkline(30)
-	w.tempSpark.SetRange(20, 100)
-	w.tempSpark.SetHot(true)
-	w.tempSpark.Widget().SetSizeRequest(-1, 44)
-	card.Append(w.tempSpark.Widget())
-
-	box.Append(card)
-	w.powerHero = box
-	return box
-}
-
-// buildBatteryHero builds the System tab hero card: a large circular
+// buildBatteryHero builds the System tab hero card: a circular
 // capacity ring with status, health, power draw, and threshold chip.
 func (w *Window) buildBatteryHero() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 8)
 
-	card := gtk.NewBox(gtk.OrientationHorizontal, 14)
+	card := gtk.NewBox(gtk.OrientationHorizontal, 12)
 	card.AddCSSClass("card")
 	card.AddCSSClass("hero-card")
 	card.SetMarginBottom(4)
 
-	// Left: capacity ring gauge (bigger than the power-tab gauges).
+	// Left: capacity ring gauge (compact).
 	w.battCapacityGauge = NewRadialGauge("BATTERY", "%")
 	w.battCapacityGauge.SetRange(0, 100)
-	w.battCapacityGauge.Widget().SetSizeRequest(108, 108)
+	w.battCapacityGauge.Widget().SetSizeRequest(80, 80)
 	card.Append(w.battCapacityGauge.Widget())
 
 	// Right: details column.
@@ -1032,6 +1032,100 @@ func separator() *gtk.Separator {
 	return gtk.NewSeparator(gtk.OrientationHorizontal)
 }
 
+// collapsibleHeader is the clickable header row of a collapsible section.
+// Layout: [chevron] [LABEL] ............ [suffix]
+// The chevron rotates between expanded (pan-down) and collapsed (pan-end).
+// The suffix is optional and can be updated at runtime — used to show the
+// current value (e.g., "TURBO" for NPU power mode) so the user can see
+// the state without expanding.
+type collapsibleHeader struct {
+	button  *gtk.ToggleButton
+	chevron *gtk.Image
+	suffix  *gtk.Label
+}
+
+// newCollapsibleHeader builds the header widget. The ToggleButton wraps a
+// custom child box so we control the icon + label + suffix layout precisely.
+func newCollapsibleHeader(label string, defaultOpen bool) *collapsibleHeader {
+	h := &collapsibleHeader{}
+
+	contents := gtk.NewBox(gtk.OrientationHorizontal, 8)
+
+	h.chevron = gtk.NewImageFromIconName("pan-end-symbolic")
+	h.chevron.AddCSSClass("disclosure-icon")
+	contents.Append(h.chevron)
+
+	lbl := gtk.NewLabel(label)
+	lbl.AddCSSClass("section-collapse-label")
+	lbl.SetHAlign(gtk.AlignStart)
+	contents.Append(lbl)
+
+	spacer := gtk.NewBox(gtk.OrientationHorizontal, 0)
+	spacer.SetHExpand(true)
+	contents.Append(spacer)
+
+	h.suffix = gtk.NewLabel("")
+	h.suffix.AddCSSClass("collapse-suffix")
+	h.suffix.SetHAlign(gtk.AlignEnd)
+	h.suffix.SetVisible(false)
+	contents.Append(h.suffix)
+
+	h.button = gtk.NewToggleButton()
+	h.button.SetChild(contents)
+	h.button.AddCSSClass("section-collapse")
+	h.button.SetActive(defaultOpen)
+	h.button.SetHExpand(true)
+
+	h.updateChevron()
+	h.button.ConnectToggled(h.updateChevron)
+
+	return h
+}
+
+// updateChevron swaps the icon based on the active (expanded) state.
+func (h *collapsibleHeader) updateChevron() {
+	if h.button.Active() {
+		h.chevron.SetFromIconName("pan-down-symbolic")
+	} else {
+		h.chevron.SetFromIconName("pan-end-symbolic")
+	}
+}
+
+// SetSuffix shows or hides the trailing value label. Empty string hides it.
+func (h *collapsibleHeader) SetSuffix(s string) {
+	if s == "" {
+		h.suffix.SetVisible(false)
+	} else {
+		h.suffix.SetText(s)
+		h.suffix.SetVisible(true)
+	}
+}
+
+// collapsibleSection wraps a section label + content in a collapsible group.
+// Defaults to expanded. Header meets the 40px touch target floor.
+func collapsibleSection(label string, defaultOpen bool, content gtk.Widgetter) *gtk.Box {
+	box, _ := collapsibleSectionWithSuffix(label, defaultOpen, content)
+	return box
+}
+
+// collapsibleSectionWithSuffix is like collapsibleSection but also returns
+// the header so callers can update the trailing suffix at runtime (e.g.,
+// to show "TURBO" next to "NPU POWER" when collapsed).
+func collapsibleSectionWithSuffix(label string, defaultOpen bool, content gtk.Widgetter) (*gtk.Box, *collapsibleHeader) {
+	box := gtk.NewBox(gtk.OrientationVertical, 4)
+	h := newCollapsibleHeader(label, defaultOpen)
+	box.Append(h.button)
+
+	contentWidget := gtk.BaseWidget(content)
+	contentWidget.SetVisible(defaultOpen)
+	h.button.ConnectToggled(func() {
+		contentWidget.SetVisible(h.button.Active())
+	})
+
+	box.Append(content)
+	return box, h
+}
+
 // buildMainFocusList builds the 2D focus grid for the main drawer view.
 // Items are arranged by visual row/col matching the drawer layout.
 func (w *Window) buildMainFocusList() {
@@ -1049,6 +1143,8 @@ func (w *Window) buildMainFocusList() {
 
 	// Tab-specific content.
 	switch w.activeTab {
+	case "overview":
+		// Overview is display-only — no focusable controls below the tab row.
 	case "power":
 		items = append(items, w.powerTabFocusItems()...)
 	case "rgb":

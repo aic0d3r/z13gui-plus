@@ -72,13 +72,6 @@ window.z13-drawer-window {
     font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
 }
 
-/* Header telemetry — tabular numerals so digits don't dance */
-.header-telemetry {
-    color: @z13-text-dim;
-    font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
-    font-feature-settings: "tnum";
-}
-
 /* Section group headings */
 .section-group {
     color: @z13-text;

@@ -824,31 +824,15 @@ func (w *Window) startTelemetryPolling() {
 				}
 				w.state = state
 
-				// Header telemetry (visible on all views).
-				if w.headerTelemetry != nil {
-					w.headerTelemetry.SetLabel(fmt.Sprintf("%d°C · %d RPM", state.Temperature, state.FanRPM))
-				}
+			// Battery hero card.
+			if state.BatteryDetail != nil {
+				w.updateBatteryHero(state.BatteryDetail)
+			}
 
-				// Power tab hero — gauges + sparkline.
-				if w.tempGauge != nil {
-					w.tempGauge.SetValue(float64(state.Temperature))
-				}
-				if w.fanGauge != nil {
-					w.fanGauge.SetValue(float64(state.FanRPM))
-				}
-				if w.tdpGauge != nil && state.TDP != nil {
-					w.tdpGauge.SetValue(float64(state.TDP.PL1SPL))
-				}
-				if w.tempSpark != nil && state.Temperature > 0 {
-					w.tempSpark.Push(float64(state.Temperature))
-				}
+			// Overview tab — full telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
+			w.syncOverviewTelemetry()
 
-				// Battery hero card.
-				if state.BatteryDetail != nil {
-					w.updateBatteryHero(state.BatteryDetail)
-				}
-
-				// Custom view telemetry (only when active).
+			// Custom view telemetry (only when active).
 				if w.viewStack != nil && w.viewStack.VisibleChildName() == "custom" {
 					if w.telemetryTempLabel != nil {
 						w.telemetryTempLabel.SetLabel(fmt.Sprintf("APU: %d°C", state.Temperature))

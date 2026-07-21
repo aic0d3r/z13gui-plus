@@ -5,6 +5,8 @@ package gui
 import (
 	"fmt"
 	"log/slog"
+	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -83,25 +85,15 @@ func (w *Window) syncState() {
 	w.syncRefreshRate()
 	w.syncOverdrive()
 	w.syncBootSound()
+	w.syncNPUPower()
 	w.syncCustomView()
-	if w.headerTelemetry != nil {
-		w.headerTelemetry.SetLabel(fmt.Sprintf("%d°C · %d RPM", w.state.Temperature, w.state.FanRPM))
-	}
 	// Battery hero card — also updates on sync (initial show) so the card
 	// isn't stale before the first telemetry tick (1 s later).
 	if w.state.BatteryDetail != nil {
 		w.updateBatteryHero(w.state.BatteryDetail)
 	}
-	// Initial gauge values from current state (subsequent updates from polling).
-	if w.tempGauge != nil {
-		w.tempGauge.SetValue(float64(w.state.Temperature))
-	}
-	if w.fanGauge != nil {
-		w.fanGauge.SetValue(float64(w.state.FanRPM))
-	}
-	if w.tdpGauge != nil && w.state.TDP != nil {
-		w.tdpGauge.SetValue(float64(w.state.TDP.PL1SPL))
-	}
+	// Overview tab — populate from initial state so it isn't blank for 1 s.
+	w.syncOverviewTelemetry()
 }
 
 func (w *Window) syncCPUPower() {
@@ -225,10 +217,59 @@ func (w *Window) syncRefreshRate() {
 	setActiveIntButton(w.refreshBtns, w.state.RefreshRate)
 }
 
+// syncOverviewTelemetry populates Overview tab widgets from the live Telemetry
+// sub-state. Called from syncState (initial) and from the 1 s telemetry poll.
+// Gracefully no-ops on daemons that don't populate Telemetry (legacy); gauges
+// simply show their last-known value and text rows keep their "—" placeholder.
+func (w *Window) syncOverviewTelemetry() {
+	t := w.state.Telemetry
+	if t == nil {
+		return
+	}
+	if w.cpuTempGauge != nil && t.CPUTemp > 0 {
+		w.cpuTempGauge.SetValue(float64(t.CPUTemp))
+	}
+	if w.gpuTempGauge != nil && t.GPUTemp > 0 {
+		w.gpuTempGauge.SetValue(float64(t.GPUTemp))
+	}
+	if w.cpuUtilGauge != nil {
+		w.cpuUtilGauge.SetValue(float64(t.CPUUtil))
+	}
+	if w.gpuUtilGauge != nil {
+		w.gpuUtilGauge.SetValue(float64(t.GPUUtil))
+	}
+	if w.overviewSpark != nil && t.CPUTemp > 0 {
+		w.overviewSpark.Push(float64(t.CPUTemp))
+	}
+	if w.cpuFanLabel != nil && t.CPUFanRPM > 0 {
+		w.cpuFanLabel.SetLabel(fmt.Sprintf("%d RPM", t.CPUFanRPM))
+	}
+	if w.gpuFanLabel != nil && t.GPUFanRPM > 0 {
+		w.gpuFanLabel.SetLabel(fmt.Sprintf("%d RPM", t.GPUFanRPM))
+	}
+	if w.overviewCPUClock != nil {
+		w.overviewCPUClock.SetLabel(formatGHz(t.CPUClockMHz))
+	}
+	if w.overviewGPUClock != nil {
+		w.overviewGPUClock.SetLabel(formatGHz(t.GPUClockMHz))
+	}
+	if w.npuLabel != nil {
+		w.npuLabel.SetLabel(formatNPU(t.NPUUtil, t.NPUMaxClockMHz, t.NPUPowerW))
+	}
+	if w.overviewMemClock != nil && t.MemClockMTs > 0 {
+		w.overviewMemClock.SetLabel(fmt.Sprintf("%d MT/s", t.MemClockMTs))
+	}
+	if w.overviewVRAMLbl != nil {
+		w.overviewVRAMLbl.SetLabel(formatVRAM(t.VRAMUsedMB, t.VRAMTotalMB))
+	}
+	if w.overviewVRAMBar != nil && t.VRAMTotalMB > 0 {
+		w.overviewVRAMBar.SetFraction(float64(t.VRAMUsedMB) / float64(t.VRAMTotalMB))
+	}
+}
+
 // updateBatteryHero updates the System tab battery card from live telemetry.
 // Called from syncState (initial) and from the 1s telemetry poll.
-func (w *Window) updateBatteryHero(b *api.BatteryState) {
-	if w.battCapacityGauge != nil {
+func (w *Window) updateBatteryHero(b *api.BatteryState) {	if w.battCapacityGauge != nil {
 		w.battCapacityGauge.SetValue(float64(b.CapacityPct))
 	}
 	if w.battStatusLabel != nil {
@@ -443,6 +484,126 @@ func (w *Window) sendFanPreset(name string) {
 		slog.Warn("fan preset set failed", "preset", name, "err", err, "elapsed", time.Since(start))
 	} else {
 		slog.Debug("sendFanPreset: done", "preset", name, "elapsed", time.Since(start))
+	}
+}
+
+// sendNPUPowerMode sets the AMD XDNA NPU DPM mode (0–4).
+//
+// amdxdna's SET_STATE ioctl is DRM_ROOT_ONLY: it requires either a root
+// daemon or CAP_SYS_ADMIN on the binary. We try the daemon path first
+// (the common case — the daemon should be running as root via systemd).
+//
+// If the daemon path fails (no daemon, daemon not root, or daemon command
+// unknown), we escalate by spawning pkexec, which shows a native polkit
+// password prompt and re-runs the CLI as root. Falls back to `sudo -A`
+// with SUDO_ASKPASS=kdialog if pkexec is unavailable.
+//
+// After escalation succeeds we re-fetch state so the active button matches
+// the actual hardware mode.
+func (w *Window) sendNPUPowerMode(mode int) {
+	slog.Debug("sendNPUPowerMode: trying daemon", "mode", mode)
+	start := time.Now()
+	handled, err := api.SendNPUPowerModeSet(mode)
+	if handled && err == nil {
+		slog.Debug("sendNPUPowerMode: daemon ok", "mode", mode, "elapsed", time.Since(start))
+		return
+	}
+	if err != nil {
+		slog.Warn("daemon NPU set failed, escalating via pkexec", "mode", mode, "err", err)
+	} else {
+		slog.Warn("daemon did not handle NPU set, escalating via pkexec", "mode", mode)
+	}
+	w.escalateNPUPowerMode(mode)
+}
+
+// escalateNPUPowerMode runs `pkexec z13ctl npu --set <mode>` in a goroutine.
+// pkexec shows a native polkit prompt; if unavailable, falls back to
+// `sudo -A` with kdialog as the askpass helper. After completion (success
+// or failure), re-fetches daemon state on the GTK main thread so the
+// active button reflects hardware reality.
+func (w *Window) escalateNPUPowerMode(mode int) {
+	go func() {
+		cmd := w.buildSudoCommand("z13ctl", "npu", "--set", strconv.Itoa(mode))
+		slog.Info("escalating NPU power mode via GUI sudo", "mode", mode, "cmd", cmd.String())
+		start := time.Now()
+		out, err := cmd.CombinedOutput()
+		elapsed := time.Since(start)
+		if err != nil {
+			slog.Error("NPU power escalation failed", "mode", mode, "err", err, "output", string(out), "elapsed", elapsed)
+			return
+		}
+		slog.Info("NPU power mode set via sudo", "mode", mode, "elapsed", elapsed)
+		// Refresh state so the active button syncs to the new mode.
+		if ok, state, ferr := api.SendGetState(); ok && ferr == nil {
+			glib.IdleAdd(func() bool {
+				w.state = state
+				w.syncing = true
+				w.syncNPUPower()
+				w.syncing = false
+				return false
+			})
+		}
+	}()
+}
+
+// buildSudoCommand returns a *exec.Cmd that runs the given args as root via
+// whichever GUI escalation helper is available. Preference order:
+//  1. pkexec — polkit-native, best KDE/GNOME integration.
+//  2. sudo -A with SUDO_ASKPASS=kdialog — fallback when pkexec is missing.
+//  3. sudo -A with SUDO_ASKPASS=zenity — last resort.
+//  4. plain sudo (will fail without a TTY) — leaves the failure visible.
+func (w *Window) buildSudoCommand(name string, args ...string) *exec.Cmd {
+	if path, err := exec.LookPath("pkexec"); err == nil {
+		full := append([]string{path, name}, args...)
+		return exec.Command(full[0], full[1:]...)
+	}
+	askpass := ""
+	if _, err := exec.LookPath("kdialog"); err == nil {
+		askpass = "kdialog"
+	} else if _, err := exec.LookPath("zenity"); err == nil {
+		askpass = "zenity"
+	}
+	cmd := exec.Command("sudo", append([]string{"-A", name}, args...)...)
+	if askpass == "kdialog" {
+		cmd.Env = append(cmd.Environ(), "SUDO_ASKPASS=/usr/bin/kdialog")
+	} else if askpass == "zenity" {
+		cmd.Env = append(cmd.Environ(),
+			"SUDO_ASKPASS=/bin/sh -c 'zenity --password --title=\"z13gui sudo\"'",
+		)
+	}
+	return cmd
+}
+
+// syncNPUPower highlights the NPU power button matching the daemon state,
+// and updates the section header suffix so the current mode is visible
+// even when the section is collapsed (e.g., "NPU POWER · TURBO").
+// Called from syncState and after a successful pkexec escalation.
+func (w *Window) syncNPUPower() {
+	if w.state == nil {
+		return
+	}
+	setActiveIntButton(w.npuPowerBtns, w.state.NPUPowerMode)
+	if w.npuHeader != nil {
+		w.npuHeader.SetSuffix(strings.ToUpper(npuPowerModeName(w.state.NPUPowerMode)))
+	}
+}
+
+// npuPowerModeName returns the lowercase human-readable name for a DPM mode.
+// Mirrors cli.NPUPowerModeName in z13ctl so the GUI doesn't need a new API.
+func npuPowerModeName(mode int) string {
+	switch mode {
+	case 0:
+		return "default"
+	case 1:
+		return "low"
+	case 2:
+		return "medium"
+	case 3:
+		return "high"
+	case 4:
+		return "turbo"
+	default:
+		return fmt.Sprintf("%d", mode)
 	}
 }
 

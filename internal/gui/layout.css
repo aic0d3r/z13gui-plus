@@ -3,21 +3,25 @@
    All element-level rules are scoped to .drawer to avoid affecting child windows
    (GtkColorDialog, etc.) that share the same GTK process. */
 
+/* Spacing system — 8px grid (multiples of 4): 4 / 8 / 12 / 16.
+   Apply to all margins, padding, gaps. section-header = 8/4,
+   card padding = 12, card internal gap = 6, micro gaps = 4. */
+
 /* Drawer outer container */
 .drawer {
     padding: 0;
 }
 
 /* Premium structural typography — Cantarell + Meslo numerals.
-   Mono stack is overridden per-widget via .card-value / .header-telemetry etc. */
+   Mono stack is overridden per-widget via .card-value etc. */
 .drawer, window.z13-drawer-window {
     font-feature-settings: "tnum" 0;
 }
 
-/* Touch targets — button group controls minimum 36px tall */
+/* Touch targets — 40px floor (touch-friendly), slimmer horizontal padding */
 .drawer .btn-group button {
-    min-height: 38px;
-    padding: 6px 12px;
+    min-height: 40px;
+    padding: 4px 8px;
     border-radius: 8px;
 }
 
@@ -30,7 +34,7 @@
 
 .drawer .main-tab-row button {
     min-height: 40px;
-    padding: 6px 14px;
+    padding: 4px 10px;
     border-radius: 8px;
     font-size: 12px;
     font-weight: 600;
@@ -40,14 +44,14 @@
 
 /* Device tab buttons (Keyboard / Lightbar CheckButton) */
 .drawer checkbutton {
-    min-height: 38px;
-    padding: 6px 12px;
+    min-height: 40px;
+    padding: 4px 8px;
     border-radius: 8px;
 }
 
-/* Mode grid buttons — taller, more substantial */
+/* Mode grid buttons — 40px touch floor */
 .drawer .mode-grid.btn-group button {
-    min-height: 44px;
+    min-height: 40px;
     border-radius: 8px;
     font-weight: 500;
 }
@@ -55,7 +59,7 @@
 /* Premium card — for hero widgets (battery, gauges, status) */
 .drawer .card {
     border-radius: 12px;
-    padding: 14px;
+    padding: 12px;
 }
 
 /* Card title — small caps mono */
@@ -64,12 +68,12 @@
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 /* Card primary value — large mono (gauges, %s) */
 .drawer .card-value {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
     font-feature-settings: "tnum";
 }
@@ -92,19 +96,19 @@
 
 /* Hero card with horizontal split (ring on left, details on right) */
 .drawer .hero-card {
-    padding: 16px;
+    padding: 12px;
 }
 
-/* Gauge container — for circular gauges in headers */
+/* Gauge container — compact radial gauges in headers */
 .drawer .gauge {
-    min-width: 80px;
-    min-height: 80px;
-    padding: 4px;
+    min-width: 56px;
+    min-height: 56px;
+    padding: 2px;
 }
 
-/* Sparkline area — for 30s rolling history */
+/* Sparkline area — for 30s rolling history (compact) */
 .drawer .sparkline {
-    min-height: 40px;
+    min-height: 28px;
     border-radius: 6px;
 }
 
@@ -130,24 +134,24 @@
     border-radius: 8px;
 }
 
-/* Custom view action buttons */
+/* Custom view action buttons — 40px touch floor, slimmer padding */
 .custom-actions button {
-    min-height: 38px;
-    padding: 6px 10px;
+    min-height: 40px;
+    padding: 4px 8px;
     border-radius: 8px;
 }
 
 /* Advanced checkbox — touch target */
 .advanced-check {
-    min-height: 38px;
-    padding: 6px 12px;
+    min-height: 40px;
+    padding: 4px 8px;
     border-radius: 8px;
 }
 
 /* Device tab buttons stretch to fill available width */
 .tab-btn {
     -gtk-icon-size: 0;  /* hide the checkbox indicator */
-    min-height: 38px;
+    min-height: 40px;
 }
 
 
@@ -171,23 +175,17 @@
     text-transform: uppercase;
 }
 
-/* Header telemetry readout — compact, right-aligned, mono */
-.header-telemetry {
-    font-size: 10px;
-    letter-spacing: 0.5px;
-}
-
 /* Section group headings — larger, used for "POWER" / "RGB" / "SYSTEM" */
 .section-group {
     font-size: 14px;
     font-weight: 700;
     letter-spacing: 3px;
     text-transform: uppercase;
-    margin-top: 4px;
+    margin-top: 2px;
     margin-bottom: 2px;
 }
 
-/* Section labels — small caps */
+/* Section labels — small caps, 8px grid */
 .section-label {
     font-size: 10px;
     font-weight: 700;
@@ -212,7 +210,7 @@
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
-    margin-top: 6px;
+    margin-top: 4px;
     margin-bottom: 2px;
 }
 
@@ -233,9 +231,9 @@
 
 /* Bottom bar — palette and future gear button */
 .bottom-bar button {
-    min-width: 36px;
-    min-height: 36px;
-    padding: 6px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 4px;
     border-radius: 8px;
 }
 
@@ -292,4 +290,67 @@ popover.z13-popover scrolledwindow {
 }
 .gs-backdrop {
     background: rgba(0, 0, 0, 0.3);
+}
+
+/* Collapsible section header — ToggleButton wrapping [chevron] [LABEL] [suffix].
+   Looks like a clickable row: subtle surface bg, hover lightens, active (expanded)
+   state tints accent so the user knows which sections are open. 40px touch floor. */
+.drawer .section-collapse {
+    min-height: 40px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: alpha(@z13-surface-hi, 0.4);
+    border: 1px solid alpha(@z13-border-hi, 0.4);
+    transition: background 150ms ease, border-color 150ms ease;
+}
+
+.drawer .section-collapse:hover {
+    background: alpha(@z13-surface-hi, 0.7);
+    border-color: alpha(@z13-border-hi, 0.7);
+}
+
+.drawer .section-collapse:checked {
+    background: alpha(@z13-accent, 0.08);
+    border-color: alpha(@z13-accent, 0.35);
+}
+
+/* Disclosure chevron — bigger than the old 12px so it reads at a glance.
+   Color shifts to accent when expanded, reinforcing "this section is open". */
+.drawer .disclosure-icon {
+    -gtk-icon-size: 16px;
+    color: alpha(@z13-text-dim, 0.85);
+}
+
+.drawer .section-collapse:checked .disclosure-icon {
+    color: @z13-accent;
+}
+
+/* Header label — small caps, same style as section labels. */
+.drawer .section-collapse-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: @z13-text;
+}
+
+/* Trailing value suffix on the header (e.g., "TURBO" next to "NPU POWER").
+   Right-aligned, smaller, dimmer so the label stays the primary readout. */
+.drawer .collapse-suffix {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: @z13-text-dim;
+    font-feature-settings: "tnum";
+}
+
+/* Overview tab — right-aligned mono values in the metrics grid. */
+.drawer .overview-value {
+    font-feature-settings: "tnum";
+}
+
+/* VRAM usage bar — slim, accent-coloured. */
+.drawer .vram-bar {
+    min-height: 6px;
 }
