@@ -254,7 +254,7 @@ func (w *Window) syncOverviewTelemetry() {
 		w.overviewGPUClock.SetLabel(formatGHz(t.GPUClockMHz))
 	}
 	if w.npuLabel != nil {
-		w.npuLabel.SetLabel(formatNPU(t.NPUUtil, t.NPUMaxClockMHz, t.NPUPowerW))
+		w.npuLabel.SetLabel(formatNPU(t.NPUUtil, t.NPUClockMHz, t.NPUPowerW))
 	}
 	if w.overviewMemClock != nil && t.MemClockMTs > 0 {
 		w.overviewMemClock.SetLabel(fmt.Sprintf("%d MT/s", t.MemClockMTs))
