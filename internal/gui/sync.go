@@ -252,6 +252,15 @@ func (w *Window) syncOverviewTelemetry() {
 	}
 	if w.npuLabel != nil {
 		w.npuLabel.SetLabel(formatNPU(t.NPUUtil, t.NPUClockMHz, t.NPUPowerW))
+		// Highlight the label accent when NPU is pegged high (>80%).
+		if t.NPUUtil > 80 {
+			w.npuLabel.AddCSSClass("npu-high")
+		} else {
+			w.npuLabel.RemoveCSSClass("npu-high")
+		}
+	}
+	if w.npuBar != nil {
+		w.npuBar.SetFraction(float64(t.NPUUtil) / 100.0)
 	}
 	if w.overviewMemClock != nil && t.MemClockMTs > 0 {
 		w.overviewMemClock.SetLabel(fmt.Sprintf("%d MT/s", t.MemClockMTs))

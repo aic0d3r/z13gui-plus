@@ -183,6 +183,12 @@ func (w *Window) buildOverviewMetrics() *gtk.Box {
 	card.Append(npuRow)
 	w.npuLabel = npuLbl
 
+	// NPU utilisation bar — thin progress bar fills to show load at a glance.
+	w.npuBar = gtk.NewProgressBar()
+	w.npuBar.SetHExpand(true)
+	w.npuBar.AddCSSClass("npu-bar")
+	card.Append(w.npuBar)
+
 	return card
 }
 
@@ -205,7 +211,7 @@ func formatVRAM(used, total int) string {
 	return fmt.Sprintf("%.1f / %.0f GB", float64(used)/1024.0, float64(total)/1024.0)
 }
 
-// formatNPU renders the NPU summary line: "util% · clock · powerW".
+// formatNPU renders the NPU summary line: "100% | 1.3 GHz | —".
 // Shows "—" if every sensor is zero (NPU unavailable or fully idle).
 // Individual zero fields are replaced with "—" so a partial read still
 // surfaces the available metrics.
@@ -225,5 +231,5 @@ func formatNPU(util int, clockMHz int, powerW float64) string {
 	if powerW > 0 {
 		powerStr = fmt.Sprintf("%.1f W", powerW)
 	}
-	return fmt.Sprintf("%s · %s · %s", utilStr, clockStr, powerStr)
+	return fmt.Sprintf("%s  │  %s  │  %s", utilStr, clockStr, powerStr)
 }

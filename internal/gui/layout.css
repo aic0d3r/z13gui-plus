@@ -350,6 +350,18 @@ popover.z13-popover scrolledwindow {
     font-feature-settings: "tnum";
 }
 
+/* NPU high utilisation — accent colour when NPU is pegged. */
+.drawer .npu-high {
+    color: @z13-accent;
+}
+
+/* NPU utilisation bar — slim, accent-coloured. */
+.drawer .npu-bar {
+    min-height: 6px;
+    margin-top: 0;
+    margin-bottom: 2px;
+}
+
 /* VRAM usage bar — slim, accent-coloured. */
 .drawer .vram-bar {
     min-height: 6px;

@@ -95,7 +95,8 @@ type Window struct {
 	gpuFanLabel        *gtk.Label   // "2800 RPM"
 	overviewCPUClock   *gtk.Label   // "3.8 GHz"
 	overviewGPUClock   *gtk.Label   // "1.7 GHz"
-	npuLabel           *gtk.Label   // "25% · 1.2 GHz · 8 W"
+	npuLabel           *gtk.Label   // "100% | 1.3 GHz | —"
+	npuBar             *gtk.ProgressBar // NPU utilisation bar (0..1)
 	overviewVRAMBar    *gtk.ProgressBar // VRAM usage bar (0..1)
 	overviewVRAMLbl    *gtk.Label   // "4.2 / 16 GB"
 	overviewMemClock   *gtk.Label   // "6400 MT/s"
