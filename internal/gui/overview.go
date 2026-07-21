@@ -176,18 +176,11 @@ func (w *Window) buildOverviewMetrics() *gtk.Box {
 	grid.Append(rightCol)
 	card.Append(grid)
 
-	// NPU summary row — full width below the grid. Combines util/clock/power
-	// into a single scannable line; matches the format users expect from
-	// tools like amdxdna-top. Stays "—" until the daemon reports non-zero NPU.
+	// NPU summary row — power leads because raw column utilisation can remain
+	// at 100% while a low-power background client holds the device open.
 	npuRow, npuLbl := metricRow("NPU")
 	card.Append(npuRow)
 	w.npuLabel = npuLbl
-
-	// NPU utilisation bar — thin progress bar fills to show load at a glance.
-	w.npuBar = gtk.NewProgressBar()
-	w.npuBar.SetHExpand(true)
-	w.npuBar.AddCSSClass("npu-bar")
-	card.Append(w.npuBar)
 
 	return card
 }
@@ -211,25 +204,21 @@ func formatVRAM(used, total int) string {
 	return fmt.Sprintf("%.1f / %.0f GB", float64(used)/1024.0, float64(total)/1024.0)
 }
 
-// formatNPU renders the NPU summary line: "100% | 1.3 GHz | —".
-// Shows "—" if every sensor is zero (NPU unavailable or fully idle).
-// Individual zero fields are replaced with "—" so a partial read still
-// surfaces the available metrics.
-func formatNPU(util int, clockMHz int, powerW float64) string {
-	if util == 0 && clockMHz == 0 && powerW == 0 {
+const npuActivePowerW = 0.5
+
+// formatNPU renders power first because it distinguishes low-power background
+// clients from real computation better than the driver's raw column occupancy.
+func formatNPU(util int, powerW float64) string {
+	if util == 0 && powerW == 0 {
 		return "—"
-	}
-	utilStr := "—"
-	if util > 0 {
-		utilStr = fmt.Sprintf("%d%%", util)
-	}
-	clockStr := "—"
-	if clockMHz > 0 {
-		clockStr = formatGHz(clockMHz)
 	}
 	powerStr := "—"
 	if powerW > 0 {
-		powerStr = fmt.Sprintf("%.1f W", powerW)
+		powerStr = fmt.Sprintf("%.2f W", powerW)
 	}
-	return fmt.Sprintf("%s  │  %s  │  %s", utilStr, clockStr, powerStr)
+	utilStr := "—"
+	if util > 0 {
+		utilStr = fmt.Sprintf("%d%% raw util", util)
+	}
+	return fmt.Sprintf("%s  %s", powerStr, utilStr)
 }

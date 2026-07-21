@@ -251,16 +251,14 @@ func (w *Window) syncOverviewTelemetry() {
 		w.overviewGPUClock.SetLabel(formatGHz(t.GPUClockMHz))
 	}
 	if w.npuLabel != nil {
-		w.npuLabel.SetLabel(formatNPU(t.NPUUtil, t.NPUClockMHz, t.NPUPowerW))
-		// Highlight the label accent when NPU is pegged high (>80%).
-		if t.NPUUtil > 80 {
+		w.npuLabel.SetLabel(formatNPU(t.NPUUtil, t.NPUPowerW))
+		w.npuLabel.RemoveCSSClass("npu-high")
+		w.npuLabel.RemoveCSSClass("npu-dim")
+		if t.NPUPowerW > 0 && t.NPUPowerW < npuActivePowerW {
+			w.npuLabel.AddCSSClass("npu-dim")
+		} else if t.NPUPowerW >= npuActivePowerW {
 			w.npuLabel.AddCSSClass("npu-high")
-		} else {
-			w.npuLabel.RemoveCSSClass("npu-high")
 		}
-	}
-	if w.npuBar != nil {
-		w.npuBar.SetFraction(float64(t.NPUUtil) / 100.0)
 	}
 	if w.overviewMemClock != nil && t.MemClockMTs > 0 {
 		w.overviewMemClock.SetLabel(fmt.Sprintf("%d MT/s", t.MemClockMTs))
@@ -275,7 +273,8 @@ func (w *Window) syncOverviewTelemetry() {
 
 // updateBatteryHero updates the System tab battery card from live telemetry.
 // Called from syncState (initial) and from the 1s telemetry poll.
-func (w *Window) updateBatteryHero(b *api.BatteryState) {	if w.battCapacityGauge != nil {
+func (w *Window) updateBatteryHero(b *api.BatteryState) {
+	if w.battCapacityGauge != nil {
 		w.battCapacityGauge.SetValue(float64(b.CapacityPct))
 	}
 	if w.battStatusLabel != nil {

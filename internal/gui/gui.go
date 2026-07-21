@@ -84,23 +84,22 @@ type Window struct {
 	battPill          *gtk.Label   // threshold preset chip
 
 	// Overview tab — full live telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
-	overviewScroll     *gtk.ScrolledWindow
-	overviewHero       *gtk.Box     // container for the Overview tab hero header
-	cpuTempGauge       *RadialGauge // CPU temperature (Overview)
-	gpuTempGauge       *RadialGauge // GPU temperature (Overview)
-	cpuUtilGauge       *RadialGauge // CPU utilisation %
-	gpuUtilGauge       *RadialGauge // GPU utilisation %
-	overviewSpark      *Sparkline   // 30s CPU temp history (Overview)
-	cpuFanLabel        *gtk.Label   // "3300 RPM"
-	gpuFanLabel        *gtk.Label   // "2800 RPM"
-	overviewCPUClock   *gtk.Label   // "3.8 GHz"
-	overviewGPUClock   *gtk.Label   // "1.7 GHz"
-	npuLabel           *gtk.Label   // "100% | 1.3 GHz | —"
-	npuBar             *gtk.ProgressBar // NPU utilisation bar (0..1)
-	overviewVRAMBar    *gtk.ProgressBar // VRAM usage bar (0..1)
-	overviewVRAMLbl    *gtk.Label   // "4.2 / 16 GB"
-	overviewMemClock   *gtk.Label   // "6400 MT/s"
-	overviewGen        int          // animation generation counter
+	overviewScroll   *gtk.ScrolledWindow
+	overviewHero     *gtk.Box         // container for the Overview tab hero header
+	cpuTempGauge     *RadialGauge     // CPU temperature (Overview)
+	gpuTempGauge     *RadialGauge     // GPU temperature (Overview)
+	cpuUtilGauge     *RadialGauge     // CPU utilisation %
+	gpuUtilGauge     *RadialGauge     // GPU utilisation %
+	overviewSpark    *Sparkline       // 30s CPU temp history (Overview)
+	cpuFanLabel      *gtk.Label       // "3300 RPM"
+	gpuFanLabel      *gtk.Label       // "2800 RPM"
+	overviewCPUClock *gtk.Label       // "3.8 GHz"
+	overviewGPUClock *gtk.Label       // "1.7 GHz"
+	npuLabel         *gtk.Label       // "1.85 W  96% raw util"
+	overviewVRAMBar  *gtk.ProgressBar // VRAM usage bar (0..1)
+	overviewVRAMLbl  *gtk.Label       // "4.2 / 16 GB"
+	overviewMemClock *gtk.Label       // "6400 MT/s"
+	overviewGen      int              // animation generation counter
 
 	// Custom profile view.
 	customScroll       *gtk.ScrolledWindow
