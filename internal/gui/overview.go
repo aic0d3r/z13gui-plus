@@ -209,7 +209,7 @@ func formatVRAM(used, total int) string {
 // Shows "—" if every sensor is zero (NPU unavailable or fully idle).
 // Individual zero fields are replaced with "—" so a partial read still
 // surfaces the available metrics.
-func formatNPU(util, clockMHz, powerW int) string {
+func formatNPU(util int, clockMHz int, powerW float64) string {
 	if util == 0 && clockMHz == 0 && powerW == 0 {
 		return "—"
 	}
@@ -223,7 +223,7 @@ func formatNPU(util, clockMHz, powerW int) string {
 	}
 	powerStr := "—"
 	if powerW > 0 {
-		powerStr = fmt.Sprintf("%d W", powerW)
+		powerStr = fmt.Sprintf("%.1f W", powerW)
 	}
 	return fmt.Sprintf("%s · %s · %s", utilStr, clockStr, powerStr)
 }

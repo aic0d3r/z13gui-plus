@@ -141,9 +141,6 @@ func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
 	inner.Append(w.buildProfileSection())
 	inner.Append(w.buildCPUPowerSection())
 	// Collapsible secondary sections — defaults expanded, tap header to collapse.
-	npuBox, npuH := collapsibleSectionWithSuffix("NPU POWER", true, w.buildNpuPowerSection())
-	w.npuHeader = npuH
-	inner.Append(npuBox)
 	inner.Append(collapsibleSection("FAN PRESET", true, w.buildFanPresetSection()))
 	inner.Append(collapsibleSection("BATTERY LIMIT", true, w.buildBatterySection()))
 
@@ -819,44 +816,6 @@ func (w *Window) buildFanPresetSection() *gtk.Box {
 			w.sendFanPreset(name)
 		})
 		w.fanPresetBtns[name] = btn
-		row.Append(btn)
-	}
-	box.Append(row)
-	return box
-}
-
-// npuPowerModes defines the five NPU DPM modes (amdxdna SET_STATE).
-// Labels are intentionally short so all five fit one row at 320px drawer width.
-var npuPowerModes = []struct {
-	value int
-	label string
-}{
-	{0, "DEF"},
-	{1, "LOW"},
-	{2, "MED"},
-	{3, "HIGH"},
-	{4, "TURBO"},
-}
-
-// buildNpuPowerSection creates the segmented row of NPU DPM buttons.
-// amdxdna SET_STATE is DRM_ROOT_ONLY, so the click handler escalates via
-// pkexec when the daemon-side write fails with a permission error.
-func (w *Window) buildNpuPowerSection() *gtk.Box {
-	box := gtk.NewBox(gtk.OrientationVertical, 4)
-	row := gtk.NewBox(gtk.OrientationHorizontal, 2)
-	row.AddCSSClass("btn-group")
-	row.SetHomogeneous(true)
-	for _, m := range npuPowerModes {
-		m := m
-		btn := gtk.NewButtonWithLabel(m.label)
-		btn.ConnectClicked(func() {
-			if w.syncing {
-				return
-			}
-			setActiveIntButton(w.npuPowerBtns, m.value)
-			w.sendNPUPowerMode(m.value)
-		})
-		w.npuPowerBtns[m.value] = btn
 		row.Append(btn)
 	}
 	box.Append(row)

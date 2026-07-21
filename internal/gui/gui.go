@@ -71,8 +71,6 @@ type Window struct {
 	battPresetBtns  map[int]*gtk.Button    // battery presets: 100/80/60 %
 	fanPresetBtns   map[string]*gtk.Button // fan curve presets: silent/balanced/turbo
 	refreshBtns     map[int]*gtk.Button    // eDP-1 refresh rate: 60/180 Hz
-	npuPowerBtns    map[int]*gtk.Button    // NPU DPM mode: 0=default ... 4=turbo
-	npuHeader       *collapsibleHeader     // so sync can update "NPU POWER · TURBO" suffix
 	overdriveSwitch *gtk.Switch
 	bootSoundSwitch *gtk.Switch
 
@@ -194,7 +192,6 @@ func New(app *gtk.Application) *Window {
 		battPresetBtns: make(map[int]*gtk.Button),
 		fanPresetBtns:  make(map[string]*gtk.Button),
 		refreshBtns:    make(map[int]*gtk.Button),
-		npuPowerBtns:   make(map[int]*gtk.Button),
 	}
 
 	w.win = gtk.NewApplicationWindow(app)
