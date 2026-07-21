@@ -17,19 +17,19 @@ package gui
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 )
 
 // buildOverviewTab constructs the Overview tab content + scroll container.
 func (w *Window) buildOverviewTab() *gtk.ScrolledWindow {
-	inner := gtk.NewBox(gtk.OrientationVertical, 4)
+	inner := gtk.NewBox(gtk.OrientationVertical, 8)
 	inner.SetMarginTop(4)
 	inner.SetMarginBottom(8)
 	inner.SetMarginStart(12)
 	inner.SetMarginEnd(12)
 
-	inner.Append(groupLabel("OVERVIEW"))
 	inner.Append(w.buildOverviewHero())
 	inner.Append(w.buildOverviewMetrics())
 
@@ -49,38 +49,58 @@ func (w *Window) buildOverviewHero() *gtk.Box {
 	card := gtk.NewBox(gtk.OrientationVertical, 6)
 	card.AddCSSClass("card")
 
+	header := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	title := gtk.NewLabel("THERMALS & LOAD")
+	title.SetHAlign(gtk.AlignStart)
+	title.SetHExpand(true)
+	title.AddCSSClass("card-title")
+	header.Append(title)
+	w.overviewStatus = gtk.NewLabel("NORMAL")
+	w.overviewStatus.AddCSSClass("pill")
+	w.overviewStatus.AddCSSClass("success")
+	header.Append(w.overviewStatus)
+	card.Append(header)
+
 	// Gauge row — 4 equal-width compact gauges.
 	gaugeRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	gaugeRow.SetHomogeneous(true)
 
-	w.cpuTempGauge = NewRadialGauge("CPU", "°")
+	w.cpuTempGauge = NewRadialGauge("CPU TEMP", "°")
 	w.cpuTempGauge.SetRange(20, 100)
-	w.cpuTempGauge.SetHot(true)
 	w.cpuTempGauge.Widget().SetSizeRequest(-1, 56)
 	gaugeRow.Append(w.cpuTempGauge.Widget())
 
-	w.gpuTempGauge = NewRadialGauge("GPU", "°")
+	w.gpuTempGauge = NewRadialGauge("GPU TEMP", "°")
 	w.gpuTempGauge.SetRange(20, 100)
-	w.gpuTempGauge.SetHot(true)
 	w.gpuTempGauge.Widget().SetSizeRequest(-1, 56)
 	gaugeRow.Append(w.gpuTempGauge.Widget())
 
-	w.cpuUtilGauge = NewRadialGauge("CPU", "%")
+	w.cpuUtilGauge = NewRadialGauge("CPU LOAD", "%")
 	w.cpuUtilGauge.SetRange(0, 100)
 	w.cpuUtilGauge.Widget().SetSizeRequest(-1, 56)
 	gaugeRow.Append(w.cpuUtilGauge.Widget())
 
-	w.gpuUtilGauge = NewRadialGauge("GPU", "%")
+	w.gpuUtilGauge = NewRadialGauge("GPU LOAD", "%")
 	w.gpuUtilGauge.SetRange(0, 100)
 	w.gpuUtilGauge.Widget().SetSizeRequest(-1, 56)
 	gaugeRow.Append(w.gpuUtilGauge.Widget())
 
 	card.Append(gaugeRow)
 
-	// Sparkline — 30s CPU temperature trend (compact).
+	chartHeader := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	chartLabel := gtk.NewLabel("APU TEMPERATURE")
+	chartLabel.SetHAlign(gtk.AlignStart)
+	chartLabel.SetHExpand(true)
+	chartLabel.AddCSSClass("overview-chart-label")
+	chartHeader.Append(chartLabel)
+	chartRange := gtk.NewLabel("30 SEC")
+	chartRange.AddCSSClass("overview-chart-range")
+	chartHeader.Append(chartRange)
+	card.Append(chartHeader)
+
+	// Sparkline — 30s APU temperature trend (compact).
 	w.overviewSpark = NewSparkline(30)
 	w.overviewSpark.SetRange(20, 100)
-	w.overviewSpark.SetHot(true)
 	w.overviewSpark.Widget().SetSizeRequest(-1, 28)
 	card.Append(w.overviewSpark.Widget())
 
@@ -117,7 +137,11 @@ func metricRow(label string) (*gtk.Box, *gtk.Label) {
 func (w *Window) buildOverviewMetrics() *gtk.Box {
 	card := gtk.NewBox(gtk.OrientationVertical, 4)
 	card.AddCSSClass("card")
-	card.SetMarginTop(4)
+
+	title := gtk.NewLabel("SYSTEM")
+	title.SetHAlign(gtk.AlignStart)
+	title.AddCSSClass("card-title")
+	card.Append(title)
 
 	// Two-column grid via a horizontal Box of two vertical Boxes.
 	grid := gtk.NewBox(gtk.OrientationHorizontal, 12)
@@ -136,45 +160,39 @@ func (w *Window) buildOverviewMetrics() *gtk.Box {
 	w.gpuFanLabel = lbl
 
 	row, lbl = metricRow("CPU CLOCK")
-	leftCol.Append(row)
+	rightCol.Append(row)
 	w.overviewCPUClock = lbl
 
 	row, lbl = metricRow("GPU CLOCK")
-	leftCol.Append(row)
-	w.overviewGPUClock = lbl
-
-	// Right column.
-	row, lbl = metricRow("MEMORY")
 	rightCol.Append(row)
-	w.overviewMemClock = lbl
-
-	// VRAM row: label + progress bar + text (custom layout).
-	vramRow := gtk.NewBox(gtk.OrientationVertical, 2)
-	vramRow.SetMarginTop(2)
-	vramRow.SetMarginBottom(2)
-
-	vramLabelRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	vramLbl := gtk.NewLabel("VRAM")
-	vramLbl.SetHAlign(gtk.AlignStart)
-	vramLbl.AddCSSClass("scale-name")
-	vramLabelRow.Append(vramLbl)
-
-	w.overviewVRAMLbl = gtk.NewLabel("—")
-	w.overviewVRAMLbl.SetHAlign(gtk.AlignEnd)
-	w.overviewVRAMLbl.SetHExpand(true)
-	w.overviewVRAMLbl.AddCSSClass("scale-value")
-	vramLabelRow.Append(w.overviewVRAMLbl)
-	vramRow.Append(vramLabelRow)
-
-	w.overviewVRAMBar = gtk.NewProgressBar()
-	w.overviewVRAMBar.SetHExpand(true)
-	w.overviewVRAMBar.AddCSSClass("vram-bar")
-	vramRow.Append(w.overviewVRAMBar)
-	rightCol.Append(vramRow)
+	w.overviewGPUClock = lbl
 
 	grid.Append(leftCol)
 	grid.Append(rightCol)
 	card.Append(grid)
+
+	memoryRow := gtk.NewBox(gtk.OrientationVertical, 2)
+	memoryRow.SetMarginTop(4)
+	memoryHeader := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	memoryTitle := gtk.NewLabel("UNIFIED MEMORY")
+	memoryTitle.SetHAlign(gtk.AlignStart)
+	memoryTitle.AddCSSClass("scale-name")
+	memoryHeader.Append(memoryTitle)
+	w.overviewMemoryLbl = gtk.NewLabel("—")
+	w.overviewMemoryLbl.SetHAlign(gtk.AlignEnd)
+	w.overviewMemoryLbl.SetHExpand(true)
+	w.overviewMemoryLbl.AddCSSClass("scale-value")
+	memoryHeader.Append(w.overviewMemoryLbl)
+	memoryRow.Append(memoryHeader)
+	w.overviewMemoryBar = gtk.NewProgressBar()
+	w.overviewMemoryBar.SetHExpand(true)
+	w.overviewMemoryBar.AddCSSClass("memory-bar")
+	memoryRow.Append(w.overviewMemoryBar)
+	card.Append(memoryRow)
+
+	row, lbl = metricRow("MEMORY CLOCK")
+	card.Append(row)
+	w.overviewMemClock = lbl
 
 	// NPU summary row — power leads because raw column utilisation can remain
 	// at 100% while a low-power background client holds the device open.
@@ -196,15 +214,34 @@ func formatGHz(mhz int) string {
 	return fmt.Sprintf("%.1f GHz", float64(mhz)/1000.0)
 }
 
-// formatVRAM renders "used / total GB". Returns "—" if either is zero.
-func formatVRAM(used, total int) string {
+// unifiedMemory combines Linux memory with the reserved GPU carveout.
+func unifiedMemory(used, total, vramUsed, vramTotal int) (int, int) {
+	if total <= 0 {
+		return 0, 0
+	}
+	used += vramUsed
+	total += vramTotal
+	// Linux excludes firmware reservations from MemTotal. Round the combined
+	// system + GPU pool up to a standard 8 GiB installed capacity.
+	totalGiB := math.Ceil(float64(total)/(8*1024)) * 8
+	return used, int(totalGiB * 1024)
+}
+
+func formatMemory(used, total int) string {
 	if total <= 0 {
 		return "—"
 	}
-	return fmt.Sprintf("%.1f / %.0f GB", float64(used)/1024.0, float64(total)/1024.0)
+	return fmt.Sprintf("%.1f / %.0f GB  %.0f%%", float64(used)/1024.0, float64(total)/1024.0, float64(used)*100/float64(total))
 }
 
-const npuActivePowerW = 0.5
+const (
+	npuActivePowerW = 0.5
+	// Ryzen AI Max+ 395 has a 100°C Tjmax; warn before throttling territory.
+	thermalWarningC  = 85
+	thermalCriticalC = 95
+	memoryWarning    = 0.90
+	memoryCritical   = 0.97
+)
 
 // formatNPU renders power first because it distinguishes low-power background
 // clients from real computation better than the driver's raw column occupancy.
@@ -212,13 +249,16 @@ func formatNPU(util int, powerW float64) string {
 	if util == 0 && powerW == 0 {
 		return "—"
 	}
-	powerStr := "—"
-	if powerW > 0 {
-		powerStr = fmt.Sprintf("%.2f W", powerW)
-	}
 	utilStr := "—"
 	if util > 0 {
 		utilStr = fmt.Sprintf("%d%% raw util", util)
 	}
-	return fmt.Sprintf("%s  %s", powerStr, utilStr)
+	if powerW <= 0 {
+		return fmt.Sprintf("POWER N/A  ·  %s", utilStr)
+	}
+	status := "LOW POWER"
+	if powerW >= npuActivePowerW {
+		status = "ACTIVE"
+	}
+	return fmt.Sprintf("%s  ·  %.2f W  ·  %s", status, powerW, utilStr)
 }

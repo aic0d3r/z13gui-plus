@@ -737,7 +737,13 @@ func (w *Window) resetTdp() {
 		ok, state, err := api.SendGetState()
 		if ok && err == nil {
 			glib.IdleAdd(func() {
+				presetsChanged := presetStateChanged(w.state, state)
 				w.state = state
+				if presetsChanged {
+					w.syncing = true
+					w.syncPresets()
+					w.syncing = false
+				}
 				w.syncCustomView()
 				w.syncing = true
 				w.syncProfile()
@@ -824,15 +830,15 @@ func (w *Window) startTelemetryPolling() {
 				}
 				w.state = state
 
-			// Battery hero card.
-			if state.BatteryDetail != nil {
-				w.updateBatteryHero(state.BatteryDetail)
-			}
+				// Battery hero card.
+				if state.BatteryDetail != nil {
+					w.updateBatteryHero(state.BatteryDetail)
+				}
 
-			// Overview tab — full telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
-			w.syncOverviewTelemetry()
+				// Overview tab — full telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
+				w.syncOverviewTelemetry()
 
-			// Custom view telemetry (only when active).
+				// Custom view telemetry (only when active).
 				if w.viewStack != nil && w.viewStack.VisibleChildName() == "custom" {
 					if w.telemetryTempLabel != nil {
 						w.telemetryTempLabel.SetLabel(fmt.Sprintf("APU: %d°C", state.Temperature))

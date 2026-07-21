@@ -6,8 +6,7 @@
 // Device classification:
 //   - gamepad: full controllers (Xbox, PS, Switch, virtual Steam devices) →
 //     read events + EVIOCGRAB to suppress background game input
-//   - grab-only: related input devices (PS touchpad) → EVIOCGRAB only,
-//     events discarded (prevents touchpad acting as mouse in background)
+//   - grab-only: Steam virtual gamepads → EVIOCGRAB only, events discarded
 //   - ignored: accelerometers/gyro (INPUT_PROP_ACCELEROMETER), keyboards,
 //     mice, and other non-gamepad devices
 //
@@ -21,6 +20,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -51,7 +52,7 @@ type deviceClass int
 const (
 	deviceIgnore   deviceClass = iota // not gamepad-related; skip
 	deviceGamepad                     // full gamepad: read events + EVIOCGRAB
-	deviceGrabOnly                    // related device (e.g. PS touchpad): EVIOCGRAB only
+	deviceGrabOnly                    // Steam virtual gamepad: EVIOCGRAB only
 )
 
 // gamepadButtons are evdev button codes that identify a device as a gamepad.
@@ -80,7 +81,7 @@ type Reader struct {
 
 	mu       sync.Mutex
 	devices  map[string]*evdev.InputDevice // gamepad devices: read events + grab
-	grabOnly map[string]*evdev.InputDevice // related devices: grab only (e.g. PS touchpad)
+	grabOnly map[string]*evdev.InputDevice // Steam virtual gamepads: grab only
 	grabbed  bool                          // true while overlay is visible (exclusive grab)
 	stop     chan struct{}
 }
@@ -236,16 +237,40 @@ func (r *Reader) tryOpen(path string) {
 
 // classifyDevice determines how to handle an evdev device.
 func classifyDevice(dev *evdev.InputDevice) deviceClass {
+	name, _ := dev.Name()
+	id, _ := dev.InputID()
+	return classifyCapabilities(
+		name,
+		dev.Properties(),
+		dev.CapableEvents(evdev.EV_KEY),
+		dev.CapableEvents(evdev.EV_ABS),
+		id,
+	)
+}
+
+func classifyCapabilities(name string, properties []evdev.EvProp, keys, abs []evdev.EvCode, id evdev.InputID) deviceClass {
 	// Skip accelerometers/gyro (PS motion sensors). High-frequency events,
 	// not routable to game input — grabbing is wasteful.
-	for _, p := range dev.Properties() {
+	for _, p := range properties {
 		if p == evdev.INPUT_PROP_ACCELEROMETER {
 			return deviceIgnore
 		}
 	}
 
+	// Identify touchpad-like nodes before deciding whether a controller's main
+	// event node or its separate touchpad node is being inspected.
+	lowerName := strings.ToLower(name)
+	isTouchpad := strings.Contains(lowerName, "touchpad") || strings.Contains(lowerName, "trackpad")
+	for _, p := range properties {
+		if p == evdev.INPUT_PROP_BUTTONPAD || p == evdev.INPUT_PROP_SEMI_MT {
+			isTouchpad = true
+		}
+	}
+	if slices.Contains(properties, evdev.INPUT_PROP_POINTER) && slices.Contains(abs, evdev.ABS_MT_POSITION_X) {
+		isTouchpad = true
+	}
+
 	// Check for gamepad button capabilities (Xbox, PS, Switch, virtual).
-	keys := dev.CapableEvents(evdev.EV_KEY)
 	hasGamepadBtn := false
 	for _, k := range keys {
 		for _, gb := range gamepadButtons {
@@ -259,30 +284,23 @@ func classifyDevice(dev *evdev.InputDevice) deviceClass {
 		}
 	}
 	if hasGamepadBtn {
+		if isTouchpad && id.Vendor != 0x054C && id.Vendor != 0x28DE {
+			return deviceIgnore
+		}
 		// Steam virtual gamepad (VID 28de, PID 11ff) — grab to block game's
 		// evdev reader, but don't read events (we read the physical device).
-		id, err := dev.InputID()
-		if err == nil && id.Vendor == 0x28DE && id.Product == 0x11FF {
+		if id.Vendor == 0x28DE && id.Product == 0x11FF {
 			return deviceGrabOnly
 		}
 		return deviceGamepad
 	}
-
-	// Check for touchpad (PS controller touchpad): has multitouch but no
-	// gamepad buttons. Must be grabbed to prevent it acting as a mouse.
-	// Skip direct-input touchscreens (INPUT_PROP_DIRECT) — they are the
-	// actual touchscreen and must NOT be grabbed, or the compositor loses
-	// all touch events while the overlay is visible.
-	for _, p := range dev.Properties() {
-		if p == evdev.INPUT_PROP_DIRECT {
-			return deviceIgnore
-		}
-	}
-	abs := dev.CapableEvents(evdev.EV_ABS)
-	for _, a := range abs {
-		if a == evdev.ABS_MT_POSITION_X {
+	if isTouchpad {
+		// Keep controller touchpads suppressed while the overlay is open, but
+		// never open/grab desktop or folio touchpads.
+		if id.Vendor == 0x054C || id.Vendor == 0x28DE {
 			return deviceGrabOnly
 		}
+		return deviceIgnore
 	}
 
 	return deviceIgnore

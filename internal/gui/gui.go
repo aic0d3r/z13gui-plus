@@ -49,30 +49,41 @@ type Window struct {
 	themeProvider  *gtk.CSSProvider // current theme; replaced on applyTheme()
 
 	// Widget references for syncState.
-	tabKB           *gtk.CheckButton
-	tabLB           *gtk.CheckButton
-	mainTabBtns     map[string]*gtk.Button // top-level Power/RGB/System tabs
-	tabStack        *gtk.Stack             // switches between Power/RGB/System tab content
-	modeButtons     map[string]*gtk.Button
-	color1          *colorInput
-	color2          *colorInput
-	color1Box       *gtk.Box // COLOR 1 label + row — visibility toggled by syncModeVis
-	color2Box       *gtk.Box // COLOR 2 label + row — visibility toggled by syncModeVis
-	speedBox        *gtk.Box // SPEED label + row — visibility toggled by syncModeVis
-	brightBox       *gtk.Box // BRIGHTNESS label + scale — hidden when mode is "off"
-	speedBtns       map[string]*gtk.Button
-	brightScale     *gtk.Scale
-	profileBtns     map[string]*gtk.Button
-	cpuPowerBox     *gtk.Box
-	cpuMinScale     *gtk.Scale
-	cpuEPPBtns      map[string]*gtk.Button
-	cpuBoostSwitch  *gtk.Switch
-	battScale       *gtk.Scale
-	battPresetBtns  map[int]*gtk.Button    // battery presets: 100/80/60 %
-	fanPresetBtns   map[string]*gtk.Button // fan curve presets: silent/balanced/turbo
-	refreshBtns     map[int]*gtk.Button    // eDP-1 refresh rate: 60/180 Hz
-	overdriveSwitch *gtk.Switch
-	bootSoundSwitch *gtk.Switch
+	tabKB            *gtk.CheckButton
+	tabLB            *gtk.CheckButton
+	mainTabBtns      map[string]*gtk.Button // top-level Power/RGB/System tabs
+	tabStack         *gtk.Stack             // switches between Power/RGB/System tab content
+	modeButtons      map[string]*gtk.Button
+	color1           *colorInput
+	color2           *colorInput
+	color1Box        *gtk.Box // COLOR 1 label + row — visibility toggled by syncModeVis
+	color2Box        *gtk.Box // COLOR 2 label + row — visibility toggled by syncModeVis
+	speedBox         *gtk.Box // SPEED label + row — visibility toggled by syncModeVis
+	brightBox        *gtk.Box // BRIGHTNESS label + scale — hidden when mode is "off"
+	rgbControlsBox   *gtk.Box // mode-specific controls; insensitive while selected device is off
+	lightingSwitch   *gtk.Switch
+	speedBtns        map[string]*gtk.Button
+	brightScale      *gtk.Scale
+	profileBtns      map[string]*gtk.Button
+	cpuPowerBox      *gtk.Box
+	cpuMinScale      *gtk.Scale
+	cpuEPPBtns       map[string]*gtk.Button
+	cpuBoostSwitch   *gtk.Switch
+	battPresetBtns   map[int]*gtk.Button    // battery presets: 100/80/60 %
+	fanPresetBtns    map[string]*gtk.Button // fan curve presets: silent/balanced/turbo
+	refreshBtns      map[int]*gtk.Button    // eDP-1 refresh rate: 60/180 Hz
+	overdriveSwitch  *gtk.Switch
+	bootSoundSwitch  *gtk.Switch
+	presetsBtn       *gtk.Button
+	presetsScroll    *gtk.ScrolledWindow
+	presetsBackBtn   *gtk.Button
+	presetsList      *gtk.Box
+	presetNameEntry  *gtk.Entry
+	presetAuto       *gtk.Switch
+	presetSaveBtn    *gtk.Button
+	presetStatus     *gtk.Label
+	presetFocusItems []focusItem
+	presetBusy       bool
 
 	// Premium hero widgets — battery card (System tab).
 	// Power tab telemetry gauges removed; live stats live on Overview tab only.
@@ -84,22 +95,23 @@ type Window struct {
 	battPill          *gtk.Label   // threshold preset chip
 
 	// Overview tab — full live telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
-	overviewScroll   *gtk.ScrolledWindow
-	overviewHero     *gtk.Box         // container for the Overview tab hero header
-	cpuTempGauge     *RadialGauge     // CPU temperature (Overview)
-	gpuTempGauge     *RadialGauge     // GPU temperature (Overview)
-	cpuUtilGauge     *RadialGauge     // CPU utilisation %
-	gpuUtilGauge     *RadialGauge     // GPU utilisation %
-	overviewSpark    *Sparkline       // 30s CPU temp history (Overview)
-	cpuFanLabel      *gtk.Label       // "3300 RPM"
-	gpuFanLabel      *gtk.Label       // "2800 RPM"
-	overviewCPUClock *gtk.Label       // "3.8 GHz"
-	overviewGPUClock *gtk.Label       // "1.7 GHz"
-	npuLabel         *gtk.Label       // "1.85 W  96% raw util"
-	overviewVRAMBar  *gtk.ProgressBar // VRAM usage bar (0..1)
-	overviewVRAMLbl  *gtk.Label       // "4.2 / 16 GB"
-	overviewMemClock *gtk.Label       // "6400 MT/s"
-	overviewGen      int              // animation generation counter
+	overviewScroll    *gtk.ScrolledWindow
+	overviewHero      *gtk.Box         // container for the Overview tab hero header
+	cpuTempGauge      *RadialGauge     // CPU temperature (Overview)
+	gpuTempGauge      *RadialGauge     // GPU temperature (Overview)
+	cpuUtilGauge      *RadialGauge     // CPU utilisation %
+	gpuUtilGauge      *RadialGauge     // GPU utilisation %
+	overviewSpark     *Sparkline       // 30s CPU temp history (Overview)
+	overviewStatus    *gtk.Label       // NORMAL / WARM / CRITICAL
+	cpuFanLabel       *gtk.Label       // "3300 RPM"
+	gpuFanLabel       *gtk.Label       // "2800 RPM"
+	overviewCPUClock  *gtk.Label       // "3.8 GHz"
+	overviewGPUClock  *gtk.Label       // "1.7 GHz"
+	npuLabel          *gtk.Label       // "1.85 W  96% raw util"
+	overviewMemoryBar *gtk.ProgressBar // unified memory usage bar (0..1)
+	overviewMemoryLbl *gtk.Label       // "18.4 / 128 GB  14%"
+	overviewMemClock  *gtk.Label       // "6400 MT/s"
+	overviewGen       int              // animation generation counter
 
 	// Custom profile view.
 	customScroll       *gtk.ScrolledWindow
@@ -519,6 +531,9 @@ func (w *Window) applyTheme(id, accentID string) {
 	w.themeProvider.LoadFromString(theme.BuildThemeCSS(colors, defaultThemeCSS))
 	gtk.StyleContextAddProviderForDisplay(display, w.themeProvider, gtk.STYLE_PROVIDER_PRIORITY_USER)
 	theme.SaveAppConfig(theme.AppConfig{Theme: id, Accent: accentID})
+	if w.paletteBtn != nil {
+		w.paletteBtn.SetLabel(themeButtonLabel(id, accentID, false))
+	}
 	slog.Info("theme changed", "id", id, "accent", accentID)
 }
 
@@ -541,6 +556,9 @@ func (w *Window) applyCustomAccent(accentID string) {
 	w.themeProvider.LoadFromString(theme.BuildThemeCSS(colors, defaultThemeCSS))
 	gtk.StyleContextAddProviderForDisplay(display, w.themeProvider, gtk.STYLE_PROVIDER_PRIORITY_USER)
 	theme.SaveAppConfig(theme.AppConfig{Accent: accentID})
+	if w.paletteBtn != nil {
+		w.paletteBtn.SetLabel(themeButtonLabel("", accentID, true))
+	}
 }
 
 // fileExists returns true if a file exists at the given path.

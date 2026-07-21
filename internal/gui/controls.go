@@ -78,8 +78,6 @@ func (w *Window) buildContent() gtk.Widgetter {
 	w.viewStack.SetVisibleChildName("main")
 	outer.Append(w.viewStack)
 
-	outer.Append(w.buildBottomBar())
-
 	w.buildMainFocusList()
 	w.focusItems = w.mainFocusItems
 
@@ -128,10 +126,9 @@ func (w *Window) switchTab(name string) {
 
 // buildPowerTab builds the Power tab: profile, fan preset, battery.
 // Telemetry lives on the Overview tab; this tab is controls-only.
-// Tight spacing (2px gaps, 2/4 margins) so the tab fits without scroll at
-// 170% scale with all sections expanded.
+// Common controls stay visible; advanced CPU controls appear only for Custom.
 func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
-	inner := gtk.NewBox(gtk.OrientationVertical, 2)
+	inner := gtk.NewBox(gtk.OrientationVertical, 6)
 	inner.SetMarginTop(2)
 	inner.SetMarginBottom(4)
 	inner.SetMarginStart(12)
@@ -139,10 +136,10 @@ func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
 
 	inner.Append(groupLabel("POWER"))
 	inner.Append(w.buildProfileSection())
+	inner.Append(w.buildFanPresetSection())
+	inner.Append(w.buildBatterySection())
+	inner.Append(w.buildPresetEntrySection())
 	inner.Append(w.buildCPUPowerSection())
-	// Collapsible secondary sections — defaults expanded, tap header to collapse.
-	inner.Append(collapsibleSection("FAN PRESET", true, w.buildFanPresetSection()))
-	inner.Append(collapsibleSection("BATTERY LIMIT", true, w.buildBatterySection()))
 
 	scroll := gtk.NewScrolledWindow()
 	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
@@ -161,8 +158,12 @@ func (w *Window) buildRGBTab() *gtk.ScrolledWindow {
 	inner.SetMarginEnd(12)
 
 	inner.Append(groupLabel("RGB"))
+	inner.Append(sectionLabel("DEVICE"))
 	inner.Append(w.buildTabRow())
-	inner.Append(w.buildModeSection())
+	inner.Append(w.buildToggle("Lighting", "Turn lighting on or off for the selected device", &w.lightingSwitch, w.setLightingEnabled))
+
+	controls := gtk.NewBox(gtk.OrientationVertical, 8)
+	controls.Append(w.buildModeSection())
 
 	// Initialize color inputs here so syncModeVis can reference them.
 	w.color1 = w.newColorInput("FF0000", "color1-swatch", "COLOR 1")
@@ -171,13 +172,15 @@ func (w *Window) buildRGBTab() *gtk.ScrolledWindow {
 
 	w.color1Box = colorSubBox("COLOR 1", w.color1.row)
 	w.color2Box = colorSubBox("COLOR 2", w.color2.row)
-	inner.Append(w.color1Box)
-	inner.Append(w.color2Box)
+	controls.Append(w.color1Box)
+	controls.Append(w.color2Box)
 
 	w.speedBox = w.buildSpeedBox()
-	inner.Append(w.speedBox)
+	controls.Append(w.speedBox)
 	w.brightBox = w.buildBrightnessBox()
-	inner.Append(w.brightBox)
+	controls.Append(w.brightBox)
+	w.rgbControlsBox = controls
+	inner.Append(controls)
 
 	// Set initial visibility based on default mode (static).
 	w.syncModeVis()
@@ -200,21 +203,31 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 
 	inner.Append(groupLabel("SYSTEM"))
 	inner.Append(w.buildBatteryHero())
-	inner.Append(w.buildRefreshRateSection())
-	inner.Append(w.buildToggle("Panel Overdrive", "Enable panel overdrive for faster pixel response (may cause ghosting)", &w.overdriveSwitch, func(active bool) {
+	display := gtk.NewBox(gtk.OrientationVertical, 6)
+	display.AddCSSClass("card")
+	display.Append(sectionLabel("DISPLAY"))
+	display.Append(w.buildRefreshRateSection())
+	display.Append(w.buildToggle("Panel Overdrive", "Enable panel overdrive for faster pixel response (may increase power use)", &w.overdriveSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
 		}
 		w.sendOverdriveSet(v)
 	}))
-	inner.Append(w.buildToggle("Boot Sound", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
+	inner.Append(display)
+
+	device := gtk.NewBox(gtk.OrientationVertical, 6)
+	device.AddCSSClass("card")
+	device.Append(sectionLabel("DEVICE"))
+	device.Append(w.buildToggle("Boot Sound", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
 		}
 		w.sendBootSoundSet(v)
 	}))
+	inner.Append(device)
+	inner.Append(w.buildAppearanceSection())
 
 	scroll := gtk.NewScrolledWindow()
 	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
@@ -224,29 +237,51 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	return scroll
 }
 
-// buildBottomBar returns the fixed bottom bar containing the theme picker button.
-func (w *Window) buildBottomBar() *gtk.Box {
-	bar := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	bar.AddCSSClass("bottom-bar")
-	bar.SetMarginTop(4)
-	bar.SetMarginBottom(8)
-	bar.SetMarginStart(10)
+// buildAppearanceSection keeps theme selection with the other system settings.
+func (w *Window) buildAppearanceSection() *gtk.Box {
+	box := gtk.NewBox(gtk.OrientationVertical, 4)
+	box.AddCSSClass("card")
+	box.AddCSSClass("btn-group")
+	box.Append(sectionLabel("APPEARANCE"))
 
-	w.paletteBtn = gtk.NewButton()
-	w.paletteBtn.SetIconName("preferences-desktop-color-symbolic")
+	cfg := theme.LoadAppConfig()
+	w.paletteBtn = gtk.NewButtonWithLabel(themeButtonLabel(cfg.Theme, cfg.Accent, w.isCustomTheme))
 	w.paletteBtn.SetTooltipText("Choose theme")
 	w.paletteBtn.ConnectClicked(func() { w.showThemeView() })
-	bar.Append(w.paletteBtn)
+	box.Append(w.paletteBtn)
 
-	return bar
+	return box
+}
+
+func themeButtonLabel(themeID, accentID string, custom bool) string {
+	if custom {
+		return "Custom Theme"
+	}
+	name := "ROG Dark"
+	for _, builtin := range theme.Builtins {
+		if builtin.ID != themeID {
+			continue
+		}
+		name = builtin.Name
+		for _, accent := range builtin.Accents {
+			if accent.ID == accentID {
+				return name + " / " + accent.Name
+			}
+		}
+		break
+	}
+	return name
 }
 
 // buildToggle creates a compact label + switch pair for the bottom bar.
 func (w *Window) buildToggle(label, tooltip string, sw **gtk.Switch, onChange func(bool)) *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	box.AddCSSClass("settings-row")
 	box.SetTooltipText(tooltip)
 	lbl := gtk.NewLabel(label)
 	lbl.AddCSSClass("toggle-label")
+	lbl.SetHAlign(gtk.AlignStart)
+	lbl.SetHExpand(true)
 	s := gtk.NewSwitch()
 	s.ConnectStateSet(func(state bool) bool {
 		if !w.syncing {
@@ -587,18 +622,13 @@ func (w *Window) buildTabRow() *gtk.Box {
 // dotsPerRow is the number of accent color dots per row in the theme picker.
 const dotsPerRow = 7
 
-// modeOrder defines the display order for lighting mode buttons.
-// 5 verified modes + 5 additional modes from g-helper's AuraMode enum.
-// The Z13 panel may not visually distinguish all of them; the unverified set
-// is grouped at the end so users can find what works on their hardware.
+// modeOrder defines the display order for verified lighting mode buttons.
 var modeOrder = []string{
 	"static", "breathe", "cycle",
-	"rainbow", "rainbow2", "strobe",
-	"star", "rain", "laser",
-	"reactive", "off",
+	"rainbow", "strobe",
 }
 
-// buildModeSection creates the 3x2 grid of lighting mode buttons.
+// buildModeSection creates the lighting mode grid.
 func (w *Window) buildModeSection() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
 	box.Append(sectionLabel("MODE"))
@@ -746,17 +776,7 @@ func (w *Window) buildProfileSection() *gtk.Box {
 // buildPowerTab) to avoid double-labeling when wrapped.
 func (w *Window) buildBatterySection() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
-
-	sc := gtk.NewScaleWithRange(gtk.OrientationHorizontal, 40, 100, 1)
-	sc.SetDigits(0)
-	sc.SetDrawValue(true)
-	sc.SetValue(80)
-	sc.SetFocusable(false)
-	w.battScale = sc
-	w.initBatteryDebounce(sc)
-	box.Append(sc)
-
-	// Preset row: Standard (100%) / Balanced (80%) / Max Life (60%).
+	box.Append(sectionLabel("BATTERY STRATEGY"))
 	box.Append(w.buildBatteryPresets())
 	return box
 }
@@ -777,13 +797,12 @@ func (w *Window) buildBatteryPresets() *gtk.Box {
 	row.AddCSSClass("btn-group")
 	for _, p := range batteryPresets {
 		p := p
-		btn := gtk.NewButtonWithLabel(p.label)
+		btn := gtk.NewButtonWithLabel(fmt.Sprintf("%s %d%%", p.label, p.pct))
 		btn.ConnectClicked(func() {
 			if w.syncing {
 				return
 			}
 			setActiveIntButton(w.battPresetBtns, p.pct)
-			w.battScale.SetValue(float64(p.pct))
 			w.sendBatteryLimitSet(p.pct)
 		})
 		w.battPresetBtns[p.pct] = btn
@@ -798,11 +817,9 @@ var fanPresets = []string{"silent", "balanced", "turbo"}
 // buildFanPresetSection creates the Silent / Balanced / Turbo fan curve
 // preset row. Clicking a preset sends the corresponding curve to the daemon
 // via the existing fancurve command (no new protocol).
-//
-// Section label is provided by the caller (collapsibleSection wrapper in
-// buildPowerTab) to avoid double-labeling when wrapped.
 func (w *Window) buildFanPresetSection() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
+	box.Append(sectionLabel("FAN MODE"))
 	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	row.AddCSSClass("btn-group")
 	for _, name := range fanPresets {
@@ -922,9 +939,12 @@ var cpuEPPs = []struct {
 
 func (w *Window) buildCPUPowerSection() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
-	box.Append(sectionLabel("CPU POWER"))
+	box.Append(sectionLabel("ADVANCED CPU"))
 
-	box.Append(sectionLabel("MINIMUM FREQUENCY (MHz)"))
+	minLabel := gtk.NewLabel("MINIMUM FREQUENCY (MHz)")
+	minLabel.SetHAlign(gtk.AlignStart)
+	minLabel.AddCSSClass("scale-name")
+	box.Append(minLabel)
 	minScale := gtk.NewScaleWithRange(gtk.OrientationHorizontal, 400, 3000, 25)
 	minScale.SetDigits(0)
 	minScale.SetDrawValue(true)
@@ -934,7 +954,10 @@ func (w *Window) buildCPUPowerSection() *gtk.Box {
 	w.initCPUMinDebounce(minScale)
 	box.Append(minScale)
 
-	box.Append(sectionLabel("ENERGY PERFORMANCE PREFERENCE"))
+	eppLabel := gtk.NewLabel("ENERGY PERFORMANCE PREFERENCE")
+	eppLabel.SetHAlign(gtk.AlignStart)
+	eppLabel.AddCSSClass("scale-name")
+	box.Append(eppLabel)
 	grid := gtk.NewGrid()
 	grid.SetColumnSpacing(4)
 	grid.SetRowSpacing(4)
@@ -1091,7 +1114,7 @@ func (w *Window) buildMainFocusList() {
 	var items []focusItem
 
 	// Top-level tab row — always at row 0.
-	for col, name := range []string{"power", "rgb", "system"} {
+	for col, name := range []string{"overview", "power", "rgb", "system"} {
 		btn := w.mainTabBtns[name]
 		items = append(items, focusItem{
 			widget: btn, row: 0, col: col,
@@ -1112,13 +1135,6 @@ func (w *Window) buildMainFocusList() {
 		items = append(items, w.systemTabFocusItems()...)
 	}
 
-	// Palette button (bottom bar) — reachable from every tab.
-	items = append(items, focusItem{
-		widget: w.paletteBtn, row: 30, col: 0,
-		section:    "footer",
-		onActivate: func() { w.showThemeView() },
-	})
-
 	w.mainFocusItems = items
 }
 
@@ -1138,7 +1154,39 @@ func (w *Window) powerTabFocusItems() []focusItem {
 	}
 	row += 2
 
-	// CPU power controls (if visible).
+	// Fan preset buttons.
+	for col, name := range fanPresets {
+		btn := w.fanPresetBtns[name]
+		items = append(items, focusItem{
+			widget: btn, row: row, col: col,
+			section:    "fan-preset",
+			onActivate: func() { btn.Activate() },
+		})
+	}
+	row++
+
+	// Battery strategy buttons.
+	for col, p := range batteryPresets {
+		btn := w.battPresetBtns[p.pct]
+		items = append(items, focusItem{
+			widget: btn, row: row, col: col,
+			section:    "battery-preset",
+			onActivate: func() { btn.Activate() },
+		})
+	}
+	row++
+
+	if w.presetsBtn != nil {
+		btn := w.presetsBtn
+		items = append(items, focusItem{
+			widget: btn, row: row, col: 0,
+			section:    "presets",
+			onActivate: func() { btn.Activate() },
+		})
+		row++
+	}
+
+	// Advanced CPU controls are available only for the Custom profile.
 	if w.cpuPowerBox != nil {
 		cpuVisible := func() bool { return w.cpuPowerBox.IsVisible() }
 		cpuLeft, cpuRight, cpuGet, cpuSet := scaleAdjust(w.cpuMinScale, 25)
@@ -1164,39 +1212,6 @@ func (w *Window) powerTabFocusItems() []focusItem {
 			section: "cpu-power", isVisible: cpuVisible,
 			onActivate: func() { w.cpuBoostSwitch.SetActive(!w.cpuBoostSwitch.Active()) },
 		})
-		row++
-	}
-
-	// Battery slider.
-	battLeft, battRight, battGet, battSet := scaleAdjust(w.battScale, 5)
-	items = append(items, focusItem{
-		widget: w.battScale, row: row, col: 0,
-		section:  "battery",
-		editable: true,
-		onLeft:   battLeft, onRight: battRight,
-		getValue: battGet, setValue: battSet,
-	})
-	row++
-
-	// Battery preset buttons.
-	for col, p := range batteryPresets {
-		btn := w.battPresetBtns[p.pct]
-		items = append(items, focusItem{
-			widget: btn, row: row, col: col,
-			section:    "battery-preset",
-			onActivate: func() { btn.Activate() },
-		})
-	}
-	row++
-
-	// Fan preset buttons.
-	for col, name := range fanPresets {
-		btn := w.fanPresetBtns[name]
-		items = append(items, focusItem{
-			widget: btn, row: row, col: col,
-			section:    "fan-preset",
-			onActivate: func() { btn.Activate() },
-		})
 	}
 	return items
 }
@@ -1216,13 +1231,23 @@ func (w *Window) rgbTabFocusItems() []focusItem {
 		})
 	}
 	row++
+	if w.lightingSwitch != nil {
+		sw := w.lightingSwitch
+		items = append(items, focusItem{
+			widget: sw, row: row, col: 0,
+			section:    "lighting",
+			onActivate: func() { sw.SetActive(!sw.Active()) },
+		})
+		row++
+	}
+	controlsEnabled := func() bool { return w.rgbControlsBox != nil && w.rgbControlsBox.Sensitive() }
 
-	// Mode buttons — 3x2 grid.
+	// Mode buttons — three-column grid.
 	for i, m := range modeOrder {
 		btn := w.modeButtons[m]
 		items = append(items, focusItem{
 			widget: btn, row: row + i/3, col: i % 3,
-			section:    "mode",
+			section: "mode", isVisible: controlsEnabled,
 			onActivate: func() { btn.Activate() },
 		})
 	}
@@ -1230,7 +1255,7 @@ func (w *Window) rgbTabFocusItems() []focusItem {
 
 	// Color 1 presets — horizontal row of 8 buttons.
 	if w.color1 != nil {
-		vis := func() bool { return w.color1Box.IsVisible() }
+		vis := func() bool { return controlsEnabled() && w.color1Box.IsVisible() }
 		for col, btn := range w.color1.presetBtns {
 			btn := btn
 			items = append(items, focusItem{
@@ -1250,7 +1275,7 @@ func (w *Window) rgbTabFocusItems() []focusItem {
 
 	// Color 2 presets.
 	if w.color2 != nil {
-		vis := func() bool { return w.color2Box.IsVisible() }
+		vis := func() bool { return controlsEnabled() && w.color2Box.IsVisible() }
 		for col, btn := range w.color2.presetBtns {
 			btn := btn
 			items = append(items, focusItem{
@@ -1273,7 +1298,7 @@ func (w *Window) rgbTabFocusItems() []focusItem {
 		btn := w.speedBtns[s]
 		items = append(items, focusItem{
 			widget: btn, row: row, col: col,
-			section: "speed", isVisible: func() bool { return w.speedBox.IsVisible() },
+			section: "speed", isVisible: func() bool { return controlsEnabled() && w.speedBox.IsVisible() },
 			onActivate: func() { btn.Activate() },
 		})
 	}
@@ -1283,7 +1308,7 @@ func (w *Window) rgbTabFocusItems() []focusItem {
 	brLeft, brRight, brGet, brSet := scaleAdjust(w.brightScale, 1)
 	items = append(items, focusItem{
 		widget: w.brightScale, row: row, col: 0,
-		section: "brightness", isVisible: func() bool { return w.brightBox.IsVisible() },
+		section: "brightness", isVisible: func() bool { return controlsEnabled() && w.brightBox.IsVisible() },
 		editable: true,
 		onLeft:   brLeft, onRight: brRight,
 		getValue: brGet, setValue: brSet,
@@ -1322,6 +1347,15 @@ func (w *Window) systemTabFocusItems() []focusItem {
 			widget: sw, row: row, col: 0,
 			section:    "system",
 			onActivate: func() { sw.SetActive(!sw.Active()) },
+		})
+		row++
+	}
+	if w.paletteBtn != nil {
+		btn := w.paletteBtn
+		items = append(items, focusItem{
+			widget: btn, row: row, col: 0,
+			section:    "appearance",
+			onActivate: func() { btn.Activate() },
 		})
 	}
 	return items

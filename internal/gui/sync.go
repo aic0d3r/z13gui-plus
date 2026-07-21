@@ -32,7 +32,6 @@ var modeVisMap = map[string]modeVis{
 	"cycle":   {false, false, true, true},
 	"rainbow": {false, false, true, true},
 	"strobe":  {true, false, true, true},
-	"off":     {false, false, false, false},
 }
 
 // activeButton returns the key of the button with the .active CSS class,
@@ -80,9 +79,11 @@ func (w *Window) syncState() {
 	w.syncProfile()
 	w.syncCPUPower()
 	w.syncBattery()
+	w.syncFanPreset()
 	w.syncRefreshRate()
 	w.syncOverdrive()
 	w.syncBootSound()
+	w.syncPresets()
 	w.syncCustomView()
 	// Battery hero card — also updates on sync (initial show) so the card
 	// isn't stale before the first telemetry tick (1 s later).
@@ -94,15 +95,18 @@ func (w *Window) syncState() {
 }
 
 func (w *Window) syncCPUPower() {
-	if w.cpuPowerBox == nil {
+	if w.cpuPowerBox == nil || w.state == nil {
 		return
 	}
 	state := w.state.CPUPower
-	if state == nil {
+	if state == nil || w.state.Profile != "custom" {
 		w.cpuPowerBox.SetVisible(false)
-		return
+		if state == nil {
+			return
+		}
+	} else {
+		w.cpuPowerBox.SetVisible(true)
 	}
-	w.cpuPowerBox.SetVisible(true)
 	w.cpuMinScale.SetRange(float64(state.MinLimitKHz)/1000, float64(state.MaxLimitKHz)/1000)
 	w.cpuMinScale.SetValue(float64(state.MinFrequencyKHz) / 1000)
 	setActiveButton(w.cpuEPPBtns, state.EPP)
@@ -168,10 +172,16 @@ func (w *Window) syncLightingSection() {
 		}
 	}
 	mode := ls.Mode
-	if !ls.Enabled {
-		mode = "off"
+	if _, ok := w.modeButtons[mode]; !ok {
+		mode = defaultMode
 	}
 	setActiveButton(w.modeButtons, mode)
+	if w.lightingSwitch != nil {
+		w.lightingSwitch.SetActive(ls.Enabled)
+	}
+	if w.rgbControlsBox != nil {
+		w.rgbControlsBox.SetSensitive(ls.Enabled)
+	}
 	if w.color1 != nil && ls.Color != "" {
 		w.color1.hex = strings.ToUpper(ls.Color)
 	}
@@ -192,18 +202,39 @@ func (w *Window) syncProfile() {
 		return
 	}
 	setActiveButton(w.profileBtns, w.state.Profile)
+	if w.cpuPowerBox != nil {
+		w.cpuPowerBox.SetVisible(w.state.Profile == "custom" && w.state.CPUPower != nil)
+	}
 }
 
 // syncBattery sets the battery limit scale to match the daemon state.
 // Also highlights the matching preset button (if any).
 func (w *Window) syncBattery() {
-	if w.state == nil || w.battScale == nil {
+	if w.state == nil {
 		return
 	}
-	if w.state.Battery != 0 {
-		w.battScale.SetValue(float64(w.state.Battery))
-	}
 	setActiveIntButton(w.battPresetBtns, w.state.Battery)
+}
+
+func (w *Window) syncFanPreset() {
+	setActiveButton(w.fanPresetBtns, matchingFanPreset(w.state.FanCurve))
+}
+
+func matchingFanPreset(curve *api.FanCurveState) string {
+	if curve == nil || curve.Mode != 1 {
+		return ""
+	}
+	parts := make([]string, len(curve.Points))
+	for i, point := range curve.Points {
+		parts[i] = fmt.Sprintf("%d:%d", point.Temp, point.PWM)
+	}
+	encoded := strings.Join(parts, ",")
+	for _, name := range fanPresets {
+		if encoded == fanPresetPoints(name) {
+			return name
+		}
+	}
+	return ""
 }
 
 // syncRefreshRate highlights the refresh rate button matching the daemon state.
@@ -225,9 +256,11 @@ func (w *Window) syncOverviewTelemetry() {
 	}
 	if w.cpuTempGauge != nil && t.CPUTemp > 0 {
 		w.cpuTempGauge.SetValue(float64(t.CPUTemp))
+		w.cpuTempGauge.SetHot(t.CPUTemp >= thermalWarningC)
 	}
 	if w.gpuTempGauge != nil && t.GPUTemp > 0 {
 		w.gpuTempGauge.SetValue(float64(t.GPUTemp))
+		w.gpuTempGauge.SetHot(t.GPUTemp >= thermalWarningC)
 	}
 	if w.cpuUtilGauge != nil {
 		w.cpuUtilGauge.SetValue(float64(t.CPUUtil))
@@ -236,7 +269,28 @@ func (w *Window) syncOverviewTelemetry() {
 		w.gpuUtilGauge.SetValue(float64(t.GPUUtil))
 	}
 	if w.overviewSpark != nil && t.CPUTemp > 0 {
+		w.overviewSpark.SetHot(t.CPUTemp >= thermalWarningC)
 		w.overviewSpark.Push(float64(t.CPUTemp))
+	}
+	if w.overviewStatus != nil {
+		status, class := "NORMAL", "success"
+		maxTemp := max(t.CPUTemp, t.GPUTemp)
+		memoryPressure := 0.0
+		if t.MemoryTotalMB > 0 {
+			memoryPressure = float64(t.MemoryUsedMB) / float64(t.MemoryTotalMB)
+		}
+		if maxTemp >= thermalCriticalC || memoryPressure >= memoryCritical {
+			status, class = "CRITICAL", "danger"
+		} else if maxTemp >= thermalWarningC {
+			status, class = "THERMAL WARM", "warning"
+		} else if memoryPressure >= memoryWarning {
+			status, class = "MEMORY HIGH", "warning"
+		}
+		w.overviewStatus.SetLabel(status)
+		w.overviewStatus.RemoveCSSClass("success")
+		w.overviewStatus.RemoveCSSClass("warning")
+		w.overviewStatus.RemoveCSSClass("danger")
+		w.overviewStatus.AddCSSClass(class)
 	}
 	if w.cpuFanLabel != nil && t.CPUFanRPM > 0 {
 		w.cpuFanLabel.SetLabel(fmt.Sprintf("%d RPM", t.CPUFanRPM))
@@ -254,7 +308,7 @@ func (w *Window) syncOverviewTelemetry() {
 		w.npuLabel.SetLabel(formatNPU(t.NPUUtil, t.NPUPowerW))
 		w.npuLabel.RemoveCSSClass("npu-high")
 		w.npuLabel.RemoveCSSClass("npu-dim")
-		if t.NPUPowerW > 0 && t.NPUPowerW < npuActivePowerW {
+		if t.NPUPowerW < npuActivePowerW {
 			w.npuLabel.AddCSSClass("npu-dim")
 		} else if t.NPUPowerW >= npuActivePowerW {
 			w.npuLabel.AddCSSClass("npu-high")
@@ -263,11 +317,12 @@ func (w *Window) syncOverviewTelemetry() {
 	if w.overviewMemClock != nil && t.MemClockMTs > 0 {
 		w.overviewMemClock.SetLabel(fmt.Sprintf("%d MT/s", t.MemClockMTs))
 	}
-	if w.overviewVRAMLbl != nil {
-		w.overviewVRAMLbl.SetLabel(formatVRAM(t.VRAMUsedMB, t.VRAMTotalMB))
+	memoryUsed, memoryTotal := unifiedMemory(t.MemoryUsedMB, t.MemoryTotalMB, t.VRAMUsedMB, t.VRAMTotalMB)
+	if w.overviewMemoryLbl != nil {
+		w.overviewMemoryLbl.SetLabel(formatMemory(memoryUsed, memoryTotal))
 	}
-	if w.overviewVRAMBar != nil && t.VRAMTotalMB > 0 {
-		w.overviewVRAMBar.SetFraction(float64(t.VRAMUsedMB) / float64(t.VRAMTotalMB))
+	if w.overviewMemoryBar != nil && memoryTotal > 0 {
+		w.overviewMemoryBar.SetFraction(float64(memoryUsed) / float64(memoryTotal))
 	}
 }
 
@@ -336,6 +391,24 @@ func (w *Window) queueApply() {
 
 // sendApply sends the current lighting state to the daemon. Guarded by
 // w.syncing to prevent sending defaults during widget initialization.
+func (w *Window) setLightingEnabled(enabled bool) {
+	if w.syncing {
+		return
+	}
+	if w.rgbControlsBox != nil {
+		w.rgbControlsBox.SetSensitive(enabled)
+	}
+	if enabled {
+		setActiveButton(w.modeButtons, activeButton(w.modeButtons, defaultMode))
+		w.syncModeVis()
+		w.sendApply()
+		return
+	}
+	if _, err := api.SendOff(w.tab); err != nil {
+		slog.Warn("off failed", "device", w.tab, "err", err)
+	}
+}
+
 func (w *Window) sendApply() {
 	if w.syncing {
 		return
@@ -357,19 +430,6 @@ func (w *Window) sendApply() {
 		brightness = int(w.brightScale.Value())
 	}
 
-	// "off" uses the daemon's dedicated off command so that Enabled=false
-	// is persisted and survives a reboot.
-	if mode == "off" {
-		slog.Debug("sendApply: calling daemon off", "device", w.tab)
-		start := time.Now()
-		if _, err := api.SendOff(w.tab); err != nil {
-			slog.Warn("off failed", "err", err, "elapsed", time.Since(start))
-		} else {
-			slog.Debug("sendApply: off done", "elapsed", time.Since(start))
-		}
-		return
-	}
-
 	slog.Debug("sendApply: calling daemon", "device", w.tab, "mode", mode, "brightness", brightness)
 	start := time.Now()
 	if _, err := api.SendApply(w.tab, color1, color2, mode, speed, brightness); err != nil {
@@ -388,29 +448,6 @@ func (w *Window) sendProfileSet(prof string) {
 	} else {
 		slog.Debug("sendProfileSet: done", "elapsed", time.Since(start))
 	}
-}
-
-// initBatteryDebounce sets up debounced battery limit changes on the given scale.
-func (w *Window) initBatteryDebounce(sc *gtk.Scale) {
-	var debounce *time.Timer
-	sc.ConnectValueChanged(func() {
-		if debounce != nil {
-			debounce.Stop()
-		}
-		debounce = time.AfterFunc(200*time.Millisecond, func() {
-			glib.IdleAdd(func() bool {
-				val := int(sc.Value())
-				slog.Debug("sendBatteryLimitSet: calling daemon", "limit", val)
-				start := time.Now()
-				if _, err := api.SendBatteryLimitSet(val); err != nil {
-					slog.Warn("battery limit set failed", "err", err, "elapsed", time.Since(start))
-				} else {
-					slog.Debug("sendBatteryLimitSet: done", "elapsed", time.Since(start))
-				}
-				return false
-			})
-		})
-	})
 }
 
 // syncOverdrive sets the overdrive switch to match the daemon state.
@@ -463,8 +500,6 @@ func (w *Window) sendRefreshRateSet(hz int) {
 }
 
 // sendBatteryLimitSet sends a battery charge limit change to the daemon.
-// Called by the preset buttons; the scale's value-change path uses an inline
-// debounce in initBatteryDebounce.
 func (w *Window) sendBatteryLimitSet(limit int) {
 	slog.Debug("sendBatteryLimitSet: calling daemon", "limit", limit)
 	start := time.Now()
