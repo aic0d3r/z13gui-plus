@@ -202,7 +202,6 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	inner.SetMarginEnd(12)
 
 	inner.Append(groupLabel("SYSTEM"))
-	inner.Append(w.buildBatteryHero())
 	display := gtk.NewBox(gtk.OrientationVertical, 6)
 	display.AddCSSClass("card")
 	display.Append(sectionLabel("DISPLAY"))
@@ -876,52 +875,46 @@ func setActiveIntButton(btns map[int]*gtk.Button, active int) {
 	}
 }
 
-// buildBatteryHero builds the System tab hero card: a circular
+// buildBatteryHero builds the Overview battery card: a circular
 // capacity ring with status, health, power draw, and threshold chip.
 func (w *Window) buildBatteryHero() *gtk.Box {
-	box := gtk.NewBox(gtk.OrientationVertical, 8)
+	box := gtk.NewBox(gtk.OrientationVertical, 4)
 
-	card := gtk.NewBox(gtk.OrientationHorizontal, 12)
+	card := gtk.NewBox(gtk.OrientationVertical, 5)
 	card.AddCSSClass("card")
-	card.AddCSSClass("hero-card")
+	card.AddCSSClass("battery-summary")
 	card.SetMarginBottom(4)
 
-	// Left: capacity ring gauge (compact).
-	w.battCapacityGauge = NewRadialGauge("BATTERY", "%")
-	w.battCapacityGauge.SetRange(0, 100)
-	w.battCapacityGauge.Widget().SetSizeRequest(80, 80)
-	card.Append(w.battCapacityGauge.Widget())
-
-	// Right: details column.
-	details := gtk.NewBox(gtk.OrientationVertical, 6)
-	details.SetHExpand(true)
-	details.SetVAlign(gtk.AlignCenter)
-
-	// Status pill at top.
+	header := gtk.NewBox(gtk.OrientationHorizontal, 6)
+	title := gtk.NewLabel("BATTERY")
+	title.SetHAlign(gtk.AlignStart)
+	title.SetHExpand(true)
+	title.AddCSSClass("card-title")
+	header.Append(title)
+	w.battCapacityLabel = gtk.NewLabel("—")
+	w.battCapacityLabel.AddCSSClass("battery-summary-value")
+	header.Append(w.battCapacityLabel)
 	w.battPill = gtk.NewLabel("—")
 	w.battPill.AddCSSClass("pill")
-	w.battPill.SetHAlign(gtk.AlignStart)
-	details.Append(w.battPill)
+	header.Append(w.battPill)
+	card.Append(header)
 
-	// Big status text.
+	statusRow := gtk.NewBox(gtk.OrientationHorizontal, 6)
 	w.battStatusLabel = gtk.NewLabel("—")
-	w.battStatusLabel.AddCSSClass("card-value")
+	w.battStatusLabel.AddCSSClass("card-sub")
 	w.battStatusLabel.SetHAlign(gtk.AlignStart)
-	details.Append(w.battStatusLabel)
+	w.battStatusLabel.SetHExpand(true)
+	statusRow.Append(w.battStatusLabel)
+	w.battPowerLabel = gtk.NewLabel("—")
+	w.battPowerLabel.AddCSSClass("card-sub")
+	statusRow.Append(w.battPowerLabel)
+	card.Append(statusRow)
 
-	// Health row.
 	w.battHealthLabel = gtk.NewLabel("—")
 	w.battHealthLabel.AddCSSClass("card-sub")
 	w.battHealthLabel.SetHAlign(gtk.AlignStart)
-	details.Append(w.battHealthLabel)
+	card.Append(w.battHealthLabel)
 
-	// Power draw row.
-	w.battPowerLabel = gtk.NewLabel("—")
-	w.battPowerLabel.AddCSSClass("card-sub")
-	w.battPowerLabel.SetHAlign(gtk.AlignStart)
-	details.Append(w.battPowerLabel)
-
-	card.Append(details)
 	box.Append(card)
 	w.batteryHero = box
 	return box

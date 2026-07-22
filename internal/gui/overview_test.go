@@ -7,7 +7,7 @@ func TestUnifiedMemory(t *testing.T) {
 	if used != 9728 || total != 128*1024 {
 		t.Fatalf("unifiedMemory() = %d / %d MiB", used, total)
 	}
-	if got := formatMemory(used, total); got != "9.5 / 128 GB  7%" {
+	if got := formatMemory(used, total); got != "9.5 / 128 GB" {
 		t.Fatalf("formatMemory() = %q", got)
 	}
 }
@@ -21,19 +21,24 @@ func TestUnifiedMemoryRequiresSystemMemory(t *testing.T) {
 
 func TestFormatNPU(t *testing.T) {
 	tests := []struct {
-		name  string
-		util  int
-		power float64
-		want  string
+		name       string
+		available  bool
+		util       int
+		power      float64
+		wantState  string
+		wantDetail string
 	}{
-		{"unavailable", 100, 0, "POWER N/A  ·  100% raw util"},
-		{"low power", 100, 0.42, "LOW POWER  ·  0.42 W  ·  100% raw util"},
-		{"active", 96, 1.85, "ACTIVE  ·  1.85 W  ·  96% raw util"},
+		{"sensor unavailable", false, 0, 0, "UNAVAILABLE", "NO DATA"},
+		{"idle", true, 0, 0, "IDLE", "0.00 W"},
+		{"power unavailable", true, 100, 0, "LOW POWER", "POWER N/A"},
+		{"low power", true, 100, 0.42, "LOW POWER", "0.42 W"},
+		{"active", true, 96, 1.85, "ACTIVE", "1.85 W"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := formatNPU(tt.util, tt.power); got != tt.want {
-				t.Fatalf("formatNPU() = %q, want %q", got, tt.want)
+			state, detail := formatNPU(tt.available, tt.util, tt.power)
+			if state != tt.wantState || detail != tt.wantDetail {
+				t.Fatalf("formatNPU() = %q, %q; want %q, %q", state, detail, tt.wantState, tt.wantDetail)
 			}
 		})
 	}

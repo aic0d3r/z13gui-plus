@@ -47,9 +47,10 @@
    Note: GTK CSS does not support custom-property fonts via @define-color;
    font-family is hardcoded per-rule below. */
 
-/* Window — transparent background so border-radius from .drawer is visible. */
+/* Keep every surface pixel opaque so showing the drawer does not require
+   translucency composition. */
 window.z13-drawer-window {
-    background: transparent;
+    background: @z13-bg;
 }
 
 /* Main drawer box — deep charcoal with subtle atmospheric gradient.
@@ -176,16 +177,15 @@ window.z13-drawer-window {
 /* Premium card — used for hero widgets (battery, gauges) */
 .drawer .card {
     background: linear-gradient(180deg, @z13-surface-hi, @z13-surface-alt);
-    border: 1px solid alpha(@z13-border-hi, 0.55);
+    border: 1px solid @z13-border;
     border-radius: 12px;
     padding: 10px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 /* Hero card title */
 .drawer .card-title {
     color: @z13-text-faint;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -204,12 +204,45 @@ window.z13-drawer-window {
     color: @z13-text-dim;
     font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
     font-feature-settings: "tnum";
-    font-size: 11px;
+    font-size: 12px;
 }
 
-.drawer .overview-chart-label,
-.drawer .overview-chart-range {
+.drawer .overview-metric {
+    background: alpha(@z13-text, 0.04);
+}
+
+.drawer .overview-metric-value {
+    color: @z13-text;
+}
+
+.drawer .overview-metric-label {
     color: @z13-text-dim;
+}
+
+.drawer .overview-power-row,
+.drawer .overview-npu-row {
+    background: alpha(@z13-text, 0.04);
+    border-radius: 6px;
+}
+
+.drawer .battery-summary-value {
+    color: @z13-text;
+}
+
+.drawer .overview-metric-value.warning,
+.drawer .overview-stale {
+    color: @z13-warning;
+}
+
+.drawer .overview-metric-value.danger {
+    color: @z13-danger;
+}
+
+.drawer .telemetry-stale .overview-metric-value,
+.drawer .telemetry-stale .overview-value,
+.drawer .telemetry-stale .card-sub,
+.drawer .telemetry-stale .memory-bar {
+    opacity: 0.55;
 }
 
 /* Status pill (charging state, profile name, etc.) */
@@ -247,17 +280,6 @@ window.z13-drawer-window {
     background: rgba(226, 35, 26, 0.15);
     border-color: rgba(226, 35, 26, 0.5);
     color: @z13-accent;
-}
-
-/* Gauge container */
-.drawer .gauge {
-    padding: 0;
-}
-
-/* Sparkline area */
-.drawer .sparkline {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
 }
 
 /* TDP warning label */

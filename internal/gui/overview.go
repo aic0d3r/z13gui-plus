@@ -3,13 +3,9 @@ package gui
 // overview.go — Overview tab: a live telemetry dashboard for the Strix Halo SoC.
 //
 // Layout (top-to-bottom, all on a single screen with no scroll at native res):
-//   - HERO CARD: 4 compact radial gauges in a row
-//       CPU °C (hot ramp) | GPU °C (hot ramp) | CPU % | GPU %
-//   - Sparkline (30s CPU temp history, hot ramp)
-//   - METRICS GRID (2 columns of label/value rows):
-//       Fan        3400 RPM      | VRAM       ████░░ 4.2/16 GB
-//       CPU clock  3.8 GHz       | Memory     6400 MT/s
-//       GPU clock  1.7 GHz       |
+//   - THERMALS: CPU/GPU temperature and load tiles, plus NPU state and power
+//   - BATTERY: charge, source, draw, health, and active strategy
+//   - SYSTEM: unified memory, memory clock, fans, and CPU/GPU clocks
 //
 // All values are populated by syncOverviewTelemetry() in sync.go, driven from
 // the 1-second telemetry poll in tdp.go. When api.State.Telemetry is nil
@@ -31,6 +27,7 @@ func (w *Window) buildOverviewTab() *gtk.ScrolledWindow {
 	inner.SetMarginEnd(12)
 
 	inner.Append(w.buildOverviewHero())
+	inner.Append(w.buildBatteryHero())
 	inner.Append(w.buildOverviewMetrics())
 
 	scroll := gtk.NewScrolledWindow()
@@ -41,7 +38,7 @@ func (w *Window) buildOverviewTab() *gtk.ScrolledWindow {
 	return scroll
 }
 
-// buildOverviewHero constructs the hero card: 4 gauges + sparkline.
+// buildOverviewHero constructs the hero card: status, metrics, and trend.
 func (w *Window) buildOverviewHero() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
 	box.SetMarginBottom(4)
@@ -61,52 +58,76 @@ func (w *Window) buildOverviewHero() *gtk.Box {
 	header.Append(w.overviewStatus)
 	card.Append(header)
 
-	// Gauge row — 4 equal-width compact gauges.
-	gaugeRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	gaugeRow.SetHomogeneous(true)
+	contextRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	w.overviewContext = gtk.NewLabel("—")
+	w.overviewContext.SetHAlign(gtk.AlignStart)
+	w.overviewContext.SetHExpand(true)
+	w.overviewContext.AddCSSClass("card-sub")
+	contextRow.Append(w.overviewContext)
+	w.overviewFreshness = gtk.NewLabel("")
+	w.overviewFreshness.AddCSSClass("overview-stale")
+	w.overviewFreshness.SetVisible(false)
+	contextRow.Append(w.overviewFreshness)
+	card.Append(contextRow)
 
-	w.cpuTempGauge = NewRadialGauge("CPU TEMP", "°")
-	w.cpuTempGauge.SetRange(20, 100)
-	w.cpuTempGauge.Widget().SetSizeRequest(-1, 56)
-	gaugeRow.Append(w.cpuTempGauge.Widget())
+	metricRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	metricRow.SetHomogeneous(true)
+	metric, value := overviewMetric("CPU TEMP")
+	w.cpuTempValue = value
+	metricRow.Append(metric)
+	metric, value = overviewMetric("GPU TEMP")
+	w.gpuTempValue = value
+	metricRow.Append(metric)
+	metric, value = overviewMetric("CPU LOAD")
+	w.cpuUtilValue = value
+	metricRow.Append(metric)
+	metric, value = overviewMetric("GPU LOAD")
+	w.gpuUtilValue = value
+	metricRow.Append(metric)
+	card.Append(metricRow)
 
-	w.gpuTempGauge = NewRadialGauge("GPU TEMP", "°")
-	w.gpuTempGauge.SetRange(20, 100)
-	w.gpuTempGauge.Widget().SetSizeRequest(-1, 56)
-	gaugeRow.Append(w.gpuTempGauge.Widget())
+	powerRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	powerRow.AddCSSClass("overview-power-row")
+	w.overviewPowerTitle = gtk.NewLabel("SYSTEM POWER")
+	w.overviewPowerTitle.SetHAlign(gtk.AlignStart)
+	w.overviewPowerTitle.SetHExpand(true)
+	w.overviewPowerTitle.AddCSSClass("scale-name")
+	powerRow.Append(w.overviewPowerTitle)
+	w.overviewPowerValue = gtk.NewLabel("—")
+	w.overviewPowerValue.AddCSSClass("overview-value")
+	powerRow.Append(w.overviewPowerValue)
+	card.Append(powerRow)
 
-	w.cpuUtilGauge = NewRadialGauge("CPU LOAD", "%")
-	w.cpuUtilGauge.SetRange(0, 100)
-	w.cpuUtilGauge.Widget().SetSizeRequest(-1, 56)
-	gaugeRow.Append(w.cpuUtilGauge.Widget())
-
-	w.gpuUtilGauge = NewRadialGauge("GPU LOAD", "%")
-	w.gpuUtilGauge.SetRange(0, 100)
-	w.gpuUtilGauge.Widget().SetSizeRequest(-1, 56)
-	gaugeRow.Append(w.gpuUtilGauge.Widget())
-
-	card.Append(gaugeRow)
-
-	chartHeader := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	chartLabel := gtk.NewLabel("APU TEMPERATURE")
-	chartLabel.SetHAlign(gtk.AlignStart)
-	chartLabel.SetHExpand(true)
-	chartLabel.AddCSSClass("overview-chart-label")
-	chartHeader.Append(chartLabel)
-	chartRange := gtk.NewLabel("30 SEC")
-	chartRange.AddCSSClass("overview-chart-range")
-	chartHeader.Append(chartRange)
-	card.Append(chartHeader)
-
-	// Sparkline — 30s APU temperature trend (compact).
-	w.overviewSpark = NewSparkline(30)
-	w.overviewSpark.SetRange(20, 100)
-	w.overviewSpark.Widget().SetSizeRequest(-1, 28)
-	card.Append(w.overviewSpark.Widget())
+	npuRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	npuRow.AddCSSClass("overview-npu-row")
+	npuTitle := gtk.NewLabel("NPU")
+	npuTitle.SetHAlign(gtk.AlignStart)
+	npuTitle.SetHExpand(true)
+	npuTitle.AddCSSClass("scale-name")
+	npuRow.Append(npuTitle)
+	w.npuLabel = gtk.NewLabel("—")
+	w.npuLabel.AddCSSClass("overview-value")
+	npuRow.Append(w.npuLabel)
+	w.overviewNPUPower = gtk.NewLabel("—")
+	w.overviewNPUPower.AddCSSClass("overview-value")
+	npuRow.Append(w.overviewNPUPower)
+	card.Append(npuRow)
 
 	box.Append(card)
 	w.overviewHero = box
 	return box
+}
+
+func overviewMetric(label string) (*gtk.Box, *gtk.Label) {
+	box := gtk.NewBox(gtk.OrientationVertical, 1)
+	box.AddCSSClass("overview-metric")
+	value := gtk.NewLabel("—")
+	value.AddCSSClass("overview-metric-value")
+	caption := gtk.NewLabel(label)
+	caption.AddCSSClass("overview-metric-label")
+	box.Append(value)
+	box.Append(caption)
+	return box, value
 }
 
 // metricRow builds one row of the 2-column metrics grid: a small-caps label
@@ -143,36 +164,7 @@ func (w *Window) buildOverviewMetrics() *gtk.Box {
 	title.AddCSSClass("card-title")
 	card.Append(title)
 
-	// Two-column grid via a horizontal Box of two vertical Boxes.
-	grid := gtk.NewBox(gtk.OrientationHorizontal, 12)
-	grid.SetHomogeneous(true)
-
-	leftCol := gtk.NewBox(gtk.OrientationVertical, 4)
-	rightCol := gtk.NewBox(gtk.OrientationVertical, 4)
-
-	// Left column.
-	row, lbl := metricRow("CPU FAN")
-	leftCol.Append(row)
-	w.cpuFanLabel = lbl
-
-	row, lbl = metricRow("GPU FAN")
-	leftCol.Append(row)
-	w.gpuFanLabel = lbl
-
-	row, lbl = metricRow("CPU CLOCK")
-	rightCol.Append(row)
-	w.overviewCPUClock = lbl
-
-	row, lbl = metricRow("GPU CLOCK")
-	rightCol.Append(row)
-	w.overviewGPUClock = lbl
-
-	grid.Append(leftCol)
-	grid.Append(rightCol)
-	card.Append(grid)
-
 	memoryRow := gtk.NewBox(gtk.OrientationVertical, 2)
-	memoryRow.SetMarginTop(4)
 	memoryHeader := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	memoryTitle := gtk.NewLabel("UNIFIED MEMORY")
 	memoryTitle.SetHAlign(gtk.AlignStart)
@@ -190,15 +182,31 @@ func (w *Window) buildOverviewMetrics() *gtk.Box {
 	memoryRow.Append(w.overviewMemoryBar)
 	card.Append(memoryRow)
 
-	row, lbl = metricRow("MEMORY CLOCK")
+	row, lbl := metricRow("MEMORY CLOCK")
 	card.Append(row)
 	w.overviewMemClock = lbl
 
-	// NPU summary row — power leads because raw column utilisation can remain
-	// at 100% while a low-power background client holds the device open.
-	npuRow, npuLbl := metricRow("NPU")
-	card.Append(npuRow)
-	w.npuLabel = npuLbl
+	grid := gtk.NewBox(gtk.OrientationHorizontal, 12)
+	grid.SetHomogeneous(true)
+	leftCol := gtk.NewBox(gtk.OrientationVertical, 4)
+	rightCol := gtk.NewBox(gtk.OrientationVertical, 4)
+
+	row, lbl = metricRow("CPU FAN")
+	leftCol.Append(row)
+	w.cpuFanLabel = lbl
+	row, lbl = metricRow("GPU FAN")
+	leftCol.Append(row)
+	w.gpuFanLabel = lbl
+	row, lbl = metricRow("CPU CLOCK")
+	rightCol.Append(row)
+	w.overviewCPUClock = lbl
+	row, lbl = metricRow("GPU CLOCK")
+	rightCol.Append(row)
+	w.overviewGPUClock = lbl
+
+	grid.Append(leftCol)
+	grid.Append(rightCol)
+	card.Append(grid)
 
 	return card
 }
@@ -231,7 +239,7 @@ func formatMemory(used, total int) string {
 	if total <= 0 {
 		return "—"
 	}
-	return fmt.Sprintf("%.1f / %.0f GB  %.0f%%", float64(used)/1024.0, float64(total)/1024.0, float64(used)*100/float64(total))
+	return fmt.Sprintf("%.1f / %.0f GB", float64(used)/1024.0, float64(total)/1024.0)
 }
 
 const (
@@ -239,26 +247,23 @@ const (
 	// Ryzen AI Max+ 395 has a 100°C Tjmax; warn before throttling territory.
 	thermalWarningC  = 85
 	thermalCriticalC = 95
-	memoryWarning    = 0.90
-	memoryCritical   = 0.97
 )
 
 // formatNPU renders power first because it distinguishes low-power background
 // clients from real computation better than the driver's raw column occupancy.
-func formatNPU(util int, powerW float64) string {
-	if util == 0 && powerW == 0 {
-		return "—"
+func formatNPU(available bool, util int, powerW float64) (string, string) {
+	if !available {
+		return "UNAVAILABLE", "NO DATA"
 	}
-	utilStr := "—"
-	if util > 0 {
-		utilStr = fmt.Sprintf("%d%% raw util", util)
+	if util == 0 && powerW == 0 {
+		return "IDLE", "0.00 W"
 	}
 	if powerW <= 0 {
-		return fmt.Sprintf("POWER N/A  ·  %s", utilStr)
+		return "LOW POWER", "POWER N/A"
 	}
 	status := "LOW POWER"
 	if powerW >= npuActivePowerW {
 		status = "ACTIVE"
 	}
-	return fmt.Sprintf("%s  ·  %.2f W  ·  %s", status, powerW, utilStr)
+	return status, fmt.Sprintf("%.2f W", powerW)
 }

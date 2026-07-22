@@ -252,51 +252,99 @@ func (w *Window) syncRefreshRate() {
 func (w *Window) syncOverviewTelemetry() {
 	t := w.state.Telemetry
 	if t == nil {
+		w.markOverviewStale()
 		return
 	}
-	if w.cpuTempGauge != nil && t.CPUTemp > 0 {
-		w.cpuTempGauge.SetValue(float64(t.CPUTemp))
-		w.cpuTempGauge.SetHot(t.CPUTemp >= thermalWarningC)
+	w.overviewLastUpdate = time.Now()
+	if w.overviewFreshness != nil {
+		w.overviewFreshness.SetVisible(false)
 	}
-	if w.gpuTempGauge != nil && t.GPUTemp > 0 {
-		w.gpuTempGauge.SetValue(float64(t.GPUTemp))
-		w.gpuTempGauge.SetHot(t.GPUTemp >= thermalWarningC)
+	if w.overviewScroll != nil {
+		w.overviewScroll.RemoveCSSClass("telemetry-stale")
 	}
-	if w.cpuUtilGauge != nil {
-		w.cpuUtilGauge.SetValue(float64(t.CPUUtil))
+
+	setTemp := func(label *gtk.Label, temp int) {
+		if label == nil {
+			return
+		}
+		label.RemoveCSSClass("warning")
+		label.RemoveCSSClass("danger")
+		if temp <= 0 {
+			label.SetLabel("—")
+			return
+		}
+		label.SetLabel(fmt.Sprintf("%d°", temp))
+		if temp >= thermalCriticalC {
+			label.AddCSSClass("danger")
+		} else if temp >= thermalWarningC {
+			label.AddCSSClass("warning")
+		}
 	}
-	if w.gpuUtilGauge != nil {
-		w.gpuUtilGauge.SetValue(float64(t.GPUUtil))
+	setTemp(w.cpuTempValue, t.CPUTemp)
+	setTemp(w.gpuTempValue, t.GPUTemp)
+	if w.cpuUtilValue != nil {
+		w.cpuUtilValue.SetLabel(fmt.Sprintf("%d%%", t.CPUUtil))
 	}
-	if w.overviewSpark != nil && t.CPUTemp > 0 {
-		w.overviewSpark.SetHot(t.CPUTemp >= thermalWarningC)
-		w.overviewSpark.Push(float64(t.CPUTemp))
+	if w.gpuUtilValue != nil {
+		w.gpuUtilValue.SetLabel(fmt.Sprintf("%d%%", t.GPUUtil))
 	}
 	if w.overviewStatus != nil {
-		status, class := "NORMAL", "success"
 		maxTemp := max(t.CPUTemp, t.GPUTemp)
-		memoryPressure := 0.0
-		if t.MemoryTotalMB > 0 {
-			memoryPressure = float64(t.MemoryUsedMB) / float64(t.MemoryTotalMB)
-		}
-		if maxTemp >= thermalCriticalC || memoryPressure >= memoryCritical {
-			status, class = "CRITICAL", "danger"
+		status, class := "UNKNOWN", ""
+		if maxTemp >= thermalCriticalC {
+			status, class = "HOT", "danger"
 		} else if maxTemp >= thermalWarningC {
-			status, class = "THERMAL WARM", "warning"
-		} else if memoryPressure >= memoryWarning {
-			status, class = "MEMORY HIGH", "warning"
+			status, class = "WARM", "warning"
+		} else if maxTemp > 0 {
+			status, class = "NORMAL", "success"
 		}
 		w.overviewStatus.SetLabel(status)
 		w.overviewStatus.RemoveCSSClass("success")
 		w.overviewStatus.RemoveCSSClass("warning")
 		w.overviewStatus.RemoveCSSClass("danger")
-		w.overviewStatus.AddCSSClass(class)
+		if class != "" {
+			w.overviewStatus.AddCSSClass(class)
+		}
 	}
-	if w.cpuFanLabel != nil && t.CPUFanRPM > 0 {
-		w.cpuFanLabel.SetLabel(fmt.Sprintf("%d RPM", t.CPUFanRPM))
+	if w.overviewContext != nil {
+		parts := make([]string, 0, 2)
+		if w.state.Profile != "" {
+			parts = append(parts, strings.ToUpper(w.state.Profile))
+		}
+		if w.state.TDP != nil {
+			parts = append(parts, fmt.Sprintf("TDP %d W", w.state.TDP.PL1SPL))
+		}
+		if len(parts) == 0 {
+			parts = append(parts, "—")
+		}
+		w.overviewContext.SetLabel(strings.Join(parts, "  ·  "))
 	}
-	if w.gpuFanLabel != nil && t.GPUFanRPM > 0 {
-		w.gpuFanLabel.SetLabel(fmt.Sprintf("%d RPM", t.GPUFanRPM))
+	if w.overviewPowerTitle != nil && w.overviewPowerValue != nil {
+		switch {
+		case w.state.PowerSource == "battery" && w.state.BatteryDetail != nil:
+			w.overviewPowerTitle.SetLabel("SYSTEM POWER")
+			w.overviewPowerValue.SetLabel(w.state.BatteryDetail.PowerWatts + " W")
+		case t.APUPowerAvailable:
+			w.overviewPowerTitle.SetLabel("APU POWER")
+			w.overviewPowerValue.SetLabel(fmt.Sprintf("%.1f W", t.APUPowerW))
+		default:
+			w.overviewPowerTitle.SetLabel("POWER")
+			w.overviewPowerValue.SetLabel("—")
+		}
+	}
+	if w.cpuFanLabel != nil {
+		if t.FansAvailable {
+			w.cpuFanLabel.SetLabel(fmt.Sprintf("%d RPM", t.CPUFanRPM))
+		} else {
+			w.cpuFanLabel.SetLabel("—")
+		}
+	}
+	if w.gpuFanLabel != nil {
+		if t.FansAvailable {
+			w.gpuFanLabel.SetLabel(fmt.Sprintf("%d RPM", t.GPUFanRPM))
+		} else {
+			w.gpuFanLabel.SetLabel("—")
+		}
 	}
 	if w.overviewCPUClock != nil {
 		w.overviewCPUClock.SetLabel(formatGHz(t.CPUClockMHz))
@@ -305,7 +353,11 @@ func (w *Window) syncOverviewTelemetry() {
 		w.overviewGPUClock.SetLabel(formatGHz(t.GPUClockMHz))
 	}
 	if w.npuLabel != nil {
-		w.npuLabel.SetLabel(formatNPU(t.NPUUtil, t.NPUPowerW))
+		state, detail := formatNPU(t.NPUAvailable, t.NPUUtil, t.NPUPowerW)
+		w.npuLabel.SetLabel(state)
+		if w.overviewNPUPower != nil {
+			w.overviewNPUPower.SetLabel(detail)
+		}
 		w.npuLabel.RemoveCSSClass("npu-high")
 		w.npuLabel.RemoveCSSClass("npu-dim")
 		if t.NPUPowerW < npuActivePowerW {
@@ -314,8 +366,12 @@ func (w *Window) syncOverviewTelemetry() {
 			w.npuLabel.AddCSSClass("npu-high")
 		}
 	}
-	if w.overviewMemClock != nil && t.MemClockMTs > 0 {
-		w.overviewMemClock.SetLabel(fmt.Sprintf("%d MT/s", t.MemClockMTs))
+	if w.overviewMemClock != nil {
+		if t.MemClockAvailable {
+			w.overviewMemClock.SetLabel(fmt.Sprintf("%d MHz", t.MemClockMHz))
+		} else {
+			w.overviewMemClock.SetLabel("—")
+		}
 	}
 	memoryUsed, memoryTotal := unifiedMemory(t.MemoryUsedMB, t.MemoryTotalMB, t.VRAMUsedMB, t.VRAMTotalMB)
 	if w.overviewMemoryLbl != nil {
@@ -323,31 +379,50 @@ func (w *Window) syncOverviewTelemetry() {
 	}
 	if w.overviewMemoryBar != nil && memoryTotal > 0 {
 		w.overviewMemoryBar.SetFraction(float64(memoryUsed) / float64(memoryTotal))
+	} else if w.overviewMemoryBar != nil {
+		w.overviewMemoryBar.SetFraction(0)
+	}
+}
+
+func (w *Window) markOverviewStale() {
+	if w.overviewFreshness == nil {
+		return
+	}
+	label := "TELEMETRY UNAVAILABLE"
+	if !w.overviewLastUpdate.IsZero() {
+		seconds := max(1, int(time.Since(w.overviewLastUpdate).Seconds()))
+		label = fmt.Sprintf("STALE %d SEC", seconds)
+	}
+	w.overviewFreshness.SetLabel(label)
+	w.overviewFreshness.SetVisible(true)
+	if w.overviewScroll != nil {
+		w.overviewScroll.AddCSSClass("telemetry-stale")
 	}
 }
 
 // updateBatteryHero updates the System tab battery card from live telemetry.
 // Called from syncState (initial) and from the 1s telemetry poll.
 func (w *Window) updateBatteryHero(b *api.BatteryState) {
-	if w.battCapacityGauge != nil {
-		w.battCapacityGauge.SetValue(float64(b.CapacityPct))
+	if w.battCapacityLabel != nil {
+		w.battCapacityLabel.SetLabel(fmt.Sprintf("%d%%", b.CapacityPct))
 	}
 	if w.battStatusLabel != nil {
-		w.battStatusLabel.SetLabel(b.Status)
+		status := b.Status
+		if w.state.PowerSource != "" {
+			status += "  ·  " + strings.ToUpper(w.state.PowerSource)
+		}
+		w.battStatusLabel.SetLabel(status)
 	}
 	if w.battHealthLabel != nil {
-		// Health row includes current/last-full Wh and design Wh so the user
-		// sees the underlying numbers, not just the rounded %.
-		w.battHealthLabel.SetLabel(fmt.Sprintf("Health %d%%  ·  %d / %d Wh", b.HealthPct, b.WhCurrent, b.WhDesign))
+		w.battHealthLabel.SetLabel(fmt.Sprintf("HEALTH %d%%", b.HealthPct))
 	}
 	if w.battPowerLabel != nil {
-		// Charging shows "+W", discharging shows "W draw", idle shows voltage only.
 		if b.Charging {
-			w.battPowerLabel.SetLabel(fmt.Sprintf("+%s W  ·  %s V", b.PowerWatts, b.VoltageVolts))
+			w.battPowerLabel.SetLabel(fmt.Sprintf("+%s W", b.PowerWatts))
 		} else if b.PowerWatts != "0" {
-			w.battPowerLabel.SetLabel(fmt.Sprintf("-%s W  ·  %s V", b.PowerWatts, b.VoltageVolts))
+			w.battPowerLabel.SetLabel(fmt.Sprintf("-%s W", b.PowerWatts))
 		} else {
-			w.battPowerLabel.SetLabel(fmt.Sprintf("%s V", b.VoltageVolts))
+			w.battPowerLabel.SetLabel("0 W")
 		}
 	}
 	if w.battPill != nil {

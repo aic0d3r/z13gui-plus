@@ -808,16 +808,20 @@ func (w *Window) resetUndervolt() {
 	}()
 }
 
-// startTelemetryPolling begins polling the daemon for APU temp and fan RPM
-// every second while the drawer is visible. Updates the header telemetry
-// label on all views, and also updates custom view labels + fan curve
-// indicator when the custom view is active.
+// startTelemetryPolling updates live telemetry every second while Overview or
+// the Custom tuning view is visible. Other tabs do not need continuous reads.
 func (w *Window) startTelemetryPolling() {
 	w.telemetryGen++
 	gen := w.telemetryGen
 	glib.TimeoutAdd(1000, func() bool {
 		if gen != w.telemetryGen || !w.visible {
 			return false
+		}
+		customActive := w.viewStack != nil && w.viewStack.VisibleChildName() == "custom"
+		overviewActive := w.viewStack != nil && w.viewStack.VisibleChildName() == "main" &&
+			w.tabStack != nil && w.tabStack.VisibleChildName() == "overview"
+		if !customActive && !overviewActive {
+			return true
 		}
 		go func() {
 			ok, state, err := api.SendGetState()
@@ -829,17 +833,14 @@ func (w *Window) startTelemetryPolling() {
 					return
 				}
 				w.state = state
-
-				// Battery hero card.
-				if state.BatteryDetail != nil {
-					w.updateBatteryHero(state.BatteryDetail)
+				if overviewActive {
+					if state.BatteryDetail != nil {
+						w.updateBatteryHero(state.BatteryDetail)
+					}
+					w.syncOverviewTelemetry()
 				}
 
-				// Overview tab — full telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
-				w.syncOverviewTelemetry()
-
-				// Custom view telemetry (only when active).
-				if w.viewStack != nil && w.viewStack.VisibleChildName() == "custom" {
+				if customActive {
 					if w.telemetryTempLabel != nil {
 						w.telemetryTempLabel.SetLabel(fmt.Sprintf("APU: %d°C", state.Temperature))
 					}

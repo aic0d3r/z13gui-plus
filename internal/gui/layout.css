@@ -36,7 +36,7 @@
     min-height: 40px;
     padding: 4px 10px;
     border-radius: 8px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: 1px;
     text-transform: uppercase;
@@ -83,7 +83,7 @@
 
 /* Card title — small caps mono */
 .drawer .card-title {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -99,7 +99,7 @@
 
 /* Card sub-row — secondary value */
 .drawer .card-sub {
-    font-size: 11px;
+    font-size: 12px;
     font-feature-settings: "tnum";
 }
 
@@ -110,32 +110,6 @@
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-/* Hero card with horizontal split (ring on left, details on right) */
-.drawer .hero-card {
-    padding: 12px;
-}
-
-/* Gauge container — compact radial gauges in headers */
-.drawer .gauge {
-    min-width: 56px;
-    min-height: 56px;
-    padding: 0;
-}
-
-/* Sparkline area — for 30s rolling history (compact) */
-.drawer .sparkline {
-    min-height: 28px;
-    border-radius: 6px;
-}
-
-/* Gauge label below */
-.drawer .gauge-label {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
     text-transform: uppercase;
 }
 
@@ -188,7 +162,7 @@
 
 /* Drawer title — "z13ctl" fixed above scroll area */
 .drawer-title {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 4px;
     text-transform: uppercase;
@@ -366,14 +340,42 @@ popover.z13-popover scrolledwindow {
 
 /* Overview tab — right-aligned mono values in the metrics grid. */
 .drawer .overview-value {
+    font-size: 12px;
     font-feature-settings: "tnum";
 }
 
-.drawer .overview-chart-label,
-.drawer .overview-chart-range {
+.drawer .overview-metric {
+    padding: 6px 2px;
+    border-radius: 6px;
+}
+
+.drawer .overview-metric-value {
+    font-size: 20px;
+    font-weight: 700;
+    font-feature-settings: "tnum";
+}
+
+.drawer .overview-metric-label {
     font-size: 9px;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+}
+
+.drawer .overview-power-row,
+.drawer .overview-npu-row {
+    padding: 4px 2px;
+}
+
+.drawer .battery-summary-value {
+    font-size: 20px;
+    font-weight: 700;
+    font-feature-settings: "tnum";
+}
+
+.drawer .overview-stale {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
 }
 
 /* NPU activity uses power as the primary signal; raw util is secondary. */

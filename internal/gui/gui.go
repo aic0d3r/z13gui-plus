@@ -85,33 +85,37 @@ type Window struct {
 	presetFocusItems []focusItem
 	presetBusy       bool
 
-	// Premium hero widgets — battery card (System tab).
+	// Premium hero widgets — battery card (Overview tab).
 	// Power tab telemetry gauges removed; live stats live on Overview tab only.
-	batteryHero       *gtk.Box     // container for the System tab battery card
-	battCapacityGauge *RadialGauge // battery capacity ring
-	battStatusLabel   *gtk.Label   // status text (Charging / Discharging / Not charging)
-	battHealthLabel   *gtk.Label   // "Health 91%"
-	battPowerLabel    *gtk.Label   // "12.3 W · 17.5 V"
-	battPill          *gtk.Label   // threshold preset chip
+	batteryHero       *gtk.Box   // container for the Overview battery card
+	battCapacityLabel *gtk.Label // battery percentage
+	battStatusLabel   *gtk.Label // Charging / Discharging / Not charging
+	battHealthLabel   *gtk.Label // "HEALTH 91%"
+	battPowerLabel    *gtk.Label // "-12.3 W"
+	battPill          *gtk.Label // threshold preset chip
 
 	// Overview tab — full live telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
-	overviewScroll    *gtk.ScrolledWindow
-	overviewHero      *gtk.Box         // container for the Overview tab hero header
-	cpuTempGauge      *RadialGauge     // CPU temperature (Overview)
-	gpuTempGauge      *RadialGauge     // GPU temperature (Overview)
-	cpuUtilGauge      *RadialGauge     // CPU utilisation %
-	gpuUtilGauge      *RadialGauge     // GPU utilisation %
-	overviewSpark     *Sparkline       // 30s CPU temp history (Overview)
-	overviewStatus    *gtk.Label       // NORMAL / WARM / CRITICAL
-	cpuFanLabel       *gtk.Label       // "3300 RPM"
-	gpuFanLabel       *gtk.Label       // "2800 RPM"
-	overviewCPUClock  *gtk.Label       // "3.8 GHz"
-	overviewGPUClock  *gtk.Label       // "1.7 GHz"
-	npuLabel          *gtk.Label       // "1.85 W  96% raw util"
-	overviewMemoryBar *gtk.ProgressBar // unified memory usage bar (0..1)
-	overviewMemoryLbl *gtk.Label       // "18.4 / 128 GB  14%"
-	overviewMemClock  *gtk.Label       // "6400 MT/s"
-	overviewGen       int              // animation generation counter
+	overviewScroll     *gtk.ScrolledWindow
+	overviewHero       *gtk.Box   // container for the Overview tab hero header
+	cpuTempValue       *gtk.Label // CPU temperature (Overview)
+	gpuTempValue       *gtk.Label // GPU temperature (Overview)
+	cpuUtilValue       *gtk.Label // CPU utilisation %
+	gpuUtilValue       *gtk.Label // GPU utilisation %
+	overviewNPUPower   *gtk.Label // NPU power detail
+	overviewStatus     *gtk.Label // NORMAL / WARM / CRITICAL
+	overviewContext    *gtk.Label // battery, power source, and profile
+	overviewFreshness  *gtk.Label // hidden while live; age when polling is stale
+	overviewLastUpdate time.Time
+	overviewPowerTitle *gtk.Label
+	overviewPowerValue *gtk.Label
+	cpuFanLabel        *gtk.Label       // "3300 RPM"
+	gpuFanLabel        *gtk.Label       // "2800 RPM"
+	overviewCPUClock   *gtk.Label       // "3.8 GHz"
+	overviewGPUClock   *gtk.Label       // "1.7 GHz"
+	npuLabel           *gtk.Label       // IDLE / LOW POWER / ACTIVE
+	overviewMemoryBar  *gtk.ProgressBar // unified memory usage bar (0..1)
+	overviewMemoryLbl  *gtk.Label       // "18.4 / 128 GB"
+	overviewMemClock   *gtk.Label       // "425 MHz"
 
 	// Custom profile view.
 	customScroll       *gtk.ScrolledWindow
