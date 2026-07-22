@@ -361,7 +361,14 @@ popover.z13-popover scrolledwindow {
     letter-spacing: 0.5px;
 }
 
-.drawer .overview-power-row,
+.drawer .overview-power-row {
+	padding: 0;
+}
+
+.drawer .overview-power-row .overview-metric-value {
+	font-size: 16px;
+}
+
 .drawer .overview-npu-row {
     padding: 4px 2px;
 }

@@ -307,30 +307,35 @@ func (w *Window) syncOverviewTelemetry() {
 		}
 	}
 	if w.overviewContext != nil {
-		parts := make([]string, 0, 2)
+		parts := make([]string, 0, 1)
 		if w.state.Profile != "" {
 			parts = append(parts, strings.ToUpper(w.state.Profile))
-		}
-		if w.state.TDP != nil {
-			parts = append(parts, fmt.Sprintf("TDP %d W", w.state.TDP.PL1SPL))
 		}
 		if len(parts) == 0 {
 			parts = append(parts, "—")
 		}
 		w.overviewContext.SetLabel(strings.Join(parts, "  ·  "))
 	}
-	if w.overviewPowerTitle != nil && w.overviewPowerValue != nil {
-		switch {
-		case w.state.PowerSource == "battery" && w.state.BatteryDetail != nil:
-			w.overviewPowerTitle.SetLabel("SYSTEM POWER")
-			w.overviewPowerValue.SetLabel(w.state.BatteryDetail.PowerWatts + " W")
-		case t.APUPowerAvailable:
-			w.overviewPowerTitle.SetLabel("APU POWER")
-			w.overviewPowerValue.SetLabel(fmt.Sprintf("%.1f W", t.APUPowerW))
-		default:
-			w.overviewPowerTitle.SetLabel("POWER")
-			w.overviewPowerValue.SetLabel("—")
+	if w.overviewSystemPower != nil {
+		value := "—"
+		if w.state.PowerSource == "battery" && w.state.BatteryDetail != nil {
+			value = w.state.BatteryDetail.PowerWatts + " W"
 		}
+		w.overviewSystemPower.SetLabel(value)
+	}
+	if w.overviewAPUPower != nil {
+		value := "—"
+		if t.APUPowerAvailable {
+			value = fmt.Sprintf("%.1f W", t.APUPowerW)
+		}
+		w.overviewAPUPower.SetLabel(value)
+	}
+	if w.overviewGPUPower != nil {
+		value := "—"
+		if t.GPUPowerAvailable {
+			value = fmt.Sprintf("%.1f W", t.GPUPowerW)
+		}
+		w.overviewGPUPower.SetLabel(value)
 	}
 	if w.cpuFanLabel != nil {
 		if t.FansAvailable {

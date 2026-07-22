@@ -95,27 +95,28 @@ type Window struct {
 	battPill          *gtk.Label // threshold preset chip
 
 	// Overview tab — full live telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
-	overviewScroll     *gtk.ScrolledWindow
-	overviewHero       *gtk.Box   // container for the Overview tab hero header
-	cpuTempValue       *gtk.Label // CPU temperature (Overview)
-	gpuTempValue       *gtk.Label // GPU temperature (Overview)
-	cpuUtilValue       *gtk.Label // CPU utilisation %
-	gpuUtilValue       *gtk.Label // GPU utilisation %
-	overviewNPUPower   *gtk.Label // NPU power detail
-	overviewStatus     *gtk.Label // NORMAL / WARM / CRITICAL
-	overviewContext    *gtk.Label // battery, power source, and profile
-	overviewFreshness  *gtk.Label // hidden while live; age when polling is stale
-	overviewLastUpdate time.Time
-	overviewPowerTitle *gtk.Label
-	overviewPowerValue *gtk.Label
-	cpuFanLabel        *gtk.Label       // "3300 RPM"
-	gpuFanLabel        *gtk.Label       // "2800 RPM"
-	overviewCPUClock   *gtk.Label       // "3.8 GHz"
-	overviewGPUClock   *gtk.Label       // "1.7 GHz"
-	npuLabel           *gtk.Label       // IDLE / LOW POWER / ACTIVE
-	overviewMemoryBar  *gtk.ProgressBar // unified memory usage bar (0..1)
-	overviewMemoryLbl  *gtk.Label       // "18.4 / 128 GB"
-	overviewMemClock   *gtk.Label       // "425 MHz"
+	overviewScroll      *gtk.ScrolledWindow
+	overviewHero        *gtk.Box   // container for the Overview tab hero header
+	cpuTempValue        *gtk.Label // CPU temperature (Overview)
+	gpuTempValue        *gtk.Label // GPU temperature (Overview)
+	cpuUtilValue        *gtk.Label // CPU utilisation %
+	gpuUtilValue        *gtk.Label // GPU utilisation %
+	overviewNPUPower    *gtk.Label // NPU power detail
+	overviewStatus      *gtk.Label // NORMAL / WARM / CRITICAL
+	overviewContext     *gtk.Label // battery, power source, and profile
+	overviewFreshness   *gtk.Label // hidden while live; age when polling is stale
+	overviewLastUpdate  time.Time
+	overviewSystemPower *gtk.Label
+	overviewAPUPower    *gtk.Label
+	overviewGPUPower    *gtk.Label
+	cpuFanLabel         *gtk.Label       // "3300 RPM"
+	gpuFanLabel         *gtk.Label       // "2800 RPM"
+	overviewCPUClock    *gtk.Label       // "3.8 GHz"
+	overviewGPUClock    *gtk.Label       // "1.7 GHz"
+	npuLabel            *gtk.Label       // IDLE / LOW POWER / ACTIVE
+	overviewMemoryBar   *gtk.ProgressBar // unified memory usage bar (0..1)
+	overviewMemoryLbl   *gtk.Label       // "18.4 / 128 GB"
+	overviewMemClock    *gtk.Label       // "425 MHz"
 
 	// Custom profile view.
 	customScroll       *gtk.ScrolledWindow

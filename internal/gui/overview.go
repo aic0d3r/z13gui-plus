@@ -86,16 +86,18 @@ func (w *Window) buildOverviewHero() *gtk.Box {
 	metricRow.Append(metric)
 	card.Append(metricRow)
 
-	powerRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	powerRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	powerRow.AddCSSClass("overview-power-row")
-	w.overviewPowerTitle = gtk.NewLabel("SYSTEM POWER")
-	w.overviewPowerTitle.SetHAlign(gtk.AlignStart)
-	w.overviewPowerTitle.SetHExpand(true)
-	w.overviewPowerTitle.AddCSSClass("scale-name")
-	powerRow.Append(w.overviewPowerTitle)
-	w.overviewPowerValue = gtk.NewLabel("—")
-	w.overviewPowerValue.AddCSSClass("overview-value")
-	powerRow.Append(w.overviewPowerValue)
+	powerRow.SetHomogeneous(true)
+	metric, value = overviewMetric("SYSTEM POWER")
+	w.overviewSystemPower = value
+	powerRow.Append(metric)
+	metric, value = overviewMetric("APU POWER")
+	w.overviewAPUPower = value
+	powerRow.Append(metric)
+	metric, value = overviewMetric("GPU POWER")
+	w.overviewGPUPower = value
+	powerRow.Append(metric)
 	card.Append(powerRow)
 
 	npuRow := gtk.NewBox(gtk.OrientationHorizontal, 8)

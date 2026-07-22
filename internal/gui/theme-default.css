@@ -219,7 +219,6 @@ window.z13-drawer-window {
     color: @z13-text-dim;
 }
 
-.drawer .overview-power-row,
 .drawer .overview-npu-row {
     background: alpha(@z13-text, 0.04);
     border-radius: 6px;
