@@ -83,7 +83,7 @@
 
 /* Card title — small caps mono */
 .drawer .card-title {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -356,8 +356,13 @@ popover.z13-popover scrolledwindow {
 }
 
 .drawer .overview-metric-label {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
+    letter-spacing: 0.25px;
+}
+
+.drawer .overview-system-card .scale-name {
+    font-size: 11px;
     letter-spacing: 0.5px;
 }
 
@@ -377,6 +382,27 @@ popover.z13-popover scrolledwindow {
     font-size: 20px;
     font-weight: 700;
     font-feature-settings: "tnum";
+}
+
+.drawer .battery-metric-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.drawer .battery-metric-value {
+    font-size: 13px;
+    font-weight: 700;
+    font-feature-settings: "tnum";
+}
+
+.drawer .battery-status,
+.drawer .battery-flow {
+    font-size: 13px;
+}
+
+.drawer .battery-flow {
+    font-weight: 700;
 }
 
 .drawer .overview-stale {

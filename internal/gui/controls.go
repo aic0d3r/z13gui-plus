@@ -875,8 +875,8 @@ func setActiveIntButton(btns map[int]*gtk.Button, active int) {
 	}
 }
 
-// buildBatteryHero builds the Overview battery card: a circular
-// capacity ring with status, health, power draw, and threshold chip.
+// buildBatteryHero builds the Overview battery card with capacity, status,
+// battery power flow, health, and threshold.
 func (w *Window) buildBatteryHero() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
 
@@ -902,22 +902,52 @@ func (w *Window) buildBatteryHero() *gtk.Box {
 	statusRow := gtk.NewBox(gtk.OrientationHorizontal, 6)
 	w.battStatusLabel = gtk.NewLabel("—")
 	w.battStatusLabel.AddCSSClass("card-sub")
+	w.battStatusLabel.AddCSSClass("battery-status")
 	w.battStatusLabel.SetHAlign(gtk.AlignStart)
 	w.battStatusLabel.SetHExpand(true)
 	statusRow.Append(w.battStatusLabel)
 	w.battPowerLabel = gtk.NewLabel("—")
 	w.battPowerLabel.AddCSSClass("card-sub")
+	w.battPowerLabel.AddCSSClass("battery-flow")
 	statusRow.Append(w.battPowerLabel)
 	card.Append(statusRow)
 
-	w.battHealthLabel = gtk.NewLabel("—")
-	w.battHealthLabel.AddCSSClass("card-sub")
-	w.battHealthLabel.SetHAlign(gtk.AlignStart)
-	card.Append(w.battHealthLabel)
+	energyRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	energyRow.SetHomogeneous(true)
+	metric, value := batteryMetric("ENERGY")
+	w.battEnergyLabel = value
+	energyRow.Append(metric)
+	metric, value = batteryMetric("VOLTAGE")
+	w.battVoltageLabel = value
+	energyRow.Append(metric)
+	card.Append(energyRow)
+
+	capacityRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	capacityRow.SetHomogeneous(true)
+	metric, value = batteryMetric("HEALTH")
+	w.battHealthLabel = value
+	capacityRow.Append(metric)
+	metric, value = batteryMetric("DESIGN")
+	w.battDesignLabel = value
+	capacityRow.Append(metric)
+	card.Append(capacityRow)
 
 	box.Append(card)
 	w.batteryHero = box
 	return box
+}
+
+func batteryMetric(label string) (*gtk.Box, *gtk.Label) {
+	box := gtk.NewBox(gtk.OrientationVertical, 1)
+	caption := gtk.NewLabel(label)
+	caption.SetHAlign(gtk.AlignStart)
+	caption.AddCSSClass("battery-metric-label")
+	value := gtk.NewLabel("—")
+	value.SetHAlign(gtk.AlignStart)
+	value.AddCSSClass("battery-metric-value")
+	box.Append(caption)
+	box.Append(value)
+	return box, value
 }
 
 var cpuEPPs = []struct {

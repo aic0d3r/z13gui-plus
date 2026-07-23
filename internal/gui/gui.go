@@ -91,7 +91,10 @@ type Window struct {
 	battCapacityLabel *gtk.Label // battery percentage
 	battStatusLabel   *gtk.Label // Charging / Discharging / Not charging
 	battHealthLabel   *gtk.Label // "HEALTH 91%"
-	battPowerLabel    *gtk.Label // "-12.3 W"
+	battPowerLabel    *gtk.Label // "12.3 W IN"
+	battEnergyLabel   *gtk.Label // "ENERGY 39.8 / 64.3 Wh"
+	battVoltageLabel  *gtk.Label // "VOLTAGE 16.8 V"
+	battDesignLabel   *gtk.Label // "DESIGN 70.0 Wh"
 	battPill          *gtk.Label // threshold preset chip
 
 	// Overview tab — full live telemetry (CPU/GPU temp+util, clocks, VRAM, mem).

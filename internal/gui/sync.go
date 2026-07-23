@@ -419,13 +419,22 @@ func (w *Window) updateBatteryHero(b *api.BatteryState) {
 		w.battStatusLabel.SetLabel(status)
 	}
 	if w.battHealthLabel != nil {
-		w.battHealthLabel.SetLabel(fmt.Sprintf("HEALTH %d%%", b.HealthPct))
+		w.battHealthLabel.SetLabel(fmt.Sprintf("%d%%", b.HealthPct))
+	}
+	if w.battEnergyLabel != nil {
+		w.battEnergyLabel.SetLabel(fmt.Sprintf("%.1f / %.1f Wh", b.EnergyNowWh, b.EnergyFullWh))
+	}
+	if w.battVoltageLabel != nil {
+		w.battVoltageLabel.SetLabel(b.VoltageVolts + " V")
+	}
+	if w.battDesignLabel != nil {
+		w.battDesignLabel.SetLabel(fmt.Sprintf("%.1f Wh", b.EnergyDesignWh))
 	}
 	if w.battPowerLabel != nil {
 		if b.Charging {
-			w.battPowerLabel.SetLabel(fmt.Sprintf("+%s W", b.PowerWatts))
+			w.battPowerLabel.SetLabel(fmt.Sprintf("%s W IN", b.PowerWatts))
 		} else if b.PowerWatts != "0" {
-			w.battPowerLabel.SetLabel(fmt.Sprintf("-%s W", b.PowerWatts))
+			w.battPowerLabel.SetLabel(fmt.Sprintf("%s W OUT", b.PowerWatts))
 		} else {
 			w.battPowerLabel.SetLabel("0 W")
 		}

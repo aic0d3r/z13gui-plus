@@ -160,6 +160,7 @@ func metricRow(label string) (*gtk.Box, *gtk.Label) {
 func (w *Window) buildOverviewMetrics() *gtk.Box {
 	card := gtk.NewBox(gtk.OrientationVertical, 4)
 	card.AddCSSClass("card")
+	card.AddCSSClass("overview-system-card")
 
 	title := gtk.NewLabel("SYSTEM")
 	title.SetHAlign(gtk.AlignStart)

@@ -184,8 +184,8 @@ window.z13-drawer-window {
 
 /* Hero card title */
 .drawer .card-title {
-    color: @z13-text-faint;
-    font-size: 11px;
+    color: alpha(@z13-text, 0.85);
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -216,7 +216,25 @@ window.z13-drawer-window {
 }
 
 .drawer .overview-metric-label {
-    color: @z13-text-dim;
+    color: alpha(@z13-text, 0.72);
+}
+
+.drawer .overview-system-card .scale-name,
+.drawer .battery-metric-label {
+    color: alpha(@z13-text, 0.72);
+}
+
+.drawer .battery-metric-value {
+    color: @z13-text;
+    font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
+}
+
+.drawer .battery-status {
+    color: alpha(@z13-text, 0.78);
+}
+
+.drawer .battery-flow {
+    color: @z13-text;
 }
 
 .drawer .overview-npu-row {
