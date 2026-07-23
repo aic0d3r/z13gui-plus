@@ -1,10 +1,9 @@
 package gui
 
-// tdp.go — Custom profile view: TDP sliders, fan curve editor, telemetry.
+// tdp.go — Advanced tuning view: TDP sliders, fan curve editor, telemetry.
 
 import (
 	"fmt"
-	"log/slog"
 	"math"
 	"strings"
 
@@ -345,7 +344,7 @@ func (w *Window) newFanCurveEditor() *fanCurveEditor {
 	return fc
 }
 
-// buildCustomView builds the custom TDP/fan curve view.
+// buildCustomView builds the advanced TDP/fan/undervolt view.
 func (w *Window) buildCustomView() *gtk.Box {
 	view := gtk.NewBox(gtk.OrientationVertical, 0)
 
@@ -360,7 +359,7 @@ func (w *Window) buildCustomView() *gtk.Box {
 	header.SetMarginBottom(6)
 	header.SetMarginStart(14)
 	header.Append(w.customBackBtn)
-	lbl := gtk.NewLabel("Custom Profile")
+	lbl := gtk.NewLabel("Advanced Tuning")
 	lbl.SetHAlign(gtk.AlignStart)
 	lbl.AddCSSClass("drawer-title")
 	header.Append(lbl)
@@ -434,7 +433,7 @@ func (w *Window) buildCustomView() *gtk.Box {
 
 	w.uvBox.Append(sectionLabel("UNDERVOLT"))
 
-	uvWarn := gtk.NewLabel("Undervolt offsets are only active while the Custom profile is selected. Switching to a stock profile resets them to 0. Unstable values may cause crashes.")
+	uvWarn := gtk.NewLabel("Undervolt is an independent override. Unstable values may cause crashes.")
 	uvWarn.SetWrap(true)
 	uvWarn.SetHAlign(gtk.AlignStart)
 	uvWarn.AddCSSClass("tdp-warning")
@@ -478,7 +477,7 @@ func (w *Window) buildCustomView() *gtk.Box {
 	content.Append(separator())
 
 	// --- BUTTONS ---
-	// Save row: Save TDP | Save Fans | Save Both
+	// Targeted save actions do not alter the other tuning overrides.
 	saveRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	saveRow.AddCSSClass("custom-actions")
 
@@ -488,17 +487,11 @@ func (w *Window) buildCustomView() *gtk.Box {
 	w.saveTdpBtn.ConnectClicked(func() { w.saveCustomTdp() })
 	saveRow.Append(w.saveTdpBtn)
 
-	w.saveFanBtn = gtk.NewButtonWithLabel("Save Fans")
+	w.saveFanBtn = gtk.NewButtonWithLabel("Save Fan Curve")
 	w.saveFanBtn.AddCSSClass("save-btn")
 	w.saveFanBtn.SetHExpand(true)
 	w.saveFanBtn.ConnectClicked(func() { w.saveCustomFanCurve() })
 	saveRow.Append(w.saveFanBtn)
-
-	w.saveBothBtn = gtk.NewButtonWithLabel("Save Both")
-	w.saveBothBtn.AddCSSClass("save-btn")
-	w.saveBothBtn.SetHExpand(true)
-	w.saveBothBtn.ConnectClicked(func() { w.saveCustomBoth() })
-	saveRow.Append(w.saveBothBtn)
 
 	content.Append(saveRow)
 
@@ -511,12 +504,25 @@ func (w *Window) buildCustomView() *gtk.Box {
 	w.resetTdpBtn.ConnectClicked(func() { w.resetTdp() })
 	resetRow.Append(w.resetTdpBtn)
 
-	w.resetFanBtn = gtk.NewButtonWithLabel("Reset Fans")
+	w.resetFanBtn = gtk.NewButtonWithLabel("Reset Fan")
 	w.resetFanBtn.SetHExpand(true)
 	w.resetFanBtn.ConnectClicked(func() { w.resetFanCurve() })
 	resetRow.Append(w.resetFanBtn)
 
 	content.Append(resetRow)
+
+	w.resetAllBtn = gtk.NewButtonWithLabel("Reset All Overrides")
+	w.resetAllBtn.AddCSSClass("destructive-action")
+	w.resetAllBtn.ConnectClicked(func() {
+		w.showConfirmation(
+			"Reset All Overrides",
+			"Reset fan control to Auto, TDP to firmware defaults, and undervolt to stock? Profile, display, and charge limit are not changed.",
+			"Reset All",
+			"custom",
+			func() { w.resetAllOverrides() },
+		)
+	})
+	content.Append(w.resetAllBtn)
 
 	scroll := gtk.NewScrolledWindow()
 	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
@@ -584,7 +590,7 @@ func uvLabel(name string, val int) string {
 	return fmt.Sprintf("%s: %d", name, val)
 }
 
-// syncCustomView populates the custom view widgets from daemon state.
+// syncCustomView populates the tuning widgets from daemon state.
 func (w *Window) syncCustomView() {
 	if w.state == nil {
 		return
@@ -629,12 +635,17 @@ func (w *Window) syncCustomView() {
 		w.uvBox.SetVisible(w.state.UndervoltAvailable)
 	}
 	cpuCO := 0
-	if w.state.Undervolt != nil && w.state.Profile == "custom" {
+	if w.state.UndervoltActive && w.state.Undervolt != nil {
 		cpuCO = w.state.Undervolt.CPUCO
 	}
 	if w.uvCpuScale != nil {
 		w.uvCpuScale.SetValue(float64(cpuCO))
 		w.uvCpuLabel.SetLabel(uvLabel("CPU Curve Optimizer", cpuCO))
+	}
+	if w.fanCurve != nil {
+		w.fanCurve.area.SetSensitive(!w.state.FanSafetyActive)
+		w.saveFanBtn.SetSensitive(!w.state.FanSafetyActive)
+		w.resetFanBtn.SetSensitive(!w.state.FanSafetyActive)
 	}
 
 	// Telemetry.
@@ -646,170 +657,57 @@ func (w *Window) syncCustomView() {
 	}
 }
 
-// sendTdp sends the current TDP slider values to the daemon.
-func (w *Window) sendTdp() error {
+// saveCustomTdp commits only the TDP values.
+func (w *Window) saveCustomTdp() {
 	if w.tdpAdvancedCheck != nil && w.tdpAdvancedCheck.Active() {
 		pl1 := fmt.Sprintf("%d", int(w.tdpPL1Scale.Value()))
 		pl2 := fmt.Sprintf("%d", int(w.tdpPL2Scale.Value()))
 		pl3 := fmt.Sprintf("%d", int(w.tdpPL3Scale.Value()))
 		maxPL := int(math.Max(w.tdpPL1Scale.Value(), math.Max(w.tdpPL2Scale.Value(), w.tdpPL3Scale.Value())))
-		force := maxPL > tdpMaxSafe
-		_, err := api.SendTdpSet(pl1, pl1, pl2, pl3, force)
-		return err
+		w.runStateAction("save TDP override", func() (bool, error) {
+			return api.SendTdpSet(pl1, pl1, pl2, pl3, maxPL > tdpMaxSafe)
+		})
+		return
 	}
 	watts := fmt.Sprintf("%d", int(w.tdpBasicScale.Value()))
-	_, err := api.SendTdpSet(watts, "", "", "", false)
-	return err
-}
-
-// sendFanCurve sends the current fan curve to the daemon.
-func (w *Window) sendFanCurve() error {
-	if w.fanCurve == nil {
-		return nil
-	}
-	_, err := api.SendFanCurveSet(w.fanCurve.curveString())
-	return err
-}
-
-// refreshProfile fetches state and updates the profile button highlight.
-func (w *Window) refreshProfile() {
-	ok, state, err := api.SendGetState()
-	if ok && err == nil {
-		glib.IdleAdd(func() {
-			w.state = state
-			w.syncing = true
-			w.syncProfile()
-			w.syncing = false
-		})
-	}
-}
-
-// saveCustomTdp commits only the TDP values.
-func (w *Window) saveCustomTdp() {
-	go func() {
-		if err := w.sendTdp(); err != nil {
-			slog.Warn("tdp set failed", "err", err)
-			return
-		}
-		slog.Info("custom TDP saved")
-		w.refreshProfile()
-	}()
+	w.runStateAction("save TDP override", func() (bool, error) {
+		return api.SendTdpSet(watts, "", "", "", false)
+	})
 }
 
 // saveCustomFanCurve commits only the fan curve.
 func (w *Window) saveCustomFanCurve() {
-	go func() {
-		if err := w.sendFanCurve(); err != nil {
-			slog.Warn("fan curve set failed", "err", err)
-			return
-		}
-		slog.Info("custom fan curve saved")
-		w.refreshProfile()
-	}()
-}
-
-// saveCustomBoth commits both TDP and fan curve.
-func (w *Window) saveCustomBoth() {
-	go func() {
-		tdpErr := w.sendTdp()
-		fanErr := w.sendFanCurve()
-		if tdpErr != nil {
-			slog.Warn("tdp set failed", "err", tdpErr)
-		}
-		if fanErr != nil {
-			slog.Warn("fan curve set failed", "err", fanErr)
-		}
-		if tdpErr == nil && fanErr == nil {
-			slog.Info("custom profile saved (TDP + fans)")
-		}
-		w.refreshProfile()
-	}()
+	curve := w.fanCurve.curveString()
+	w.runStateAction("save fan curve override", func() (bool, error) { return api.SendFanCurveSet(curve) })
 }
 
 // resetTdp resets TDP to firmware defaults.
 func (w *Window) resetTdp() {
-	go func() {
-		if _, err := api.SendTdpReset(); err != nil {
-			slog.Warn("tdp reset failed", "err", err)
-			return
-		}
-		slog.Info("tdp reset to defaults")
-		ok, state, err := api.SendGetState()
-		if ok && err == nil {
-			glib.IdleAdd(func() {
-				presetsChanged := presetStateChanged(w.state, state)
-				w.state = state
-				if presetsChanged {
-					w.syncing = true
-					w.syncPresets()
-					w.syncing = false
-				}
-				w.syncCustomView()
-				w.syncing = true
-				w.syncProfile()
-				w.syncing = false
-			})
-		}
-	}()
+	w.runStateAction("reset TDP override", api.SendTdpReset)
 }
 
 // resetFanCurve resets fan curves to firmware auto mode.
 func (w *Window) resetFanCurve() {
-	go func() {
-		if _, err := api.SendFanCurveReset(); err != nil {
-			slog.Warn("fan curve reset failed", "err", err)
-			return
-		}
-		slog.Info("fan curve reset to auto")
-		ok, state, err := api.SendGetState()
-		if ok && err == nil {
-			glib.IdleAdd(func() {
-				w.state = state
-				w.syncCustomView()
-				w.syncing = true
-				w.syncProfile()
-				w.syncing = false
-			})
-		}
-	}()
+	w.runStateAction("reset fan curve override", api.SendFanCurveReset)
 }
 
 // saveUndervolt commits the current Curve Optimizer offsets to the daemon.
 func (w *Window) saveUndervolt() {
-	go func() {
-		cpu := fmt.Sprintf("%d", int(w.uvCpuScale.Value()))
-		if _, err := api.SendUndervoltSet(cpu); err != nil {
-			slog.Warn("undervolt set failed", "err", err)
-			return
-		}
-		slog.Info("undervolt saved", "cpu", cpu)
-		w.refreshProfile()
-	}()
+	cpu := fmt.Sprintf("%d", int(w.uvCpuScale.Value()))
+	w.runStateAction("save undervolt override", func() (bool, error) { return api.SendUndervoltSet(cpu) })
 }
 
 // resetUndervolt resets Curve Optimizer to stock (0).
 func (w *Window) resetUndervolt() {
-	go func() {
-		if _, err := api.SendUndervoltReset(); err != nil {
-			slog.Warn("undervolt reset failed", "err", err)
-			return
-		}
-		slog.Info("undervolt reset to stock")
-		ok, state, err := api.SendGetState()
-		if ok && err == nil {
-			glib.IdleAdd(func() {
-				w.state = state
-				w.syncCustomView()
-				w.syncing = true
-				w.syncProfile()
-				w.syncing = false
-			})
-		}
-	}()
+	w.runStateAction("reset undervolt override", api.SendUndervoltReset)
 }
 
-// startTelemetryPolling updates live telemetry every second while Overview or
-// the Custom tuning view is visible. Other tabs do not need continuous reads.
+func (w *Window) resetAllOverrides() {
+	w.runStateAction("reset all tuning overrides", api.SendTuningReset)
+}
+
+// startTelemetryPolling keeps live telemetry and power automation state current
+// while their corresponding views are visible.
 func (w *Window) startTelemetryPolling() {
 	w.telemetryGen++
 	gen := w.telemetryGen
@@ -820,18 +718,25 @@ func (w *Window) startTelemetryPolling() {
 		customActive := w.viewStack != nil && w.viewStack.VisibleChildName() == "custom"
 		overviewActive := w.viewStack != nil && w.viewStack.VisibleChildName() == "main" &&
 			w.tabStack != nil && w.tabStack.VisibleChildName() == "overview"
-		if !customActive && !overviewActive {
+		powerActive := w.viewStack != nil && ((w.viewStack.VisibleChildName() == "main" &&
+			w.tabStack != nil && w.tabStack.VisibleChildName() == "power") ||
+			w.viewStack.VisibleChildName() == "presets" || w.viewStack.VisibleChildName() == "chooser" ||
+			w.viewStack.VisibleChildName() == "confirm")
+		if (!customActive && !overviewActive && !powerActive) || w.stateActionBusy {
 			return true
 		}
+		w.stateRequestGen++
+		requestGen := w.stateRequestGen
 		go func() {
 			ok, state, err := api.SendGetState()
 			if !ok || err != nil {
 				return
 			}
 			glib.IdleAdd(func() {
-				if gen != w.telemetryGen {
+				if gen != w.telemetryGen || requestGen != w.stateRequestGen || w.stateActionBusy {
 					return
 				}
+				presetsChanged := presetStateChanged(w.state, state)
 				w.state = state
 				if overviewActive {
 					if state.BatteryDetail != nil {
@@ -839,8 +744,12 @@ func (w *Window) startTelemetryPolling() {
 					}
 					w.syncOverviewTelemetry()
 				}
+				if powerActive {
+					w.syncPowerState(presetsChanged)
+				}
 
 				if customActive {
+					w.syncFanPreset()
 					if w.telemetryTempLabel != nil {
 						w.telemetryTempLabel.SetLabel(fmt.Sprintf("APU: %d°C", state.Temperature))
 					}
@@ -857,7 +766,7 @@ func (w *Window) startTelemetryPolling() {
 	})
 }
 
-// buildCustomFocusList builds the 2D focus grid for the custom profile view.
+// buildCustomFocusList builds the 2D focus grid for the advanced tuning view.
 func (w *Window) buildCustomFocusList() {
 	var items []focusItem
 
@@ -935,7 +844,7 @@ func (w *Window) buildCustomFocusList() {
 		onActivate: func() { w.resetUvBtn.Activate() },
 	})
 
-	// Row 9: save buttons.
+	// Row 9: targeted save buttons.
 	items = append(items, focusItem{
 		widget: w.saveTdpBtn, row: 9, col: 0,
 		section:    "actions",
@@ -946,13 +855,7 @@ func (w *Window) buildCustomFocusList() {
 		section:    "actions",
 		onActivate: func() { w.saveFanBtn.Activate() },
 	})
-	items = append(items, focusItem{
-		widget: w.saveBothBtn, row: 9, col: 2,
-		section:    "actions",
-		onActivate: func() { w.saveBothBtn.Activate() },
-	})
-
-	// Row 10: reset buttons.
+	// Row 10: targeted reset buttons.
 	items = append(items, focusItem{
 		widget: w.resetTdpBtn, row: 10, col: 0,
 		section:    "actions",
@@ -962,6 +865,11 @@ func (w *Window) buildCustomFocusList() {
 		widget: w.resetFanBtn, row: 10, col: 1,
 		section:    "actions",
 		onActivate: func() { w.resetFanBtn.Activate() },
+	})
+	items = append(items, focusItem{
+		widget: w.resetAllBtn, row: 11, col: 0,
+		section:    "actions",
+		onActivate: func() { w.resetAllBtn.Activate() },
 	})
 
 	w.customFocusItems = items

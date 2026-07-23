@@ -11,7 +11,6 @@ import (
 	"github.com/dahui/z13ctl/api"
 	"github.com/dahui/z13gui/internal/theme"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
-	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 )
 
@@ -124,9 +123,8 @@ func (w *Window) switchTab(name string) {
 	w.swapFocusList(w.mainFocusItems)
 }
 
-// buildPowerTab builds the Power tab: profile, fan preset, battery.
-// Telemetry lives on the Overview tab; this tab is controls-only.
-// Common controls stay visible; advanced CPU controls appear only for Custom.
+// buildPowerTab builds the Power tab. Telemetry lives on Overview; this tab
+// groups current policy status with the controls that change it.
 func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
 	inner := gtk.NewBox(gtk.OrientationVertical, 6)
 	inner.SetMarginTop(2)
@@ -134,12 +132,11 @@ func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
 	inner.SetMarginStart(12)
 	inner.SetMarginEnd(12)
 
-	inner.Append(groupLabel("POWER"))
 	inner.Append(w.buildProfileSection())
 	inner.Append(w.buildFanPresetSection())
-	inner.Append(w.buildBatterySection())
 	inner.Append(w.buildPresetEntrySection())
-	inner.Append(w.buildCPUPowerSection())
+	inner.Append(w.buildBatterySection())
+	inner.Append(w.buildAdvancedTuningSection())
 
 	scroll := gtk.NewScrolledWindow()
 	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
@@ -540,6 +537,20 @@ func (w *Window) showMainView() {
 	}
 }
 
+func (w *Window) backCurrentView() {
+	if w.viewStack == nil {
+		return
+	}
+	switch w.viewStack.VisibleChildName() {
+	case "chooser":
+		w.showPresetsView()
+	case "confirm":
+		w.returnFromConfirmation()
+	default:
+		w.showMainView()
+	}
+}
+
 // showCustomView switches the view stack to the custom TDP/fan view.
 // Lazy-builds the view on first access.
 func (w *Window) showCustomView() {
@@ -720,20 +731,35 @@ func (w *Window) buildBrightnessBox() *gtk.Box {
 	return box
 }
 
-// profiles lists the available performance profiles. "custom" opens the TDP/fan view.
-var profiles = []string{"quiet", "balanced", "performance", "custom"}
+// profiles lists the firmware performance profiles.
+var profiles = []string{"quiet", "balanced", "performance"}
 
 // speeds lists the available lighting animation speeds.
 var speeds = []string{"slow", "normal", "fast"}
 
-// buildProfileSection creates the 2x2 profile button grid.
+func powerCard(title string) (*gtk.Box, *gtk.Label) {
+	card := gtk.NewBox(gtk.OrientationVertical, 6)
+	card.AddCSSClass("card")
+	header := gtk.NewBox(gtk.OrientationHorizontal, 6)
+	label := gtk.NewLabel(title)
+	label.SetHAlign(gtk.AlignStart)
+	label.SetHExpand(true)
+	label.AddCSSClass("card-title")
+	header.Append(label)
+	summary := gtk.NewLabel("—")
+	summary.AddCSSClass("pill")
+	header.Append(summary)
+	card.Append(header)
+	return card, summary
+}
+
+// buildProfileSection creates the stock profile button row.
 func (w *Window) buildProfileSection() *gtk.Box {
-	box := gtk.NewBox(gtk.OrientationVertical, 2)
-	box.Append(sectionLabel("PROFILE"))
+	box, summary := powerCard("PROFILE")
+	w.profileSummary = summary
 
 	grid := gtk.NewGrid()
 	grid.SetColumnSpacing(4)
-	grid.SetRowSpacing(2)
 	grid.SetColumnHomogeneous(true)
 	grid.AddCSSClass("btn-group")
 
@@ -741,41 +767,20 @@ func (w *Window) buildProfileSection() *gtk.Box {
 		prof := p
 		btn := gtk.NewButtonWithLabel(strings.Title(prof)) //nolint:staticcheck // strings.Title is fine for ASCII-only labels
 		btn.ConnectClicked(func() {
-			if prof == "custom" {
-				w.showCustomView()
-			} else {
-				setActiveButton(w.profileBtns, prof)
-				w.sendProfileSet(prof)
-				go func() {
-					ok, state, err := api.SendGetState()
-					if ok && err == nil {
-						glib.IdleAdd(func() {
-							w.state = state
-							w.syncing = true
-							w.syncCPUPower()
-							w.syncCustomView()
-							w.syncing = false
-						})
-					}
-				}()
-			}
+			w.runStateAction("set profile", func() (bool, error) { return api.SendProfileSet(prof) })
 		})
 		w.profileBtns[prof] = btn
-		grid.Attach(btn, i%2, i/2, 1, 1)
+		grid.Attach(btn, i, 0, 1, 1)
 	}
 
 	box.Append(grid)
 	return box
 }
 
-// buildBatterySection creates the battery charge limit scale (40–100%) with
-// preset quick-pick buttons below it.
-//
-// Section label is provided by the caller (collapsibleSection wrapper in
-// buildPowerTab) to avoid double-labeling when wrapped.
+// buildBatterySection creates the charge-limit strategy card.
 func (w *Window) buildBatterySection() *gtk.Box {
-	box := gtk.NewBox(gtk.OrientationVertical, 4)
-	box.Append(sectionLabel("BATTERY STRATEGY"))
+	box, summary := powerCard("BATTERY STRATEGY")
+	w.batterySummary = summary
 	box.Append(w.buildBatteryPresets())
 	return box
 }
@@ -794,6 +799,7 @@ var batteryPresets = []struct {
 func (w *Window) buildBatteryPresets() *gtk.Box {
 	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	row.AddCSSClass("btn-group")
+	row.SetHomogeneous(true)
 	for _, p := range batteryPresets {
 		p := p
 		btn := gtk.NewButtonWithLabel(fmt.Sprintf("%s %d%%", p.label, p.pct))
@@ -801,8 +807,9 @@ func (w *Window) buildBatteryPresets() *gtk.Box {
 			if w.syncing {
 				return
 			}
-			setActiveIntButton(w.battPresetBtns, p.pct)
-			w.sendBatteryLimitSet(p.pct)
+			w.runStateAction("set battery strategy", func() (bool, error) {
+				return api.SendBatteryLimitSet(p.pct)
+			})
 		})
 		w.battPresetBtns[p.pct] = btn
 		row.Append(btn)
@@ -810,17 +817,16 @@ func (w *Window) buildBatteryPresets() *gtk.Box {
 	return row
 }
 
-// fanPresets defines the named fan curve presets.
-var fanPresets = []string{"silent", "balanced", "turbo"}
+// fanPresets defines firmware Auto followed by the named custom curves.
+var fanPresets = []string{"auto", "silent", "balanced", "turbo"}
 
-// buildFanPresetSection creates the Silent / Balanced / Turbo fan curve
-// preset row. Clicking a preset sends the corresponding curve to the daemon
-// via the existing fancurve command (no new protocol).
+// buildFanPresetSection creates firmware Auto and custom fan-mode controls.
 func (w *Window) buildFanPresetSection() *gtk.Box {
-	box := gtk.NewBox(gtk.OrientationVertical, 4)
-	box.Append(sectionLabel("FAN MODE"))
+	box, summary := powerCard("FAN MODE")
+	w.fanSummary = summary
 	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	row.AddCSSClass("btn-group")
+	row.SetHomogeneous(true)
 	for _, name := range fanPresets {
 		name := name
 		btn := gtk.NewButtonWithLabel(strings.Title(name)) //nolint:staticcheck // ASCII-only preset labels
@@ -828,13 +834,23 @@ func (w *Window) buildFanPresetSection() *gtk.Box {
 			if w.syncing {
 				return
 			}
-			setActiveButton(w.fanPresetBtns, name)
-			w.sendFanPreset(name)
+			if name == "auto" {
+				w.runStateAction("restore automatic fan control", api.SendFanCurveReset)
+				return
+			}
+			points := fanPresetPoints(name)
+			w.runStateAction("set fan mode", func() (bool, error) { return api.SendFanCurveSet(points) })
 		})
 		w.fanPresetBtns[name] = btn
 		row.Append(btn)
 	}
 	box.Append(row)
+	w.fanSafetyLabel = gtk.NewLabel("")
+	w.fanSafetyLabel.SetHAlign(gtk.AlignStart)
+	w.fanSafetyLabel.SetWrap(true)
+	w.fanSafetyLabel.AddCSSClass("card-sub")
+	w.fanSafetyLabel.SetVisible(false)
+	box.Append(w.fanSafetyLabel)
 	return box
 }
 
@@ -955,32 +971,34 @@ var cpuEPPs = []struct {
 	label string
 }{
 	{"performance", "Performance"},
-	{"balance_performance", "Balanced Perf"},
-	{"balance_power", "Balanced Power"},
+	{"balance_performance", "Responsive"},
+	{"balance_power", "Efficient"},
 	{"power", "Power Saver"},
 }
 
-func (w *Window) buildCPUPowerSection() *gtk.Box {
-	box := gtk.NewBox(gtk.OrientationVertical, 4)
-	box.Append(sectionLabel("ADVANCED CPU"))
+func (w *Window) buildAdvancedTuningSection() *gtk.Box {
+	content := gtk.NewBox(gtk.OrientationVertical, 6)
+	detail := gtk.NewLabel("CPU behavior and independent TDP, fan curve, and undervolt overrides")
+	detail.SetHAlign(gtk.AlignStart)
+	detail.SetWrap(true)
+	detail.AddCSSClass("card-sub")
+	content.Append(detail)
 
-	minLabel := gtk.NewLabel("MINIMUM FREQUENCY (MHz)")
+	minLabel := gtk.NewLabel("MINIMUM CPU FREQUENCY (MHz)")
 	minLabel.SetHAlign(gtk.AlignStart)
 	minLabel.AddCSSClass("scale-name")
-	box.Append(minLabel)
-	minScale := gtk.NewScaleWithRange(gtk.OrientationHorizontal, 400, 3000, 25)
-	minScale.SetDigits(0)
-	minScale.SetDrawValue(true)
-	minScale.SetValue(625)
-	minScale.SetFocusable(false)
-	w.cpuMinScale = minScale
-	w.initCPUMinDebounce(minScale)
-	box.Append(minScale)
+	content.Append(minLabel)
+	w.cpuMinScale = gtk.NewScaleWithRange(gtk.OrientationHorizontal, 400, 3000, 25)
+	w.cpuMinScale.SetDigits(0)
+	w.cpuMinScale.SetDrawValue(true)
+	w.cpuMinScale.SetFocusable(false)
+	w.initCPUMinDebounce(w.cpuMinScale)
+	content.Append(w.cpuMinScale)
 
-	eppLabel := gtk.NewLabel("ENERGY PERFORMANCE PREFERENCE")
+	eppLabel := gtk.NewLabel("ENERGY PREFERENCE")
 	eppLabel.SetHAlign(gtk.AlignStart)
 	eppLabel.AddCSSClass("scale-name")
-	box.Append(eppLabel)
+	content.Append(eppLabel)
 	grid := gtk.NewGrid()
 	grid.SetColumnSpacing(4)
 	grid.SetRowSpacing(4)
@@ -990,20 +1008,33 @@ func (w *Window) buildCPUPowerSection() *gtk.Box {
 		option := option
 		btn := gtk.NewButtonWithLabel(option.label)
 		btn.ConnectClicked(func() {
-			if w.syncing {
-				return
+			if !w.syncing {
+				w.runStateAction("set CPU energy preference", func() (bool, error) { return api.SendCPUEPPSet(option.value) })
 			}
-			setActiveButton(w.cpuEPPBtns, option.value)
-			w.sendCPUEPPSet(option.value)
 		})
 		w.cpuEPPBtns[option.value] = btn
 		grid.Attach(btn, i%2, i/2, 1, 1)
 	}
-	box.Append(grid)
-
-	box.Append(w.buildToggle("CPU Boost", "Allow CPU frequencies above the nominal maximum", &w.cpuBoostSwitch, w.sendCPUBoostSet))
-	box.SetVisible(false)
-	w.cpuPowerBox = box
+	content.Append(grid)
+	content.Append(w.buildToggle("CPU Boost", "Allow frequencies above the nominal maximum", &w.cpuBoostSwitch, func(enabled bool) {
+		w.runStateAction("set CPU boost", func() (bool, error) { return api.SendCPUBoostSet(enabled) })
+	}))
+	content.Append(separator())
+	w.tuningBtn = gtk.NewButtonWithLabel("Open tuning")
+	w.tuningBtn.ConnectClicked(func() { w.showCustomView() })
+	content.Append(w.tuningBtn)
+	box := gtk.NewBox(gtk.OrientationVertical, 4)
+	box.AddCSSClass("card")
+	header := newCollapsibleHeader("ADVANCED TUNING", false)
+	box.Append(header.button)
+	w.tuningSummary = gtk.NewLabel("TDP FIRMWARE · UV STOCK")
+	w.tuningSummary.SetHAlign(gtk.AlignStart)
+	w.tuningSummary.AddCSSClass("preset-summary")
+	box.Append(w.tuningSummary)
+	content.SetVisible(false)
+	header.button.ConnectToggled(func() { content.SetVisible(header.button.Active()) })
+	box.Append(content)
+	w.tuningHeader = header
 	return box
 }
 
@@ -1166,16 +1197,16 @@ func (w *Window) powerTabFocusItems() []focusItem {
 	var items []focusItem
 	row := 1
 
-	// Profiles — 2x2 grid.
+	// Profiles.
 	for i, p := range profiles {
 		btn := w.profileBtns[p]
 		items = append(items, focusItem{
-			widget: btn, row: row + i/2, col: i % 2,
+			widget: btn, row: row, col: i,
 			section:    "profile",
 			onActivate: func() { btn.Activate() },
 		})
 	}
-	row += 2
+	row++
 
 	// Fan preset buttons.
 	for col, name := range fanPresets {
@@ -1183,17 +1214,6 @@ func (w *Window) powerTabFocusItems() []focusItem {
 		items = append(items, focusItem{
 			widget: btn, row: row, col: col,
 			section:    "fan-preset",
-			onActivate: func() { btn.Activate() },
-		})
-	}
-	row++
-
-	// Battery strategy buttons.
-	for col, p := range batteryPresets {
-		btn := w.battPresetBtns[p.pct]
-		items = append(items, focusItem{
-			widget: btn, row: row, col: col,
-			section:    "battery-preset",
 			onActivate: func() { btn.Activate() },
 		})
 	}
@@ -1209,31 +1229,59 @@ func (w *Window) powerTabFocusItems() []focusItem {
 		row++
 	}
 
-	// Advanced CPU controls are available only for the Custom profile.
-	if w.cpuPowerBox != nil {
-		cpuVisible := func() bool { return w.cpuPowerBox.IsVisible() }
-		cpuLeft, cpuRight, cpuGet, cpuSet := scaleAdjust(w.cpuMinScale, 25)
+	// Battery strategy buttons.
+	for col, p := range batteryPresets {
+		btn := w.battPresetBtns[p.pct]
 		items = append(items, focusItem{
-			widget: w.cpuMinScale, row: row, col: 0,
-			section: "cpu-power", isVisible: cpuVisible,
-			editable: true,
-			onLeft:   cpuLeft, onRight: cpuRight,
-			getValue: cpuGet, setValue: cpuSet,
+			widget: btn, row: row, col: col,
+			section:    "battery-preset",
+			onActivate: func() { btn.Activate() },
+		})
+	}
+	row++
+
+	if w.tuningHeader != nil {
+		btn := w.tuningHeader.button
+		items = append(items, focusItem{
+			widget: btn, row: row, col: 0,
+			section:    "tuning",
+			onActivate: func() { btn.SetActive(!btn.Active()) },
 		})
 		row++
-		for i, option := range cpuEPPs {
-			btn := w.cpuEPPBtns[option.value]
-			items = append(items, focusItem{
-				widget: btn, row: row + i/2, col: i % 2,
-				section: "cpu-power", isVisible: cpuVisible,
-				onActivate: func() { btn.Activate() },
-			})
-		}
-		row += 2
+	}
+	tuningVisible := func() bool { return w.tuningHeader != nil && w.tuningHeader.button.Active() }
+	if w.cpuMinScale != nil {
+		left, right, get, set := scaleAdjust(w.cpuMinScale, 25)
+		items = append(items, focusItem{
+			widget: w.cpuMinScale, row: row, col: 0,
+			section: "tuning", isVisible: tuningVisible, editable: true,
+			onLeft: left, onRight: right, getValue: get, setValue: set,
+		})
+		row++
+	}
+	for i, option := range cpuEPPs {
+		btn := w.cpuEPPBtns[option.value]
+		items = append(items, focusItem{
+			widget: btn, row: row + i/2, col: i % 2,
+			section: "tuning", isVisible: tuningVisible,
+			onActivate: func() { btn.Activate() },
+		})
+	}
+	row += 2
+	if w.cpuBoostSwitch != nil {
 		items = append(items, focusItem{
 			widget: w.cpuBoostSwitch, row: row, col: 0,
-			section: "cpu-power", isVisible: cpuVisible,
+			section: "tuning", isVisible: tuningVisible,
 			onActivate: func() { w.cpuBoostSwitch.SetActive(!w.cpuBoostSwitch.Active()) },
+		})
+		row++
+	}
+	if w.tuningBtn != nil {
+		btn := w.tuningBtn
+		items = append(items, focusItem{
+			widget: btn, row: row, col: 0,
+			section: "tuning", isVisible: tuningVisible,
+			onActivate: func() { btn.Activate() },
 		})
 	}
 	return items

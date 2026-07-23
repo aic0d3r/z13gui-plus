@@ -106,8 +106,10 @@ contrib/
     - `.section-label` — section headers ("TDP", "UNDERVOLT", "FAN CURVE"): 11px, bold, letter-spaced, dim
     - `.scale-name` — slider name labels ("PL1 (SPL)", "CPU Curve Optimizer"): 10px, bold, no letter-spacing, dim
     - `.scale-value` — slider value readouts ("50 W", "CPU CO: -20"): 10px, normal weight, bright
-- **Profile selector**: buttons (`gtk.Button`), stored in
-  `w.profileBtns map[string]*gtk.Button`. Not DropDown (popup broken in gamescope).
+- **Profile selector**: physical-profile buttons (`quiet`, `balanced`,
+  `performance`), stored in `w.profileBtns map[string]*gtk.Button`. Fan, TDP,
+  and undervolt are independent overrides; there is no selectable Custom
+  profile. Not DropDown (popup broken in gamescope).
 - **Focus-loss dismiss** (layer-shell): `EventControllerMotion` tracks `pointerInside`
   on the backend. On `notify::is-active` focus loss: if within 500ms of Show, ignored
   (compositor settle time for keyboard-mode transition). If pointer is inside, the drop
@@ -143,7 +145,8 @@ The gamescope backend renders z13gui as an X11 overlay in Steam Gaming Mode.
 
 In both KDE and gamescope modes, `buildContent()` wraps content in a `gtk.Stack` with 4 pages:
 - `"main"` — normal drawer (profiles, RGB, battery, etc.)
-- `"custom"` — custom profile view (TDP, fan curve, undervolt, telemetry)
+- `"custom"` — internal stack key for the Advanced Tuning view (TDP, fan curve,
+  undervolt, telemetry); the user-facing profile is still physical
 - `"theme"` — theme picker (radio buttons + accent dots, replaces popover in gamescope)
 - `"color"` — HSL color picker (H/S/L sliders + presets + preview, replaces popover in gamescope)
 
@@ -271,8 +274,8 @@ Feature-complete for both KDE and gamescope modes:
 - Custom profile view with:
   - TDP control: basic (single watt slider) and advanced (PL1/PL2/PL3) modes
   - Fan curve editor: 8-point Cairo graph with drag interaction, 35–105°C range
-  - Undervolt: CPU Curve Optimizer slider (inside advanced TDP box, hidden when
-    `ryzen_smu` unavailable). Slider shows 0 when not on custom profile.
+  - Undervolt: independent CPU Curve Optimizer slider (inside advanced TDP box,
+    hidden when `ryzen_smu` unavailable).
     iGPU CO is not supported on Strix Halo.
   - Telemetry: APU temp + fan RPM in header and custom view, polled every 1s
   - Separate save/reset buttons for TDP, fans, and undervolt

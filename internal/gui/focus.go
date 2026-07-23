@@ -37,7 +37,8 @@ func (fi *focusItem) visible() bool {
 	if fi.isVisible != nil && !fi.isVisible() {
 		return false
 	}
-	return gtk.BaseWidget(fi.widget).IsVisible()
+	widget := gtk.BaseWidget(fi.widget)
+	return widget.IsVisible() && widget.Sensitive()
 }
 
 // visibleRows returns sorted unique row numbers that have at least one visible item.
@@ -343,8 +344,10 @@ func (w *Window) ensureVisible(widget gtk.Widgetter) {
 			scroll = w.customScroll
 		case "presets":
 			scroll = w.presetsScroll
+		case "chooser":
+			scroll = w.chooserScroll
 		default:
-			return // color view has no scroll
+			return // color and confirmation views have no scroll
 		}
 	}
 	if scroll == nil {

@@ -49,41 +49,71 @@ type Window struct {
 	themeProvider  *gtk.CSSProvider // current theme; replaced on applyTheme()
 
 	// Widget references for syncState.
-	tabKB            *gtk.CheckButton
-	tabLB            *gtk.CheckButton
-	mainTabBtns      map[string]*gtk.Button // top-level Power/RGB/System tabs
-	tabStack         *gtk.Stack             // switches between Power/RGB/System tab content
-	modeButtons      map[string]*gtk.Button
-	color1           *colorInput
-	color2           *colorInput
-	color1Box        *gtk.Box // COLOR 1 label + row — visibility toggled by syncModeVis
-	color2Box        *gtk.Box // COLOR 2 label + row — visibility toggled by syncModeVis
-	speedBox         *gtk.Box // SPEED label + row — visibility toggled by syncModeVis
-	brightBox        *gtk.Box // BRIGHTNESS label + scale — hidden when mode is "off"
-	rgbControlsBox   *gtk.Box // mode-specific controls; insensitive while selected device is off
-	lightingSwitch   *gtk.Switch
-	speedBtns        map[string]*gtk.Button
-	brightScale      *gtk.Scale
-	profileBtns      map[string]*gtk.Button
-	cpuPowerBox      *gtk.Box
-	cpuMinScale      *gtk.Scale
-	cpuEPPBtns       map[string]*gtk.Button
-	cpuBoostSwitch   *gtk.Switch
-	battPresetBtns   map[int]*gtk.Button    // battery presets: 100/80/60 %
-	fanPresetBtns    map[string]*gtk.Button // fan curve presets: silent/balanced/turbo
-	refreshBtns      map[int]*gtk.Button    // eDP-1 refresh rate: 60/180 Hz
-	overdriveSwitch  *gtk.Switch
-	bootSoundSwitch  *gtk.Switch
-	presetsBtn       *gtk.Button
-	presetsScroll    *gtk.ScrolledWindow
-	presetsBackBtn   *gtk.Button
-	presetsList      *gtk.Box
-	presetNameEntry  *gtk.Entry
-	presetAuto       *gtk.Switch
-	presetSaveBtn    *gtk.Button
-	presetStatus     *gtk.Label
-	presetFocusItems []focusItem
-	presetBusy       bool
+	tabKB              *gtk.CheckButton
+	tabLB              *gtk.CheckButton
+	mainTabBtns        map[string]*gtk.Button // top-level Power/RGB/System tabs
+	tabStack           *gtk.Stack             // switches between Power/RGB/System tab content
+	modeButtons        map[string]*gtk.Button
+	color1             *colorInput
+	color2             *colorInput
+	color1Box          *gtk.Box // COLOR 1 label + row — visibility toggled by syncModeVis
+	color2Box          *gtk.Box // COLOR 2 label + row — visibility toggled by syncModeVis
+	speedBox           *gtk.Box // SPEED label + row — visibility toggled by syncModeVis
+	brightBox          *gtk.Box // BRIGHTNESS label + scale — hidden when mode is "off"
+	rgbControlsBox     *gtk.Box // mode-specific controls; insensitive while selected device is off
+	lightingSwitch     *gtk.Switch
+	speedBtns          map[string]*gtk.Button
+	brightScale        *gtk.Scale
+	profileBtns        map[string]*gtk.Button
+	profileSummary     *gtk.Label
+	tuningHeader       *collapsibleHeader
+	tuningSummary      *gtk.Label
+	tuningBtn          *gtk.Button
+	cpuMinScale        *gtk.Scale
+	cpuEPPBtns         map[string]*gtk.Button
+	cpuBoostSwitch     *gtk.Switch
+	battPresetBtns     map[int]*gtk.Button // battery presets: 100/80/60 %
+	batterySummary     *gtk.Label
+	fanPresetBtns      map[string]*gtk.Button // fan modes: auto/silent/balanced/turbo
+	fanSummary         *gtk.Label
+	fanSafetyLabel     *gtk.Label
+	refreshBtns        map[int]*gtk.Button // eDP-1 refresh rate: 60/180 Hz
+	overdriveSwitch    *gtk.Switch
+	bootSoundSwitch    *gtk.Switch
+	presetsBtn         *gtk.Button
+	presetSummary      *gtk.Label
+	presetDetail       *gtk.Label
+	presetsScroll      *gtk.ScrolledWindow
+	presetsBackBtn     *gtk.Button
+	presetsList        *gtk.Box
+	presetNameEntry    *gtk.Entry
+	presetAuto         *gtk.Switch
+	presetSaveBtn      *gtk.Button
+	presetRestoreBtn   *gtk.Button
+	presetStatus       *gtk.Label
+	automationBanner   *gtk.Label
+	acAssignment       *gtk.Box
+	batteryAssignment  *gtk.Box
+	acAssignmentLabel  *gtk.Label
+	batteryAssignLabel *gtk.Label
+	acChangeBtn        *gtk.Button
+	batteryChangeBtn   *gtk.Button
+	presetCurrent      *gtk.Label
+	presetFocusItems   []focusItem
+	chooserScroll      *gtk.ScrolledWindow
+	chooserList        *gtk.Box
+	chooserTitle       *gtk.Label
+	chooserDetail      *gtk.Label
+	chooserFocusItems  []focusItem
+	confirmTitle       *gtk.Label
+	confirmMessage     *gtk.Label
+	confirmBtn         *gtk.Button
+	confirmFocusItems  []focusItem
+	confirmReturnView  string
+	confirmAction      func()
+	stateActionBusy    bool
+	stateActionQueue   []stateAction
+	stateRequestGen    uint64
 
 	// Premium hero widgets — battery card (Overview tab).
 	// Power tab telemetry gauges removed; live stats live on Overview tab only.
@@ -121,7 +151,7 @@ type Window struct {
 	overviewMemoryLbl   *gtk.Label       // "18.4 / 128 GB"
 	overviewMemClock    *gtk.Label       // "425 MHz"
 
-	// Custom profile view.
+	// Advanced tuning view.
 	customScroll       *gtk.ScrolledWindow
 	customBackBtn      *gtk.Button
 	tdpBasicScale      *gtk.Scale
@@ -138,9 +168,9 @@ type Window struct {
 	fanCurve           *fanCurveEditor
 	saveTdpBtn         *gtk.Button
 	saveFanBtn         *gtk.Button
-	saveBothBtn        *gtk.Button
 	resetTdpBtn        *gtk.Button
 	resetFanBtn        *gtk.Button
+	resetAllBtn        *gtk.Button
 	uvBox              *gtk.Box // undervolt container, hidden when unavailable
 	uvCpuScale         *gtk.Scale
 	uvCpuLabel         *gtk.Label
@@ -207,10 +237,10 @@ func New(app *gtk.Application) *Window {
 		modeButtons:    make(map[string]*gtk.Button),
 		speedBtns:      make(map[string]*gtk.Button),
 		profileBtns:    make(map[string]*gtk.Button),
-		cpuEPPBtns:     make(map[string]*gtk.Button),
 		mainTabBtns:    make(map[string]*gtk.Button),
 		battPresetBtns: make(map[int]*gtk.Button),
 		fanPresetBtns:  make(map[string]*gtk.Button),
+		cpuEPPBtns:     make(map[string]*gtk.Button),
 		refreshBtns:    make(map[int]*gtk.Button),
 	}
 
@@ -294,12 +324,17 @@ func (w *Window) Toggle() {
 	} else {
 		slog.Info("toggle", "action", "show")
 		w.show()
+		w.stateRequestGen++
+		gen := w.stateRequestGen
 		fetchStart := time.Now()
 		go func() {
 			ok, state, err := api.SendGetState()
 			slog.Debug("SendGetState returned", "ok", ok, "err", err, "elapsed", time.Since(fetchStart))
 			if ok && err == nil {
 				glib.IdleAdd(func() {
+					if gen != w.stateRequestGen || w.stateActionBusy {
+						return
+					}
 					slog.Debug("syncState dispatched", "totalElapsed", time.Since(fetchStart))
 					w.state = state
 					w.syncState()
@@ -348,6 +383,8 @@ func (w *Window) hide() {
 	w.hideGamepadFocus()
 	w.telemetryGen++ // stop any running telemetry poll
 	if w.viewStack != nil {
+		w.confirmAction = nil
+		w.confirmReturnView = ""
 		w.viewStack.SetVisibleChildName("main")
 		w.swapFocusList(w.mainFocusItems)
 	}
@@ -396,7 +433,7 @@ func (w *Window) handleGamepadAction(action gamepad.Action) {
 		case w.focusEditing:
 			w.exitEditMode(false)
 		case w.viewStack != nil && w.viewStack.VisibleChildName() != "main":
-			w.showMainView()
+			w.backCurrentView()
 		default:
 			w.hide()
 		}

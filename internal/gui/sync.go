@@ -77,9 +77,9 @@ func (w *Window) syncState() {
 	defer func() { w.syncing = false }()
 	w.syncLightingSection()
 	w.syncProfile()
-	w.syncCPUPower()
 	w.syncBattery()
 	w.syncFanPreset()
+	w.syncCPUPower()
 	w.syncRefreshRate()
 	w.syncOverdrive()
 	w.syncBootSound()
@@ -94,38 +94,37 @@ func (w *Window) syncState() {
 	w.syncOverviewTelemetry()
 }
 
+func (w *Window) syncPowerState(syncAutomation bool) {
+	prev := w.syncing
+	w.syncing = true
+	defer func() { w.syncing = prev }()
+	w.syncProfile()
+	w.syncBattery()
+	w.syncFanPreset()
+	w.syncCPUPower()
+	w.syncRefreshRate()
+	w.syncOverdrive()
+	if syncAutomation {
+		w.syncPresets()
+	}
+}
+
 func (w *Window) syncCPUPower() {
-	if w.cpuPowerBox == nil || w.state == nil {
+	if w.state == nil || w.state.CPUPower == nil || w.cpuMinScale == nil {
 		return
 	}
 	state := w.state.CPUPower
-	if state == nil || w.state.Profile != "custom" {
-		w.cpuPowerBox.SetVisible(false)
-		if state == nil {
-			return
-		}
-	} else {
-		w.cpuPowerBox.SetVisible(true)
-	}
 	w.cpuMinScale.SetRange(float64(state.MinLimitKHz)/1000, float64(state.MaxLimitKHz)/1000)
 	w.cpuMinScale.SetValue(float64(state.MinFrequencyKHz) / 1000)
 	setActiveButton(w.cpuEPPBtns, state.EPP)
-	for value, btn := range w.cpuEPPBtns {
-		available := false
-		for _, choice := range state.EPPChoices {
-			if choice == value {
-				available = true
-				break
-			}
-		}
-		btn.SetSensitive(available)
+	if w.cpuBoostSwitch != nil {
+		w.cpuBoostSwitch.SetActive(state.Boost)
 	}
-	w.cpuBoostSwitch.SetActive(state.Boost)
 }
 
-func (w *Window) initCPUMinDebounce(sc *gtk.Scale) {
+func (w *Window) initCPUMinDebounce(scale *gtk.Scale) {
 	var debounce *time.Timer
-	sc.ConnectValueChanged(func() {
+	scale.ConnectValueChanged(func() {
 		if w.syncing {
 			return
 		}
@@ -134,26 +133,14 @@ func (w *Window) initCPUMinDebounce(sc *gtk.Scale) {
 		}
 		debounce = time.AfterFunc(200*time.Millisecond, func() {
 			glib.IdleAdd(func() bool {
-				khz := int(sc.Value()) * 1000
-				if _, err := api.SendCPUMinFrequencySet(khz); err != nil {
-					slog.Warn("CPU minimum frequency set failed", "khz", khz, "err", err)
-				}
+				khz := int(scale.Value()) * 1000
+				w.runStateAction("set CPU minimum frequency", func() (bool, error) {
+					return api.SendCPUMinFrequencySet(khz)
+				})
 				return false
 			})
 		})
 	})
-}
-
-func (w *Window) sendCPUEPPSet(value string) {
-	if _, err := api.SendCPUEPPSet(value); err != nil {
-		slog.Warn("CPU EPP set failed", "value", value, "err", err)
-	}
-}
-
-func (w *Window) sendCPUBoostSet(enabled bool) {
-	if _, err := api.SendCPUBoostSet(enabled); err != nil {
-		slog.Warn("CPU boost set failed", "enabled", enabled, "err", err)
-	}
 }
 
 // syncLightingSection updates mode, colors, speed, and brightness from the
@@ -198,13 +185,20 @@ func (w *Window) syncLightingSection() {
 
 // syncProfile highlights the profile button matching the daemon state.
 func (w *Window) syncProfile() {
-	if w.state == nil || w.state.Profile == "" {
+	if w.state == nil {
 		return
 	}
 	setActiveButton(w.profileBtns, w.state.Profile)
-	if w.cpuPowerBox != nil {
-		w.cpuPowerBox.SetVisible(w.state.Profile == "custom" && w.state.CPUPower != nil)
+	if w.profileSummary != nil {
+		w.profileSummary.SetLabel(profileSummary(w.state.Profile))
 	}
+}
+
+func profileSummary(profile string) string {
+	if profile == "" {
+		return "—"
+	}
+	return strings.ToUpper(profile)
 }
 
 // syncBattery sets the battery limit scale to match the daemon state.
@@ -214,14 +208,55 @@ func (w *Window) syncBattery() {
 		return
 	}
 	setActiveIntButton(w.battPresetBtns, w.state.Battery)
+	if w.batterySummary != nil {
+		w.batterySummary.SetLabel(batteryStrategySummary(w.state.Battery))
+	}
+}
+
+func batteryStrategySummary(limit int) string {
+	switch limit {
+	case 100:
+		return "STANDARD · 100%"
+	case 80:
+		return "BALANCED · 80%"
+	case 60:
+		return "MAX LIFE · 60%"
+	case 0:
+		return "—"
+	default:
+		return fmt.Sprintf("CUSTOM · %d%%", limit)
+	}
 }
 
 func (w *Window) syncFanPreset() {
-	setActiveButton(w.fanPresetBtns, matchingFanPreset(w.state.FanCurve))
+	if w.state == nil {
+		return
+	}
+	active, summary, detail, locked := fanStatus(w.state)
+	setActiveButton(w.fanPresetBtns, active)
+	for _, button := range w.fanPresetBtns {
+		button.SetSensitive(!locked)
+	}
+	if w.fanSummary != nil {
+		w.fanSummary.SetLabel(summary)
+	}
+	if w.fanSafetyLabel != nil {
+		w.fanSafetyLabel.SetLabel(detail)
+		w.fanSafetyLabel.SetVisible(detail != "")
+	}
+	if w.tuningSummary != nil {
+		w.tuningSummary.SetLabel(tuningStatus(w.state))
+	}
 }
 
 func matchingFanPreset(curve *api.FanCurveState) string {
-	if curve == nil || curve.Mode != 1 {
+	if curve == nil {
+		return ""
+	}
+	if curve.Mode == 2 {
+		return "auto"
+	}
+	if curve.Mode != 1 {
 		return ""
 	}
 	parts := make([]string, len(curve.Points))
@@ -229,12 +264,43 @@ func matchingFanPreset(curve *api.FanCurveState) string {
 		parts[i] = fmt.Sprintf("%d:%d", point.Temp, point.PWM)
 	}
 	encoded := strings.Join(parts, ",")
-	for _, name := range fanPresets {
+	for _, name := range fanPresets[1:] {
 		if encoded == fanPresetPoints(name) {
 			return name
 		}
 	}
 	return ""
+}
+
+func fanStatus(state *api.State) (active, summary, detail string, locked bool) {
+	if state == nil {
+		return "", "—", "", false
+	}
+	if state.FanSafetyActive {
+		return "", "SAFETY LOCK", "High-TDP safety cooling is active. Reset or lower TDP to unlock fan choices.", true
+	}
+	if !state.FanCurveActive {
+		return "auto", "AUTO", "", false
+	}
+	if preset := matchingFanPreset(state.FanCurve); preset != "" {
+		return preset, strings.ToUpper(preset), "", false
+	}
+	return "", "CUSTOM", "", false
+}
+
+func tuningStatus(state *api.State) string {
+	if state == nil {
+		return "TDP — · UV —"
+	}
+	tdp := "FIRMWARE"
+	if state.TDPActive && state.TDP != nil {
+		tdp = fmt.Sprintf("%d W", state.TDP.PL1SPL)
+	}
+	uv := "STOCK"
+	if state.UndervoltActive && state.Undervolt != nil {
+		uv = fmt.Sprintf("%d", state.Undervolt.CPUCO)
+	}
+	return fmt.Sprintf("TDP %s · UV %s", tdp, uv)
 }
 
 // syncRefreshRate highlights the refresh rate button matching the daemon state.
@@ -528,17 +594,6 @@ func (w *Window) sendApply() {
 	}
 }
 
-// sendProfileSet sends a profile change to the daemon.
-func (w *Window) sendProfileSet(prof string) {
-	slog.Debug("sendProfileSet: calling daemon", "profile", prof)
-	start := time.Now()
-	if _, err := api.SendProfileSet(prof); err != nil {
-		slog.Warn("profile set failed", "profile", prof, "err", err, "elapsed", time.Since(start))
-	} else {
-		slog.Debug("sendProfileSet: done", "elapsed", time.Since(start))
-	}
-}
-
 // syncOverdrive sets the overdrive switch to match the daemon state.
 func (w *Window) syncOverdrive() {
 	if w.state == nil || w.overdriveSwitch == nil {
@@ -585,34 +640,6 @@ func (w *Window) sendRefreshRateSet(hz int) {
 		slog.Warn("refresh rate set failed", "hz", hz, "err", err, "elapsed", time.Since(start))
 	} else {
 		slog.Debug("sendRefreshRateSet: done", "elapsed", time.Since(start))
-	}
-}
-
-// sendBatteryLimitSet sends a battery charge limit change to the daemon.
-func (w *Window) sendBatteryLimitSet(limit int) {
-	slog.Debug("sendBatteryLimitSet: calling daemon", "limit", limit)
-	start := time.Now()
-	if _, err := api.SendBatteryLimitSet(limit); err != nil {
-		slog.Warn("battery limit set failed", "limit", limit, "err", err, "elapsed", time.Since(start))
-	} else {
-		slog.Debug("sendBatteryLimitSet: done", "elapsed", time.Since(start))
-	}
-}
-
-// sendFanPreset encodes the named preset curve as "temp:pwm,..." and sends it
-// to the daemon via the existing fancurve command — no new protocol needed.
-func (w *Window) sendFanPreset(name string) {
-	points := fanPresetPoints(name)
-	if points == "" {
-		slog.Warn("fan preset has no curve", "name", name)
-		return
-	}
-	slog.Debug("sendFanPreset: calling daemon", "preset", name)
-	start := time.Now()
-	if _, err := api.SendFanCurveSet(points); err != nil {
-		slog.Warn("fan preset set failed", "preset", name, "err", err, "elapsed", time.Since(start))
-	} else {
-		slog.Debug("sendFanPreset: done", "preset", name, "elapsed", time.Since(start))
 	}
 }
 

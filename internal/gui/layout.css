@@ -103,6 +103,18 @@
     font-feature-settings: "tnum";
 }
 
+.drawer .preset-summary {
+    font-size: 11px;
+}
+
+.drawer .automation-off label {
+    opacity: 0.45;
+}
+
+.drawer .automation-off button label {
+    opacity: 1;
+}
+
 /* Pill — status chip */
 .drawer .pill {
     border-radius: 999px;
@@ -325,6 +337,18 @@ popover.z13-popover scrolledwindow {
     letter-spacing: 2px;
     text-transform: uppercase;
     color: @z13-text;
+}
+
+.drawer .card > .section-collapse,
+.drawer .card > .section-collapse:hover,
+.drawer .card > .section-collapse:checked {
+    padding: 0;
+    background: transparent;
+    border-color: transparent;
+}
+
+.drawer .card > .section-collapse .section-collapse-label {
+    font-size: 13px;
 }
 
 /* Trailing value suffix on the header (e.g., "TURBO" next to "NPU POWER").
