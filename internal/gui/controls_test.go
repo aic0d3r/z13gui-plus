@@ -86,3 +86,16 @@ func TestThemeButtonLabel(t *testing.T) {
 		t.Fatalf("custom themeButtonLabel() = %q, want Custom Theme", got)
 	}
 }
+
+func TestFormatBatteryDecimal(t *testing.T) {
+	for input, want := range map[string]string{
+		"12.3":   "12.30",
+		"0":      "0.00",
+		"17.567": "17.57",
+		"—":      "—",
+	} {
+		if got := formatBatteryDecimal(input); got != want {
+			t.Errorf("formatBatteryDecimal(%q) = %q, want %q", input, got, want)
+		}
+	}
+}

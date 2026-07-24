@@ -5,6 +5,7 @@ package gui
 import (
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,10 +46,26 @@ func activeButton(btns map[string]*gtk.Button, fallback string) string {
 	return fallback
 }
 
+func setOnOffSummary(label *gtk.Label, active bool) {
+	if label == nil {
+		return
+	}
+	label.RemoveCSSClass("success")
+	if active {
+		label.SetLabel("ON")
+		label.AddCSSClass("success")
+	} else {
+		label.SetLabel("OFF")
+	}
+}
+
 // syncModeVis shows/hides color and speed sections based on the active mode.
 // Safe to call at any time (including during sync).
 func (w *Window) syncModeVis() {
 	mode := activeButton(w.modeButtons, "static")
+	if w.rgbEffectSummary != nil {
+		w.rgbEffectSummary.SetLabel(strings.ToUpper(mode))
+	}
 	v, ok := modeVisMap[mode]
 	if !ok {
 		v = modeVis{true, true, true, true}
@@ -166,8 +183,16 @@ func (w *Window) syncLightingSection() {
 	if w.lightingSwitch != nil {
 		w.lightingSwitch.SetActive(ls.Enabled)
 	}
+	setOnOffSummary(w.lightingSummary, ls.Enabled)
 	if w.rgbControlsBox != nil {
 		w.rgbControlsBox.SetSensitive(ls.Enabled)
+	}
+	if w.rgbEffectCard != nil {
+		if ls.Enabled {
+			w.rgbEffectCard.RemoveCSSClass("card-inactive")
+		} else {
+			w.rgbEffectCard.AddCSSClass("card-inactive")
+		}
 	}
 	if w.color1 != nil && ls.Color != "" {
 		w.color1.hex = strings.ToUpper(ls.Color)
@@ -308,7 +333,25 @@ func (w *Window) syncRefreshRate() {
 	if w.state == nil {
 		return
 	}
+	if w.pendingRefreshRate != 0 {
+		if w.state.RefreshRate == w.pendingRefreshRate || time.Now().After(w.refreshPendingUntil) {
+			w.pendingRefreshRate = 0
+		} else {
+			setActiveIntButton(w.refreshBtns, w.pendingRefreshRate)
+			if w.displaySummary != nil {
+				w.displaySummary.SetLabel(fmt.Sprintf("%d HZ", w.pendingRefreshRate))
+			}
+			return
+		}
+	}
 	setActiveIntButton(w.refreshBtns, w.state.RefreshRate)
+	if w.displaySummary != nil {
+		if _, ok := w.refreshBtns[w.state.RefreshRate]; ok {
+			w.displaySummary.SetLabel(fmt.Sprintf("%d HZ", w.state.RefreshRate))
+		} else {
+			w.displaySummary.SetLabel("—")
+		}
+	}
 }
 
 // syncOverviewTelemetry populates Overview tab widgets from the live Telemetry
@@ -373,9 +416,12 @@ func (w *Window) syncOverviewTelemetry() {
 		}
 	}
 	if w.overviewContext != nil {
-		parts := make([]string, 0, 1)
+		parts := make([]string, 0, 2)
 		if w.state.Profile != "" {
 			parts = append(parts, strings.ToUpper(w.state.Profile))
+		}
+		if w.state.PowerSource != "" {
+			parts = append(parts, strings.ToUpper(w.state.PowerSource))
 		}
 		if len(parts) == 0 {
 			parts = append(parts, "—")
@@ -385,7 +431,9 @@ func (w *Window) syncOverviewTelemetry() {
 	if w.overviewSystemPower != nil {
 		value := "—"
 		if w.state.PowerSource == "battery" && w.state.BatteryDetail != nil {
-			value = w.state.BatteryDetail.PowerWatts + " W"
+			if power := formatBatteryDecimal(w.state.BatteryDetail.PowerWatts); power != "—" {
+				value = power + " W"
+			}
 		}
 		w.overviewSystemPower.SetLabel(value)
 	}
@@ -431,7 +479,7 @@ func (w *Window) syncOverviewTelemetry() {
 		}
 		w.npuLabel.RemoveCSSClass("npu-high")
 		w.npuLabel.RemoveCSSClass("npu-dim")
-		if t.NPUPowerW < npuActivePowerW {
+		if t.NPUAvailable && t.NPUPowerW < npuActivePowerW {
 			w.npuLabel.AddCSSClass("npu-dim")
 		} else if t.NPUPowerW >= npuActivePowerW {
 			w.npuLabel.AddCSSClass("npu-high")
@@ -488,21 +536,31 @@ func (w *Window) updateBatteryHero(b *api.BatteryState) {
 		w.battHealthLabel.SetLabel(fmt.Sprintf("%d%%", b.HealthPct))
 	}
 	if w.battEnergyLabel != nil {
-		w.battEnergyLabel.SetLabel(fmt.Sprintf("%.1f / %.1f Wh", b.EnergyNowWh, b.EnergyFullWh))
+		w.battEnergyLabel.SetLabel(fmt.Sprintf("%.2f / %.2f Wh", b.EnergyNowWh, b.EnergyFullWh))
 	}
 	if w.battVoltageLabel != nil {
-		w.battVoltageLabel.SetLabel(b.VoltageVolts + " V")
+		voltage := formatBatteryDecimal(b.VoltageVolts)
+		if voltage != "—" {
+			voltage += " V"
+		}
+		w.battVoltageLabel.SetLabel(voltage)
 	}
 	if w.battDesignLabel != nil {
-		w.battDesignLabel.SetLabel(fmt.Sprintf("%.1f Wh", b.EnergyDesignWh))
+		w.battDesignLabel.SetLabel(fmt.Sprintf("%.2f Wh", b.EnergyDesignWh))
 	}
 	if w.battPowerLabel != nil {
-		if b.Charging {
-			w.battPowerLabel.SetLabel(fmt.Sprintf("%s W IN", b.PowerWatts))
-		} else if b.PowerWatts != "0" {
-			w.battPowerLabel.SetLabel(fmt.Sprintf("%s W OUT", b.PowerWatts))
+		power, err := strconv.ParseFloat(b.PowerWatts, 64)
+		if err != nil {
+			w.battPowerLabel.SetLabel("—")
 		} else {
-			w.battPowerLabel.SetLabel("0 W")
+			formatted := fmt.Sprintf("%.2f", power)
+			if b.Charging {
+				w.battPowerLabel.SetLabel(formatted + " W IN")
+			} else if power > 0 {
+				w.battPowerLabel.SetLabel(formatted + " W OUT")
+			} else {
+				w.battPowerLabel.SetLabel("0.00 W")
+			}
 		}
 	}
 	if w.battPill != nil {
@@ -524,6 +582,14 @@ func (w *Window) updateBatteryHero(b *api.BatteryState) {
 			w.battPill.AddCSSClass(cls)
 		}
 	}
+}
+
+func formatBatteryDecimal(value string) string {
+	n, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return "—"
+	}
+	return fmt.Sprintf("%.2f", n)
 }
 
 // queueApply debounces rapid API calls from continuous inputs (color wheel,
@@ -552,6 +618,14 @@ func (w *Window) setLightingEnabled(enabled bool) {
 	}
 	if w.rgbControlsBox != nil {
 		w.rgbControlsBox.SetSensitive(enabled)
+	}
+	setOnOffSummary(w.lightingSummary, enabled)
+	if w.rgbEffectCard != nil {
+		if enabled {
+			w.rgbEffectCard.RemoveCSSClass("card-inactive")
+		} else {
+			w.rgbEffectCard.AddCSSClass("card-inactive")
+		}
 	}
 	if enabled {
 		setActiveButton(w.modeButtons, activeButton(w.modeButtons, defaultMode))
@@ -608,39 +682,7 @@ func (w *Window) syncBootSound() {
 		return
 	}
 	w.bootSoundSwitch.SetActive(w.state.BootSound != 0)
-}
-
-// sendOverdriveSet sends a panel overdrive change to the daemon.
-func (w *Window) sendOverdriveSet(value int) {
-	slog.Debug("sendOverdriveSet: calling daemon", "value", value)
-	start := time.Now()
-	if _, err := api.SendPanelOverdriveSet(value); err != nil {
-		slog.Warn("panel overdrive set failed", "value", value, "err", err, "elapsed", time.Since(start))
-	} else {
-		slog.Debug("sendOverdriveSet: done", "elapsed", time.Since(start))
-	}
-}
-
-// sendBootSoundSet sends a boot sound change to the daemon.
-func (w *Window) sendBootSoundSet(value int) {
-	slog.Debug("sendBootSoundSet: calling daemon", "value", value)
-	start := time.Now()
-	if _, err := api.SendBootSoundSet(value); err != nil {
-		slog.Warn("boot sound set failed", "value", value, "err", err, "elapsed", time.Since(start))
-	} else {
-		slog.Debug("sendBootSoundSet: done", "elapsed", time.Since(start))
-	}
-}
-
-// sendRefreshRateSet switches eDP-1 to the requested refresh rate.
-func (w *Window) sendRefreshRateSet(hz int) {
-	slog.Debug("sendRefreshRateSet: calling daemon", "hz", hz)
-	start := time.Now()
-	if _, err := api.SendRefreshRateSet(hz); err != nil {
-		slog.Warn("refresh rate set failed", "hz", hz, "err", err, "elapsed", time.Since(start))
-	} else {
-		slog.Debug("sendRefreshRateSet: done", "elapsed", time.Since(start))
-	}
+	setOnOffSummary(w.startupSummary, w.state.BootSound != 0)
 }
 
 // fanPresetPoints returns the named preset encoded as the wire-format curve

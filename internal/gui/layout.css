@@ -69,6 +69,8 @@
 /* Compact trailing-control row used by RGB and System settings. */
 .drawer .settings-row {
     min-height: 40px;
+    border-radius: 8px;
+    padding: 0 6px;
 }
 
 .drawer .settings-row .toggle-label {
@@ -79,6 +81,10 @@
 .drawer .settings-row switch {
     min-width: 40px;
     min-height: 22px;
+}
+
+.drawer .card.card-inactive {
+    opacity: 0.35;
 }
 
 /* Card title — small caps mono */
@@ -107,12 +113,8 @@
     font-size: 11px;
 }
 
-.drawer .automation-off label {
-    opacity: 0.45;
-}
-
-.drawer .automation-off button label {
-    opacity: 1;
+.drawer .automation-off {
+    opacity: 0.35;
 }
 
 /* Pill — status chip */
@@ -390,6 +392,12 @@ popover.z13-popover scrolledwindow {
     letter-spacing: 0.5px;
 }
 
+.drawer .overview-system-card .scale-value,
+.drawer .battery-metric-value {
+    font-size: 15px;
+    font-weight: 700;
+}
+
 .drawer .overview-power-row {
 	padding: 0;
 }
@@ -415,8 +423,6 @@ popover.z13-popover scrolledwindow {
 }
 
 .drawer .battery-metric-value {
-    font-size: 13px;
-    font-weight: 700;
     font-feature-settings: "tnum";
 }
 
@@ -441,7 +447,7 @@ popover.z13-popover scrolledwindow {
 }
 
 .drawer .npu-dim {
-    opacity: 0.5;
+    color: @z13-text-dim;
 }
 
 /* Unified memory usage bar. */

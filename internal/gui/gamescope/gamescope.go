@@ -287,9 +287,10 @@ func (b *Backend) scaledCSS() string {
 .bottom-bar button { min-width: %.0fpx; min-height: %.0fpx; padding: %.0fpx; border-radius: %.0fpx; }
 .accent-label { font-size: %.0fpx; letter-spacing: %.0fpx; }
 .accent-dot-active { border-width: %.0fpx; }
-.bottom-bar .toggle-label { font-size: %.0fpx; letter-spacing: %.1fpx; }
-.bottom-bar switch { min-height: %.0fpx; min-width: %.0fpx; border-radius: %.0fpx; }
-.bottom-bar switch slider { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
+.drawer .settings-row .toggle-label { font-size: %.0fpx; letter-spacing: %.1fpx; }
+.drawer .settings-row switch { min-height: %.0fpx; min-width: %.0fpx; border-radius: %.0fpx; }
+.drawer .settings-row switch slider { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
+.drawer .overview-system-card .scale-value, .drawer .battery-metric-value { font-size: 15px; }
 .view-back-btn { min-width: %.0fpx; min-height: %.0fpx; padding: %.0fpx; }
 .gamepad-focus { outline-width: %.0fpx; outline-offset: %.0fpx; }
 .gamepad-editing { outline-width: %.0fpx; outline-offset: %.0fpx; }
@@ -316,8 +317,8 @@ func (b *Backend) scaledCSS() string {
 		9*s, 1*s,                 // accent-label
 		2*s,                      // accent-dot-active border
 		10*s, 0.5*s,              // toggle-label
-		20*s, 36*s, 10*s,         // bottom-bar switch (height, width, border-radius)
-		16*s, 16*s, 8*s,          // switch slider (width, height, border-radius)
+		22*s, 40*s, 11*s,         // settings-row switch (height, width, border-radius)
+		18*s, 18*s, 9*s,          // switch slider (width, height, border-radius)
 		32*s, 32*s, 4*s,          // view-back-btn
 		2*s, 2*s,                 // gamepad-focus (outline-width, outline-offset)
 		2*s, 2*s,                 // gamepad-editing (outline-width, outline-offset)

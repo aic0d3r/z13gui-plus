@@ -7,6 +7,7 @@ package gui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/dahui/z13ctl/api"
 	"github.com/dahui/z13gui/internal/theme"
@@ -102,9 +103,6 @@ func (w *Window) buildMainTabRow() *gtk.Box {
 		btn := gtk.NewButtonWithLabel(t.label)
 		btn.SetHExpand(true)
 		btn.ConnectClicked(func() { w.switchTab(t.name) })
-		if w.gamescope {
-			addTouchActivate(btn, func() { btn.Activate() })
-		}
 		w.mainTabBtns[t.name] = btn
 		row.Append(btn)
 	}
@@ -148,17 +146,22 @@ func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
 
 // buildRGBTab builds the RGB tab: device tabs, mode, colors, speed, brightness.
 func (w *Window) buildRGBTab() *gtk.ScrolledWindow {
-	inner := gtk.NewBox(gtk.OrientationVertical, 8)
-	inner.SetMarginTop(4)
-	inner.SetMarginBottom(12)
+	inner := gtk.NewBox(gtk.OrientationVertical, 6)
+	inner.SetMarginTop(2)
+	inner.SetMarginBottom(4)
 	inner.SetMarginStart(12)
 	inner.SetMarginEnd(12)
 
-	inner.Append(groupLabel("RGB"))
-	inner.Append(sectionLabel("DEVICE"))
-	inner.Append(w.buildTabRow())
-	inner.Append(w.buildToggle("Lighting", "Turn lighting on or off for the selected device", &w.lightingSwitch, w.setLightingEnabled))
+	lighting, summary := statusCard("LIGHTING")
+	w.lightingSummary = summary
+	lighting.Append(sectionLabel("DEVICE"))
+	lighting.Append(w.buildTabRow())
+	lighting.Append(w.buildToggle("Lighting", "Turn lighting on or off for the selected device", &w.lightingSwitch, w.setLightingEnabled))
+	inner.Append(lighting)
 
+	effect, summary := statusCard("EFFECT")
+	w.rgbEffectSummary = summary
+	w.rgbEffectCard = effect
 	controls := gtk.NewBox(gtk.OrientationVertical, 8)
 	controls.Append(w.buildModeSection())
 
@@ -177,7 +180,8 @@ func (w *Window) buildRGBTab() *gtk.ScrolledWindow {
 	w.brightBox = w.buildBrightnessBox()
 	controls.Append(w.brightBox)
 	w.rgbControlsBox = controls
-	inner.Append(controls)
+	effect.Append(controls)
+	inner.Append(effect)
 
 	// Set initial visibility based on default mode (static).
 	w.syncModeVis()
@@ -192,37 +196,47 @@ func (w *Window) buildRGBTab() *gtk.ScrolledWindow {
 
 // buildSystemTab builds the System tab: panel overdrive and boot sound.
 func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
-	inner := gtk.NewBox(gtk.OrientationVertical, 8)
-	inner.SetMarginTop(4)
-	inner.SetMarginBottom(12)
+	inner := gtk.NewBox(gtk.OrientationVertical, 6)
+	inner.SetMarginTop(2)
+	inner.SetMarginBottom(4)
 	inner.SetMarginStart(12)
 	inner.SetMarginEnd(12)
 
-	inner.Append(groupLabel("SYSTEM"))
-	display := gtk.NewBox(gtk.OrientationVertical, 6)
-	display.AddCSSClass("card")
-	display.Append(sectionLabel("DISPLAY"))
+	display, summary := statusCard("DISPLAY")
+	w.displaySummary = summary
 	display.Append(w.buildRefreshRateSection())
 	display.Append(w.buildToggle("Panel Overdrive", "Enable panel overdrive for faster pixel response (may increase power use)", &w.overdriveSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
 		}
-		w.sendOverdriveSet(v)
+		w.runStateActionQuiet("panel overdrive", func() (bool, error) {
+			return api.SendPanelOverdriveSet(v)
+		}, func() {
+			if w.state != nil {
+				w.state.PanelOverdrive = v
+			}
+		}, nil)
 	}))
 	inner.Append(display)
 
-	device := gtk.NewBox(gtk.OrientationVertical, 6)
-	device.AddCSSClass("card")
-	device.Append(sectionLabel("DEVICE"))
-	device.Append(w.buildToggle("Boot Sound", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
+	startup, summary := statusCard("STARTUP")
+	w.startupSummary = summary
+	startup.Append(w.buildToggle("Boot Sound", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
 		}
-		w.sendBootSoundSet(v)
+		w.runStateActionQuiet("boot sound", func() (bool, error) {
+			return api.SendBootSoundSet(v)
+		}, func() {
+			if w.state != nil {
+				w.state.BootSound = v
+			}
+			setOnOffSummary(w.startupSummary, active)
+		}, nil)
 	}))
-	inner.Append(device)
+	inner.Append(startup)
 	inner.Append(w.buildAppearanceSection())
 
 	scroll := gtk.NewScrolledWindow()
@@ -235,13 +249,13 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 
 // buildAppearanceSection keeps theme selection with the other system settings.
 func (w *Window) buildAppearanceSection() *gtk.Box {
-	box := gtk.NewBox(gtk.OrientationVertical, 4)
-	box.AddCSSClass("card")
+	box, summary := statusCard("APPEARANCE")
 	box.AddCSSClass("btn-group")
-	box.Append(sectionLabel("APPEARANCE"))
 
 	cfg := theme.LoadAppConfig()
-	w.paletteBtn = gtk.NewButtonWithLabel(themeButtonLabel(cfg.Theme, cfg.Accent, w.isCustomTheme))
+	w.appearanceSummary = summary
+	w.appearanceSummary.SetLabel(themeButtonLabel(cfg.Theme, cfg.Accent, w.isCustomTheme))
+	w.paletteBtn = gtk.NewButtonWithLabel("Choose Theme")
 	w.paletteBtn.SetTooltipText("Choose theme")
 	w.paletteBtn.ConnectClicked(func() { w.showThemeView() })
 	box.Append(w.paletteBtn)
@@ -279,6 +293,13 @@ func (w *Window) buildToggle(label, tooltip string, sw **gtk.Switch, onChange fu
 	lbl.SetHAlign(gtk.AlignStart)
 	lbl.SetHExpand(true)
 	s := gtk.NewSwitch()
+	s.Connect("notify::active", func() {
+		if s.Active() {
+			box.AddCSSClass("toggle-active")
+		} else {
+			box.RemoveCSSClass("toggle-active")
+		}
+	})
 	s.ConnectStateSet(func(state bool) bool {
 		if !w.syncing {
 			onChange(state)
@@ -737,7 +758,7 @@ var profiles = []string{"quiet", "balanced", "performance"}
 // speeds lists the available lighting animation speeds.
 var speeds = []string{"slow", "normal", "fast"}
 
-func powerCard(title string) (*gtk.Box, *gtk.Label) {
+func statusCard(title string) (*gtk.Box, *gtk.Label) {
 	card := gtk.NewBox(gtk.OrientationVertical, 6)
 	card.AddCSSClass("card")
 	header := gtk.NewBox(gtk.OrientationHorizontal, 6)
@@ -755,7 +776,7 @@ func powerCard(title string) (*gtk.Box, *gtk.Label) {
 
 // buildProfileSection creates the stock profile button row.
 func (w *Window) buildProfileSection() *gtk.Box {
-	box, summary := powerCard("PROFILE")
+	box, summary := statusCard("PROFILE")
 	w.profileSummary = summary
 
 	grid := gtk.NewGrid()
@@ -779,7 +800,7 @@ func (w *Window) buildProfileSection() *gtk.Box {
 
 // buildBatterySection creates the charge-limit strategy card.
 func (w *Window) buildBatterySection() *gtk.Box {
-	box, summary := powerCard("BATTERY STRATEGY")
+	box, summary := statusCard("BATTERY STRATEGY")
 	w.batterySummary = summary
 	box.Append(w.buildBatteryPresets())
 	return box
@@ -822,7 +843,7 @@ var fanPresets = []string{"auto", "silent", "balanced", "turbo"}
 
 // buildFanPresetSection creates firmware Auto and custom fan-mode controls.
 func (w *Window) buildFanPresetSection() *gtk.Box {
-	box, summary := powerCard("FAN MODE")
+	box, summary := statusCard("FAN MODE")
 	w.fanSummary = summary
 	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	row.AddCSSClass("btn-group")
@@ -870,8 +891,21 @@ func (w *Window) buildRefreshRateSection() *gtk.Box {
 			if w.syncing {
 				return
 			}
+			w.pendingRefreshRate = hz
+			w.refreshPendingUntil = time.Now().Add(5 * time.Second)
 			setActiveIntButton(w.refreshBtns, hz)
-			w.sendRefreshRateSet(hz)
+			w.runStateActionQuiet("refresh rate", func() (bool, error) {
+				return api.SendRefreshRateSet(hz)
+			}, func() {
+				if w.pendingRefreshRate != 0 {
+					setActiveIntButton(w.refreshBtns, w.pendingRefreshRate)
+					w.displaySummary.SetLabel(fmt.Sprintf("%d HZ", w.pendingRefreshRate))
+				}
+			}, func() {
+				if w.pendingRefreshRate == hz {
+					w.pendingRefreshRate = 0
+				}
+			})
 		})
 		w.refreshBtns[hz] = btn
 		row.Append(btn)
@@ -899,7 +933,6 @@ func (w *Window) buildBatteryHero() *gtk.Box {
 	card := gtk.NewBox(gtk.OrientationVertical, 5)
 	card.AddCSSClass("card")
 	card.AddCSSClass("battery-summary")
-	card.SetMarginBottom(4)
 
 	header := gtk.NewBox(gtk.OrientationHorizontal, 6)
 	title := gtk.NewLabel("BATTERY")

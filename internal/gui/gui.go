@@ -49,71 +49,79 @@ type Window struct {
 	themeProvider  *gtk.CSSProvider // current theme; replaced on applyTheme()
 
 	// Widget references for syncState.
-	tabKB              *gtk.CheckButton
-	tabLB              *gtk.CheckButton
-	mainTabBtns        map[string]*gtk.Button // top-level Power/RGB/System tabs
-	tabStack           *gtk.Stack             // switches between Power/RGB/System tab content
-	modeButtons        map[string]*gtk.Button
-	color1             *colorInput
-	color2             *colorInput
-	color1Box          *gtk.Box // COLOR 1 label + row — visibility toggled by syncModeVis
-	color2Box          *gtk.Box // COLOR 2 label + row — visibility toggled by syncModeVis
-	speedBox           *gtk.Box // SPEED label + row — visibility toggled by syncModeVis
-	brightBox          *gtk.Box // BRIGHTNESS label + scale — hidden when mode is "off"
-	rgbControlsBox     *gtk.Box // mode-specific controls; insensitive while selected device is off
-	lightingSwitch     *gtk.Switch
-	speedBtns          map[string]*gtk.Button
-	brightScale        *gtk.Scale
-	profileBtns        map[string]*gtk.Button
-	profileSummary     *gtk.Label
-	tuningHeader       *collapsibleHeader
-	tuningSummary      *gtk.Label
-	tuningBtn          *gtk.Button
-	cpuMinScale        *gtk.Scale
-	cpuEPPBtns         map[string]*gtk.Button
-	cpuBoostSwitch     *gtk.Switch
-	battPresetBtns     map[int]*gtk.Button // battery presets: 100/80/60 %
-	batterySummary     *gtk.Label
-	fanPresetBtns      map[string]*gtk.Button // fan modes: auto/silent/balanced/turbo
-	fanSummary         *gtk.Label
-	fanSafetyLabel     *gtk.Label
-	refreshBtns        map[int]*gtk.Button // eDP-1 refresh rate: 60/180 Hz
-	overdriveSwitch    *gtk.Switch
-	bootSoundSwitch    *gtk.Switch
-	presetsBtn         *gtk.Button
-	presetSummary      *gtk.Label
-	presetDetail       *gtk.Label
-	presetsScroll      *gtk.ScrolledWindow
-	presetsBackBtn     *gtk.Button
-	presetsList        *gtk.Box
-	presetNameEntry    *gtk.Entry
-	presetAuto         *gtk.Switch
-	presetSaveBtn      *gtk.Button
-	presetRestoreBtn   *gtk.Button
-	presetStatus       *gtk.Label
-	automationBanner   *gtk.Label
-	acAssignment       *gtk.Box
-	batteryAssignment  *gtk.Box
-	acAssignmentLabel  *gtk.Label
-	batteryAssignLabel *gtk.Label
-	acChangeBtn        *gtk.Button
-	batteryChangeBtn   *gtk.Button
-	presetCurrent      *gtk.Label
-	presetFocusItems   []focusItem
-	chooserScroll      *gtk.ScrolledWindow
-	chooserList        *gtk.Box
-	chooserTitle       *gtk.Label
-	chooserDetail      *gtk.Label
-	chooserFocusItems  []focusItem
-	confirmTitle       *gtk.Label
-	confirmMessage     *gtk.Label
-	confirmBtn         *gtk.Button
-	confirmFocusItems  []focusItem
-	confirmReturnView  string
-	confirmAction      func()
-	stateActionBusy    bool
-	stateActionQueue   []stateAction
-	stateRequestGen    uint64
+	tabKB               *gtk.CheckButton
+	tabLB               *gtk.CheckButton
+	mainTabBtns         map[string]*gtk.Button // top-level Power/RGB/System tabs
+	tabStack            *gtk.Stack             // switches between Power/RGB/System tab content
+	modeButtons         map[string]*gtk.Button
+	color1              *colorInput
+	color2              *colorInput
+	color1Box           *gtk.Box // COLOR 1 label + row — visibility toggled by syncModeVis
+	color2Box           *gtk.Box // COLOR 2 label + row — visibility toggled by syncModeVis
+	speedBox            *gtk.Box // SPEED label + row — visibility toggled by syncModeVis
+	brightBox           *gtk.Box // BRIGHTNESS label + scale — hidden when mode is "off"
+	rgbControlsBox      *gtk.Box // mode-specific controls; insensitive while selected device is off
+	lightingSwitch      *gtk.Switch
+	lightingSummary     *gtk.Label
+	rgbEffectSummary    *gtk.Label
+	rgbEffectCard       *gtk.Box
+	speedBtns           map[string]*gtk.Button
+	brightScale         *gtk.Scale
+	profileBtns         map[string]*gtk.Button
+	profileSummary      *gtk.Label
+	tuningHeader        *collapsibleHeader
+	tuningSummary       *gtk.Label
+	tuningBtn           *gtk.Button
+	cpuMinScale         *gtk.Scale
+	cpuEPPBtns          map[string]*gtk.Button
+	cpuBoostSwitch      *gtk.Switch
+	battPresetBtns      map[int]*gtk.Button // battery presets: 100/80/60 %
+	batterySummary      *gtk.Label
+	fanPresetBtns       map[string]*gtk.Button // fan modes: auto/silent/balanced/turbo
+	fanSummary          *gtk.Label
+	fanSafetyLabel      *gtk.Label
+	refreshBtns         map[int]*gtk.Button // eDP-1 refresh rate: 60/180 Hz
+	pendingRefreshRate  int
+	refreshPendingUntil time.Time
+	overdriveSwitch     *gtk.Switch
+	bootSoundSwitch     *gtk.Switch
+	displaySummary      *gtk.Label
+	startupSummary      *gtk.Label
+	appearanceSummary   *gtk.Label
+	presetsBtn          *gtk.Button
+	presetSummary       *gtk.Label
+	presetDetail        *gtk.Label
+	presetsScroll       *gtk.ScrolledWindow
+	presetsBackBtn      *gtk.Button
+	presetsList         *gtk.Box
+	presetNameEntry     *gtk.Entry
+	presetAuto          *gtk.Switch
+	presetSaveBtn       *gtk.Button
+	presetRestoreBtn    *gtk.Button
+	presetStatus        *gtk.Label
+	automationBanner    *gtk.Label
+	acAssignment        *gtk.Box
+	batteryAssignment   *gtk.Box
+	acAssignmentLabel   *gtk.Label
+	batteryAssignLabel  *gtk.Label
+	acChangeBtn         *gtk.Button
+	batteryChangeBtn    *gtk.Button
+	presetCurrent       *gtk.Label
+	presetFocusItems    []focusItem
+	chooserScroll       *gtk.ScrolledWindow
+	chooserList         *gtk.Box
+	chooserTitle        *gtk.Label
+	chooserDetail       *gtk.Label
+	chooserFocusItems   []focusItem
+	confirmTitle        *gtk.Label
+	confirmMessage      *gtk.Label
+	confirmBtn          *gtk.Button
+	confirmFocusItems   []focusItem
+	confirmReturnView   string
+	confirmAction       func()
+	stateActionBusy     bool
+	stateActionQueue    []stateAction
+	stateRequestGen     uint64
 
 	// Premium hero widgets — battery card (Overview tab).
 	// Power tab telemetry gauges removed; live stats live on Overview tab only.
@@ -121,10 +129,10 @@ type Window struct {
 	battCapacityLabel *gtk.Label // battery percentage
 	battStatusLabel   *gtk.Label // Charging / Discharging / Not charging
 	battHealthLabel   *gtk.Label // "HEALTH 91%"
-	battPowerLabel    *gtk.Label // "12.3 W IN"
-	battEnergyLabel   *gtk.Label // "ENERGY 39.8 / 64.3 Wh"
-	battVoltageLabel  *gtk.Label // "VOLTAGE 16.8 V"
-	battDesignLabel   *gtk.Label // "DESIGN 70.0 Wh"
+	battPowerLabel    *gtk.Label // "12.30 W IN"
+	battEnergyLabel   *gtk.Label // "ENERGY 39.80 / 64.30 Wh"
+	battVoltageLabel  *gtk.Label // "VOLTAGE 16.80 V"
+	battDesignLabel   *gtk.Label // "DESIGN 70.00 Wh"
 	battPill          *gtk.Label // threshold preset chip
 
 	// Overview tab — full live telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
@@ -179,6 +187,7 @@ type Window struct {
 	telemetryTempLabel *gtk.Label
 	telemetryFanLabel  *gtk.Label
 	telemetryGen       int
+	telemetryPollBusy  bool
 	customFocusItems   []focusItem
 
 	syncing    bool        // true while syncState is updating widgets; suppresses sendApply
@@ -576,8 +585,8 @@ func (w *Window) applyTheme(id, accentID string) {
 	w.themeProvider.LoadFromString(theme.BuildThemeCSS(colors, defaultThemeCSS))
 	gtk.StyleContextAddProviderForDisplay(display, w.themeProvider, gtk.STYLE_PROVIDER_PRIORITY_USER)
 	theme.SaveAppConfig(theme.AppConfig{Theme: id, Accent: accentID})
-	if w.paletteBtn != nil {
-		w.paletteBtn.SetLabel(themeButtonLabel(id, accentID, false))
+	if w.appearanceSummary != nil {
+		w.appearanceSummary.SetLabel(themeButtonLabel(id, accentID, false))
 	}
 	slog.Info("theme changed", "id", id, "accent", accentID)
 }
@@ -601,8 +610,8 @@ func (w *Window) applyCustomAccent(accentID string) {
 	w.themeProvider.LoadFromString(theme.BuildThemeCSS(colors, defaultThemeCSS))
 	gtk.StyleContextAddProviderForDisplay(display, w.themeProvider, gtk.STYLE_PROVIDER_PRIORITY_USER)
 	theme.SaveAppConfig(theme.AppConfig{Accent: accentID})
-	if w.paletteBtn != nil {
-		w.paletteBtn.SetLabel(themeButtonLabel("", accentID, true))
+	if w.appearanceSummary != nil {
+		w.appearanceSummary.SetLabel(themeButtonLabel("", accentID, true))
 	}
 }
 

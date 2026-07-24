@@ -12,15 +12,27 @@ func TestBuildThemeCSS_ContainsDefineColors(t *testing.T) {
 	expected := []string{
 		"@define-color z13-accent",
 		"@define-color z13-bg",
-		"@define-color z13-surface ",     // trailing space to distinguish from z13-surface-alt
+		"@define-color z13-surface ", // trailing space to distinguish from z13-surface-alt
 		"@define-color z13-surface-alt",
-		"@define-color z13-text ",         // trailing space to distinguish from z13-text-dim
+		"@define-color z13-text ", // trailing space to distinguish from z13-text-dim
 		"@define-color z13-text-dim",
 		"@define-color z13-border",
 	}
 	for _, exp := range expected {
 		if !strings.Contains(css, exp) {
 			t.Errorf("output missing %q", exp)
+		}
+	}
+}
+
+func TestBuildThemeCSSDefinesSemanticColors(t *testing.T) {
+	css := BuildThemeCSS(DefaultColors, "")
+	for _, name := range []string{
+		"z13-accent-glow", "z13-surface-hi", "z13-text-faint", "z13-border-hi",
+		"z13-success", "z13-warning", "z13-danger",
+	} {
+		if !strings.Contains(css, "@define-color "+name) {
+			t.Errorf("BuildThemeCSS() missing %s", name)
 		}
 	}
 }

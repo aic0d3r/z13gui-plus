@@ -41,7 +41,6 @@ func (w *Window) buildOverviewTab() *gtk.ScrolledWindow {
 // buildOverviewHero constructs the hero card: status, metrics, and trend.
 func (w *Window) buildOverviewHero() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
-	box.SetMarginBottom(4)
 
 	card := gtk.NewBox(gtk.OrientationVertical, 6)
 	card.AddCSSClass("card")
@@ -89,7 +88,7 @@ func (w *Window) buildOverviewHero() *gtk.Box {
 	powerRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	powerRow.AddCSSClass("overview-power-row")
 	powerRow.SetHomogeneous(true)
-	metric, value = overviewMetric("SYSTEM POWER")
+	metric, value = overviewMetric("BATTERY DRAW")
 	w.overviewSystemPower = value
 	powerRow.Append(metric)
 	metric, value = overviewMetric("APU POWER")
@@ -158,7 +157,7 @@ func metricRow(label string) (*gtk.Box, *gtk.Label) {
 // buildOverviewMetrics constructs the metrics grid: two columns of label/value
 // rows below the hero card.
 func (w *Window) buildOverviewMetrics() *gtk.Box {
-	card := gtk.NewBox(gtk.OrientationVertical, 4)
+	card := gtk.NewBox(gtk.OrientationVertical, 6)
 	card.AddCSSClass("card")
 	card.AddCSSClass("overview-system-card")
 

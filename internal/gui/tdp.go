@@ -722,17 +722,29 @@ func (w *Window) startTelemetryPolling() {
 			w.tabStack != nil && w.tabStack.VisibleChildName() == "power") ||
 			w.viewStack.VisibleChildName() == "presets" || w.viewStack.VisibleChildName() == "chooser" ||
 			w.viewStack.VisibleChildName() == "confirm")
-		if (!customActive && !overviewActive && !powerActive) || w.stateActionBusy {
+		systemActive := w.viewStack != nil && w.viewStack.VisibleChildName() == "main" &&
+			w.tabStack != nil && w.tabStack.VisibleChildName() == "system"
+		rgbActive := w.viewStack != nil && w.viewStack.VisibleChildName() == "main" &&
+			w.tabStack != nil && w.tabStack.VisibleChildName() == "rgb"
+		if (!customActive && !overviewActive && !powerActive && !systemActive && !rgbActive) || w.stateActionBusy || w.telemetryPollBusy {
 			return true
 		}
+		w.telemetryPollBusy = true
 		w.stateRequestGen++
 		requestGen := w.stateRequestGen
 		go func() {
 			ok, state, err := api.SendGetState()
 			if !ok || err != nil {
+				glib.IdleAdd(func() {
+					w.telemetryPollBusy = false
+					if gen == w.telemetryGen && overviewActive {
+						w.markOverviewStale()
+					}
+				})
 				return
 			}
 			glib.IdleAdd(func() {
+				w.telemetryPollBusy = false
 				if gen != w.telemetryGen || requestGen != w.stateRequestGen || w.stateActionBusy {
 					return
 				}
@@ -746,6 +758,16 @@ func (w *Window) startTelemetryPolling() {
 				}
 				if powerActive {
 					w.syncPowerState(presetsChanged)
+				}
+				if systemActive {
+					w.syncing = true
+					w.syncRefreshRate()
+					w.syncOverdrive()
+					w.syncBootSound()
+					w.syncing = false
+				}
+				if rgbActive {
+					w.syncLightingSection()
 				}
 
 				if customActive {

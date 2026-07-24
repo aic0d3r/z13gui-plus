@@ -15,7 +15,7 @@ import (
 )
 
 func (w *Window) buildPresetEntrySection() *gtk.Box {
-	box, summary := powerCard("POWER AUTOMATION")
+	box, summary := statusCard("POWER AUTOMATION")
 	w.presetSummary = summary
 	w.presetDetail = gtk.NewLabel("—")
 	w.presetDetail.SetHAlign(gtk.AlignStart)
@@ -145,7 +145,7 @@ func (w *Window) buildAssignmentCard(title, target string) (*gtk.Box, *gtk.Label
 }
 
 func plainPowerCard(title string) *gtk.Box {
-	card, pill := powerCard(title)
+	card, pill := statusCard(title)
 	pill.SetVisible(false)
 	return card
 }
@@ -184,6 +184,8 @@ func (w *Window) syncPresets() {
 		w.acAssignment.AddCSSClass("automation-off")
 		w.batteryAssignment.AddCSSClass("automation-off")
 	}
+	w.acChangeBtn.SetSensitive(enabled)
+	w.batteryChangeBtn.SetSensitive(enabled)
 	policy := w.state.PowerPolicy
 	ac, battery := "", ""
 	if policy != nil {
@@ -611,23 +613,38 @@ func (w *Window) setPresetPolicy(enabled bool, ac, battery string) {
 }
 
 type stateAction struct {
-	name string
-	fn   func() (bool, error)
+	name         string
+	fn           func() (bool, error)
+	reportStatus bool
+	onApplied    func()
+	onFailed     func()
 }
 
 func (w *Window) runStateAction(action string, fn func() (bool, error)) {
+	w.queueStateAction(stateAction{name: action, fn: fn, reportStatus: true})
+}
+
+func (w *Window) runStateActionQuiet(action string, fn func() (bool, error), onApplied, onFailed func()) {
+	w.queueStateAction(stateAction{name: action, fn: fn, onApplied: onApplied, onFailed: onFailed})
+}
+
+func (w *Window) queueStateAction(action stateAction) {
 	if w.stateActionBusy {
-		w.stateActionQueue = append(w.stateActionQueue, stateAction{name: action, fn: fn})
-		w.setPresetStatus("Action queued...")
+		w.stateActionQueue = append(w.stateActionQueue, action)
+		if action.reportStatus {
+			w.setPresetStatus("Action queued...")
+		}
 		return
 	}
-	w.startStateAction(stateAction{name: action, fn: fn})
+	w.startStateAction(action)
 }
 
 func (w *Window) startStateAction(action stateAction) {
 	w.stateActionBusy = true
 	w.stateRequestGen++ // invalidate state reads started before this mutation
-	w.setPresetStatus("Working...")
+	if action.reportStatus {
+		w.setPresetStatus("Working...")
+	}
 	go func() {
 		handled, err := action.fn()
 		if err == nil && !handled {
@@ -636,23 +653,40 @@ func (w *Window) startStateAction(action stateAction) {
 		if err != nil {
 			slog.Warn(action.name+" failed", "err", err)
 			glib.IdleAdd(func() {
-				w.setPresetStatus(err.Error())
+				if action.onFailed != nil {
+					action.onFailed()
+				}
+				if action.reportStatus {
+					w.setPresetStatus(err.Error())
+				}
 				w.syncState()
 				w.finishStateAction()
 			})
 			return
 		}
 		ok, state, err := api.SendGetState()
+		if err != nil || !ok {
+			slog.Warn(action.name+" applied but state refresh failed", "err", err)
+		}
 		glib.IdleAdd(func() {
 			if err != nil || !ok {
-				w.setPresetStatus("Applied, but failed to refresh state")
-				w.syncState()
+				if action.onApplied != nil {
+					action.onApplied()
+				}
+				if action.reportStatus {
+					w.setPresetStatus("Applied, but failed to refresh state")
+				}
 				w.finishStateAction()
 				return
 			}
-			w.setPresetStatus("")
+			if action.reportStatus {
+				w.setPresetStatus("")
+			}
 			w.state = state
 			w.syncState()
+			if action.onApplied != nil {
+				action.onApplied()
+			}
 			w.finishStateAction()
 		})
 	}()

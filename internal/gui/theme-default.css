@@ -149,6 +149,11 @@ window.z13-drawer-window {
     box-shadow: inset 0 -2px 0 @z13-accent;
 }
 
+.drawer .main-tab-row button:focus-visible {
+    outline: 2px solid @z13-accent;
+    outline-offset: 2px;
+}
+
 /* Device tab buttons (Keyboard / Lightbar CheckButton) */
 .drawer checkbutton {
     background: @z13-surface;
@@ -257,6 +262,9 @@ window.z13-drawer-window {
 
 .drawer .telemetry-stale .overview-metric-value,
 .drawer .telemetry-stale .overview-value,
+.drawer .telemetry-stale .battery-summary-value,
+.drawer .telemetry-stale .battery-metric-value,
+.drawer .telemetry-stale .pill,
 .drawer .telemetry-stale .card-sub,
 .drawer .telemetry-stale .memory-bar {
     opacity: 0.55;
@@ -429,16 +437,44 @@ popover.z13-popover .accent-label {
     font-feature-settings: "tnum";
 }
 
-/* Toggle switches (panel overdrive, boot sound) */
-.bottom-bar switch {
+/* Toggle rows and switches */
+.drawer .settings-row {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid @z13-border;
+}
+
+.drawer .settings-row .toggle-label {
+    color: @z13-text-dim;
+}
+
+.drawer .settings-row.toggle-active {
+    background: alpha(@z13-accent, 0.08);
+    border-color: alpha(@z13-accent, 0.4);
+}
+
+.drawer .settings-row.toggle-active .toggle-label {
+    color: @z13-text;
+}
+
+.drawer .settings-row switch {
     background: @z13-surface;
     border: 1px solid @z13-border;
 }
 
-.bottom-bar switch:checked {
+.drawer .settings-row switch slider {
+    background: @z13-text-dim;
+    border: 1px solid @z13-border-hi;
+}
+
+.drawer .settings-row switch:checked {
     background: linear-gradient(90deg, shade(@z13-accent, 0.8), @z13-accent);
     border-color: @z13-accent;
     box-shadow: 0 0 8px @z13-accent-glow;
+}
+
+.drawer .settings-row switch:checked slider {
+    background: @z13-text;
+    border-color: @z13-accent;
 }
 
 /* Custom view action buttons (save, reset) */
