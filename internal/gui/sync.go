@@ -428,15 +428,6 @@ func (w *Window) syncOverviewTelemetry() {
 		}
 		w.overviewContext.SetLabel(strings.Join(parts, "  ·  "))
 	}
-	if w.overviewSystemPower != nil {
-		value := "—"
-		if w.state.PowerSource == "battery" && w.state.BatteryDetail != nil {
-			if power := formatBatteryDecimal(w.state.BatteryDetail.PowerWatts); power != "—" {
-				value = power + " W"
-			}
-		}
-		w.overviewSystemPower.SetLabel(value)
-	}
 	if w.overviewAPUPower != nil {
 		value := "—"
 		if t.APUPowerAvailable {
@@ -471,18 +462,15 @@ func (w *Window) syncOverviewTelemetry() {
 	if w.overviewGPUClock != nil {
 		w.overviewGPUClock.SetLabel(formatGHz(t.GPUClockMHz))
 	}
-	if w.npuLabel != nil {
-		state, detail := formatNPU(t.NPUAvailable, t.NPUUtil, t.NPUPowerW)
-		w.npuLabel.SetLabel(state)
-		if w.overviewNPUPower != nil {
-			w.overviewNPUPower.SetLabel(detail)
-		}
-		w.npuLabel.RemoveCSSClass("npu-high")
-		w.npuLabel.RemoveCSSClass("npu-dim")
+	if w.overviewNPUPower != nil {
+		_, detail := formatNPU(t.NPUAvailable, t.NPUUtil, t.NPUPowerW)
+		w.overviewNPUPower.SetLabel(detail)
+		w.overviewNPUPower.RemoveCSSClass("npu-high")
+		w.overviewNPUPower.RemoveCSSClass("npu-dim")
 		if t.NPUAvailable && t.NPUPowerW < npuActivePowerW {
-			w.npuLabel.AddCSSClass("npu-dim")
+			w.overviewNPUPower.AddCSSClass("npu-dim")
 		} else if t.NPUPowerW >= npuActivePowerW {
-			w.npuLabel.AddCSSClass("npu-high")
+			w.overviewNPUPower.AddCSSClass("npu-high")
 		}
 	}
 	if w.overviewMemClock != nil {
@@ -547,21 +535,6 @@ func (w *Window) updateBatteryHero(b *api.BatteryState) {
 	}
 	if w.battDesignLabel != nil {
 		w.battDesignLabel.SetLabel(fmt.Sprintf("%.2f Wh", b.EnergyDesignWh))
-	}
-	if w.battPowerLabel != nil {
-		power, err := strconv.ParseFloat(b.PowerWatts, 64)
-		if err != nil {
-			w.battPowerLabel.SetLabel("—")
-		} else {
-			formatted := fmt.Sprintf("%.2f", power)
-			if b.Charging {
-				w.battPowerLabel.SetLabel(formatted + " W IN")
-			} else if power > 0 {
-				w.battPowerLabel.SetLabel(formatted + " W OUT")
-			} else {
-				w.battPowerLabel.SetLabel("0.00 W")
-			}
-		}
 	}
 	if w.battPill != nil {
 		// Threshold preset chip: 100=Standard, 80=Balanced, <80=Max Life.

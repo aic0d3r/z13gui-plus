@@ -272,6 +272,7 @@ func (b *Backend) scaledCSS() string {
 	return fmt.Sprintf(`/* Gamescope resolution scaling (%.1fx) */
 .drawer { font-family: 'Inter', sans-serif; font-size: %.0fpx; }
 .drawer .btn-group button { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
+.drawer .action-btn { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
 .drawer checkbutton { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
 .drawer .mode-grid.btn-group button { min-height: %.0fpx; }
 .tab-btn { min-height: %.0fpx; }
@@ -303,6 +304,7 @@ func (b *Backend) scaledCSS() string {
 		s,
 		14*s,                 // .drawer font-size
 		48*s, 4*s, 10*s, 6*s, // btn-group button
+		48*s, 4*s, 10*s, 6*s, // action-btn
 		48*s, 4*s, 10*s, 6*s, // checkbutton
 		52*s,       // mode-grid btn-group button
 		48*s,       // tab-btn
@@ -313,7 +315,7 @@ func (b *Backend) scaledCSS() string {
 		11*s, 1*s, 6*s, 2*s, // section-label
 		10*s, 2*s, 2*s, // scale-value
 		10*s, 4*s, // scale-name
-		32*s, 32*s, 4*s, // color-swatch
+		40*s, 40*s, 6*s, // color-swatch
 		32*s, 32*s, 4*s, // color-preset
 		32*s, 32*s, 4*s, 6*s, // bottom-bar button
 		9*s, 1*s, // accent-label

@@ -70,6 +70,7 @@ func (w *Window) newColorInput(initialHex, swatchName, label string) *colorInput
 	// Custom button navigates to the HSL color picker view.
 	ci.customBtn = gtk.NewButton()
 	ci.customBtn.SetLabel("Custom")
+	ci.customBtn.AddCSSClass("action-btn")
 	ci.customBtn.SetHExpand(true)
 	ci.customBtn.ConnectClicked(func() { w.showColorView(ci) })
 	controlsRow := gtk.NewBox(gtk.OrientationHorizontal, 8)

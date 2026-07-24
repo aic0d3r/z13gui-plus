@@ -23,6 +23,7 @@ func (w *Window) buildPresetEntrySection() *gtk.Box {
 	w.presetDetail.AddCSSClass("card-sub")
 	box.Append(w.presetDetail)
 	w.presetsBtn = gtk.NewButtonWithLabel("Manage automation")
+	w.presetsBtn.AddCSSClass("action-btn")
 	w.presetsBtn.ConnectClicked(func() { w.showPresetsView() })
 	box.Append(w.presetsBtn)
 	return box
@@ -356,7 +357,8 @@ func (w *Window) buildConfirmationView() *gtk.Box {
 	w.confirmMessage = gtk.NewLabel("")
 	w.confirmMessage.SetHAlign(gtk.AlignStart)
 	w.confirmMessage.SetWrap(true)
-	w.confirmMessage.AddCSSClass("card")
+	w.confirmMessage.SetMaxWidthChars(38)
+	w.confirmMessage.AddCSSClass("confirm-message")
 	content.Append(w.confirmMessage)
 	w.confirmBtn = gtk.NewButtonWithLabel("Confirm")
 	w.confirmBtn.AddCSSClass("destructive-action")

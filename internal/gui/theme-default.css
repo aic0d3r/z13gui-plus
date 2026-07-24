@@ -111,6 +111,40 @@ window.z13-drawer-window {
     min-height: 1px;
 }
 
+/* Standalone action buttons (Open tuning, Manage automation) */
+.drawer .action-btn {
+    background: @z13-surface;
+    color: @z13-text;
+    border: 1px solid @z13-border;
+    font-weight: 700;
+    transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drawer .action-btn:hover {
+    background: @z13-surface-alt;
+    border-color: @z13-border-hi;
+}
+
+.drawer .action-btn.destructive-action {
+    background: alpha(@z13-danger, 0.12);
+    color: @z13-danger;
+    border-color: alpha(@z13-danger, 0.4);
+}
+
+.drawer .action-btn.destructive-action:hover {
+    background: alpha(@z13-danger, 0.2);
+    border-color: alpha(@z13-danger, 0.6);
+}
+
+/* Confirmation dialog message */
+.drawer .confirm-message {
+    background: alpha(@z13-text, 0.04);
+    border: 1px solid @z13-border;
+    color: @z13-text;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
 /* Button groups — refined surface, glow ring on active.
    The glow ring uses box-shadow INSET (safe inside the clip region, unlike
    outset shadows which smear). Combined with a brighter surface for active. */
@@ -118,6 +152,7 @@ window.z13-drawer-window {
     background: @z13-surface;
     color: @z13-text;
     border: 1px solid @z13-border;
+    font-weight: 700;
     transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -134,8 +169,7 @@ window.z13-drawer-window {
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.25),
         inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-        0 0 0 1px @z13-accent-glow;
-    font-weight: 600;
+        inset 0 0 0 1px @z13-accent-glow;
 }
 
 /* Main tab row — pill buttons with sliding active state */
@@ -144,7 +178,7 @@ window.z13-drawer-window {
     color: @z13-text-faint;
     border: 1px solid transparent;
     transition: all 220ms cubic-bezier(0.4, 0, 0.2, 1);
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .drawer .main-tab-row button:hover {
@@ -169,6 +203,7 @@ window.z13-drawer-window {
     background: @z13-surface;
     color: @z13-text-dim;
     border: 1px solid @z13-border;
+    font-weight: 700;
 }
 
 .drawer checkbutton:hover {
@@ -186,7 +221,7 @@ window.z13-drawer-window {
 /* Mode grid buttons — slightly taller, more important */
 .drawer .mode-grid.btn-group button {
     min-height: 42px;
-    font-weight: 500;
+    font-weight: 700;
 }
 
 /* Premium card — used for hero widgets (battery, gauges) */
@@ -248,15 +283,6 @@ window.z13-drawer-window {
     color: alpha(@z13-text, 0.78);
 }
 
-.drawer .battery-flow {
-    color: @z13-text;
-}
-
-.drawer .overview-npu-row {
-    background: alpha(@z13-text, 0.04);
-    border-radius: 6px;
-}
-
 .drawer .battery-summary-value {
     color: @z13-text;
 }
@@ -278,6 +304,17 @@ window.z13-drawer-window {
 .drawer .telemetry-stale .card-sub,
 .drawer .telemetry-stale .memory-bar {
     opacity: 0.55;
+}
+
+/* Unified memory usage bar. */
+.drawer .memory-bar trough {
+    background: @z13-surface;
+    border-radius: 999px;
+}
+
+.drawer .memory-bar progress {
+    background: linear-gradient(180deg, @z13-accent, shade(@z13-accent, 0.85));
+    border-radius: 999px;
 }
 
 /* Status pill (charging state, profile name, etc.) */
@@ -369,6 +406,7 @@ window.z13-drawer-window {
     background: @z13-surface;
     color: @z13-text-dim;
     border: 1px solid @z13-border;
+    font-weight: 700;
     transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -492,6 +530,7 @@ popover.z13-popover .accent-label {
     background: @z13-surface;
     color: @z13-text;
     border: 1px solid @z13-border;
+    font-weight: 700;
     transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -517,6 +556,7 @@ popover.z13-popover .accent-label {
     background: @z13-surface;
     color: @z13-text;
     border: 1px solid @z13-border;
+    font-weight: 700;
 }
 
 .drawer .advanced-check:checked {

@@ -71,10 +71,10 @@ func (w *Window) buildOverviewHero() *gtk.Box {
 
 	metricRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	metricRow.SetHomogeneous(true)
-	metric, value := overviewMetric("CPU TEMP")
+	metric, value := overviewMetric("CPU T")
 	w.cpuTempValue = value
 	metricRow.Append(metric)
-	metric, value = overviewMetric("GPU TEMP")
+	metric, value = overviewMetric("GPU T")
 	w.gpuTempValue = value
 	metricRow.Append(metric)
 	metric, value = overviewMetric("CPU LOAD")
@@ -88,31 +88,16 @@ func (w *Window) buildOverviewHero() *gtk.Box {
 	powerRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	powerRow.AddCSSClass("overview-power-row")
 	powerRow.SetHomogeneous(true)
-	metric, value = overviewMetric("BATTERY DRAW")
-	w.overviewSystemPower = value
-	powerRow.Append(metric)
-	metric, value = overviewMetric("APU POWER")
+	metric, value = overviewMetric("APU")
 	w.overviewAPUPower = value
 	powerRow.Append(metric)
-	metric, value = overviewMetric("GPU POWER")
+	metric, value = overviewMetric("GPU")
 	w.overviewGPUPower = value
 	powerRow.Append(metric)
+	metric, value = overviewMetric("NPU")
+	w.overviewNPUPower = value
+	powerRow.Append(metric)
 	card.Append(powerRow)
-
-	npuRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
-	npuRow.AddCSSClass("overview-npu-row")
-	npuTitle := gtk.NewLabel("NPU")
-	npuTitle.SetHAlign(gtk.AlignStart)
-	npuTitle.SetHExpand(true)
-	npuTitle.AddCSSClass("scale-name")
-	npuRow.Append(npuTitle)
-	w.npuLabel = gtk.NewLabel("—")
-	w.npuLabel.AddCSSClass("overview-value")
-	npuRow.Append(w.npuLabel)
-	w.overviewNPUPower = gtk.NewLabel("—")
-	w.overviewNPUPower.AddCSSClass("overview-value")
-	npuRow.Append(w.overviewNPUPower)
-	card.Append(npuRow)
 
 	box.Append(card)
 	w.overviewHero = box

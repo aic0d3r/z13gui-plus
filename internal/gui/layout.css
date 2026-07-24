@@ -18,6 +18,19 @@
     font-feature-settings: "tnum" 0;
 }
 
+/* Standalone action buttons — full-width, 40px touch floor */
+.drawer .action-btn {
+    min-height: 40px;
+    padding: 4px 8px;
+    border-radius: 8px;
+}
+
+/* Confirmation dialog message text */
+.drawer .confirm-message {
+    padding: 10px;
+    border-radius: 8px;
+}
+
 /* Touch targets — 40px floor (touch-friendly), slimmer horizontal padding */
 .drawer .btn-group button {
     min-height: 40px;
@@ -37,7 +50,7 @@
     padding: 4px 10px;
     border-radius: 8px;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
 }
@@ -53,7 +66,7 @@
 .drawer .mode-grid.btn-group button {
     min-height: 40px;
     border-radius: 8px;
-    font-weight: 500;
+    font-weight: 700;
 }
 
 /* Premium card — for hero widgets (battery, gauges, status) */
@@ -224,8 +237,8 @@
 /* Current-color swatch — the non-interactive colored square. */
 .color-swatch {
     border-radius: 6px;
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 40px;
+    min-height: 40px;
 }
 
 /* Preset color buttons — compact square touch targets. */
@@ -382,13 +395,13 @@ popover.z13-popover scrolledwindow {
 }
 
 .drawer .overview-metric-label {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.25px;
 }
 
 .drawer .overview-system-card .scale-name {
-    font-size: 11px;
+    font-size: 13px;
     letter-spacing: 0.5px;
 }
 
@@ -406,10 +419,6 @@ popover.z13-popover scrolledwindow {
 	font-size: 16px;
 }
 
-.drawer .overview-npu-row {
-    padding: 4px 2px;
-}
-
 .drawer .battery-summary-value {
     font-size: 20px;
     font-weight: 700;
@@ -417,7 +426,7 @@ popover.z13-popover scrolledwindow {
 }
 
 .drawer .battery-metric-label {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.5px;
 }
@@ -426,13 +435,8 @@ popover.z13-popover scrolledwindow {
     font-feature-settings: "tnum";
 }
 
-.drawer .battery-status,
-.drawer .battery-flow {
+.drawer .battery-status {
     font-size: 13px;
-}
-
-.drawer .battery-flow {
-    font-weight: 700;
 }
 
 .drawer .overview-stale {

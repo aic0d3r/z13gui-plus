@@ -512,6 +512,7 @@ func (w *Window) buildCustomView() *gtk.Box {
 	content.Append(resetRow)
 
 	w.resetAllBtn = gtk.NewButtonWithLabel("Reset All Overrides")
+	w.resetAllBtn.AddCSSClass("action-btn")
 	w.resetAllBtn.AddCSSClass("destructive-action")
 	w.resetAllBtn.ConnectClicked(func() {
 		w.showConfirmation(

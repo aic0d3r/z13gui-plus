@@ -719,6 +719,7 @@ func (w *Window) buildButtonGroup(
 ) *gtk.Box {
 	row := gtk.NewBox(orientation, 4)
 	row.AddCSSClass("btn-group")
+	row.SetHomogeneous(true)
 	for _, opt := range options {
 		opt := opt
 		btn := gtk.NewButtonWithLabel(strings.Title(opt)) //nolint:staticcheck // strings.Title is fine for ASCII-only mode/speed/profile labels
@@ -893,6 +894,7 @@ func (w *Window) buildRefreshRateSection() *gtk.Box {
 	box.Append(sectionLabel("REFRESH RATE"))
 	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	row.AddCSSClass("btn-group")
+	row.SetHomogeneous(true)
 	for _, hz := range refreshRates {
 		hz := hz
 		btn := gtk.NewButtonWithLabel(fmt.Sprintf("%d Hz", hz))
@@ -964,10 +966,6 @@ func (w *Window) buildBatteryHero() *gtk.Box {
 	w.battStatusLabel.SetHAlign(gtk.AlignStart)
 	w.battStatusLabel.SetHExpand(true)
 	statusRow.Append(w.battStatusLabel)
-	w.battPowerLabel = gtk.NewLabel("—")
-	w.battPowerLabel.AddCSSClass("card-sub")
-	w.battPowerLabel.AddCSSClass("battery-flow")
-	statusRow.Append(w.battPowerLabel)
 	card.Append(statusRow)
 
 	energyRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
@@ -1063,6 +1061,7 @@ func (w *Window) buildAdvancedTuningSection() *gtk.Box {
 	}))
 	content.Append(separator())
 	w.tuningBtn = gtk.NewButtonWithLabel("Open tuning")
+	w.tuningBtn.AddCSSClass("action-btn")
 	w.tuningBtn.ConnectClicked(func() { w.showCustomView() })
 	content.Append(w.tuningBtn)
 	box := gtk.NewBox(gtk.OrientationVertical, 4)

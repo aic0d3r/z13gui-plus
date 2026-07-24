@@ -129,7 +129,6 @@ type Window struct {
 	battCapacityLabel *gtk.Label // battery percentage
 	battStatusLabel   *gtk.Label // Charging / Discharging / Not charging
 	battHealthLabel   *gtk.Label // "HEALTH 91%"
-	battPowerLabel    *gtk.Label // "12.30 W IN"
 	battEnergyLabel   *gtk.Label // "ENERGY 39.80 / 64.30 Wh"
 	battVoltageLabel  *gtk.Label // "VOLTAGE 16.80 V"
 	battDesignLabel   *gtk.Label // "DESIGN 70.00 Wh"
@@ -147,7 +146,6 @@ type Window struct {
 	overviewContext     *gtk.Label // battery, power source, and profile
 	overviewFreshness   *gtk.Label // hidden while live; age when polling is stale
 	overviewLastUpdate  time.Time
-	overviewSystemPower *gtk.Label
 	overviewAPUPower    *gtk.Label
 	overviewGPUPower    *gtk.Label
 	cpuFanLabel         *gtk.Label       // "3300 RPM"
