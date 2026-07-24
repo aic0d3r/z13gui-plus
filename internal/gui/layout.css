@@ -87,7 +87,7 @@
 }
 
 .drawer .settings-row .toggle-label {
-    font-size: 11px;
+    font-size: 15px;
     font-weight: 600;
 }
 
@@ -123,7 +123,7 @@
 }
 
 .drawer .preset-summary {
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .drawer .automation-off {
@@ -211,6 +211,15 @@
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+/* "MODIFIED" marker shown beside a section title when it has unsaved changes */
+.dirty-mark {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
     margin-top: 8px;
     margin-bottom: 4px;
 }

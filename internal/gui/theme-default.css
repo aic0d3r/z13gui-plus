@@ -95,6 +95,22 @@ window.z13-drawer-window {
     color: @z13-text;
 }
 
+/* Temperature color bands (APU temp in tuning header) */
+.telemetry-value.temp-ok {
+    color: @z13-success;
+}
+.telemetry-value.temp-warn {
+    color: @z13-warning;
+}
+.telemetry-value.temp-hot {
+    color: @z13-danger;
+}
+
+/* "MODIFIED" marker for tuning sections with unsaved changes */
+.dirty-mark {
+    color: @z13-accent;
+}
+
 /* Slider descriptions — dimmer than value readouts */
 .scale-desc {
     color: @z13-text-faint;
@@ -123,17 +139,6 @@ window.z13-drawer-window {
 .drawer .action-btn:hover {
     background: @z13-surface-alt;
     border-color: @z13-border-hi;
-}
-
-.drawer .action-btn.destructive-action {
-    background: alpha(@z13-danger, 0.12);
-    color: @z13-danger;
-    border-color: alpha(@z13-danger, 0.4);
-}
-
-.drawer .action-btn.destructive-action:hover {
-    background: alpha(@z13-danger, 0.2);
-    border-color: alpha(@z13-danger, 0.6);
 }
 
 /* Confirmation dialog message */
@@ -539,16 +544,31 @@ popover.z13-popover .accent-label {
     border-color: @z13-border-hi;
 }
 
-/* Save button — accent styling */
-.drawer .save-btn {
+/* Primary/positive action — accent fill (Save, Apply, Create, Restore).
+   Generic so it works in .btn-group, .custom-actions, or standalone. */
+.drawer button.suggested-action {
+    min-height: 40px;
     background: linear-gradient(180deg, @z13-accent, shade(@z13-accent, 0.85));
     color: #ffffff;
     border-color: @z13-accent;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
-.drawer .save-btn:hover {
+.drawer button.suggested-action:hover {
     background: linear-gradient(180deg, shade(@z13-accent, 1.1), @z13-accent);
+}
+
+/* Destructive action — danger tint (Delete, destructive confirms). */
+.drawer button.destructive-action {
+    min-height: 40px;
+    background: alpha(@z13-danger, 0.12);
+    color: @z13-danger;
+    border-color: alpha(@z13-danger, 0.4);
+}
+
+.drawer button.destructive-action:hover {
+    background: alpha(@z13-danger, 0.2);
+    border-color: alpha(@z13-danger, 0.6);
 }
 
 /* Advanced checkbox in custom view */

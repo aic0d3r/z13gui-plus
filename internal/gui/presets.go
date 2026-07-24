@@ -17,6 +17,9 @@ import (
 func (w *Window) buildPresetEntrySection() *gtk.Box {
 	box, summary := statusCard("POWER AUTOMATION")
 	w.presetSummary = summary
+	box.Append(w.buildToggle("Automation", "Apply the assigned preset when the power source changes", &w.automationSwitch, func(enabled bool) {
+		w.setPresetPolicy(enabled, "", "")
+	}))
 	w.presetDetail = gtk.NewLabel("—")
 	w.presetDetail.SetHAlign(gtk.AlignStart)
 	w.presetDetail.SetWrap(true)
@@ -57,14 +60,6 @@ func (w *Window) buildPresetsView() *gtk.Box {
 	content.SetMarginBottom(12)
 	content.SetMarginStart(12)
 	content.SetMarginEnd(12)
-	w.automationBanner = gtk.NewLabel("—")
-	w.automationBanner.SetHAlign(gtk.AlignStart)
-	w.automationBanner.SetWrap(true)
-	w.automationBanner.AddCSSClass("card")
-	content.Append(w.automationBanner)
-	content.Append(w.buildToggle("AUTOMATIC", "Apply the assigned preset when the power source changes", &w.presetAuto, func(enabled bool) {
-		w.setPresetPolicy(enabled, "", "")
-	}))
 
 	w.acAssignment, w.acAssignmentLabel, w.acChangeBtn = w.buildAssignmentCard("WHEN PLUGGED IN", "ac")
 	w.batteryAssignment, w.batteryAssignLabel, w.batteryChangeBtn = w.buildAssignmentCard("ON BATTERY", "battery")
@@ -76,7 +71,7 @@ func (w *Window) buildPresetsView() *gtk.Box {
 	content.Append(w.presetsList)
 
 	create := plainPowerCard("CREATE PRESET")
-	explanation := gtk.NewLabel("Saves the current profile, fan, TDP, undervolt, CPU power, refresh rate, and panel overdrive. Charge limit is not included.")
+	explanation := gtk.NewLabel("Saves your current settings as a preset. Charge limit isn't included.")
 	explanation.SetHAlign(gtk.AlignStart)
 	explanation.SetWrap(true)
 	explanation.AddCSSClass("card-sub")
@@ -90,6 +85,7 @@ func (w *Window) buildPresetsView() *gtk.Box {
 	w.presetNameEntry.SetPlaceholderText("Preset name")
 	create.Append(w.presetNameEntry)
 	w.presetSaveBtn = gtk.NewButtonWithLabel("Create Preset")
+	w.presetSaveBtn.AddCSSClass("suggested-action")
 	w.presetSaveBtn.ConnectClicked(func() {
 		name := strings.TrimSpace(w.presetNameEntry.Text())
 		if name == "" {
@@ -107,12 +103,14 @@ func (w *Window) buildPresetsView() *gtk.Box {
 
 	restore := gtk.NewButtonWithLabel("Restore Recommended Automation")
 	w.presetRestoreBtn = restore
+	restore.AddCSSClass("action-btn")
 	restore.ConnectClicked(func() {
 		w.showConfirmation(
 			"Restore Recommended Automation",
 			"Create or refresh Plugged In and On Battery, assign them to the correct power sources, and enable automation? Other presets and your battery charge limit are preserved.",
 			"Restore",
 			"presets",
+			false,
 			func() { w.runStateAction("restore recommended automation", api.SendRestoreRecommended) },
 		)
 	})
@@ -140,6 +138,7 @@ func (w *Window) buildAssignmentCard(title, target string) (*gtk.Box, *gtk.Label
 	summary.AddCSSClass("preset-summary")
 	card.Append(summary)
 	change := gtk.NewButtonWithLabel("Change")
+	change.AddCSSClass("action-btn")
 	change.ConnectClicked(func() { w.showPresetChooser(target) })
 	card.Append(change)
 	return card, summary, change
@@ -167,17 +166,18 @@ func (w *Window) syncPresets() {
 	if w.state == nil {
 		return
 	}
+	enabled := currentPolicyEnabled(w.state)
 	status, detail := powerPolicySummary(w.state)
 	if w.presetSummary != nil {
 		w.presetSummary.SetLabel(status)
 		w.presetDetail.SetLabel(detail)
+		if w.automationSwitch != nil {
+			w.automationSwitch.SetActive(enabled)
+		}
 	}
-	if w.presetAuto == nil {
+	if w.acAssignment == nil {
 		return
 	}
-	enabled := currentPolicyEnabled(w.state)
-	w.presetAuto.SetActive(enabled)
-	w.automationBanner.SetLabel(automationStatus(w.state))
 	if enabled {
 		w.acAssignment.RemoveCSSClass("automation-off")
 		w.batteryAssignment.RemoveCSSClass("automation-off")
@@ -214,11 +214,10 @@ func (w *Window) rebuildPresetRows() {
 	}}
 	row := 1
 	w.presetFocusItems = append(w.presetFocusItems,
-		focusItem{widget: w.presetAuto, row: row, col: 0, section: "automation", onActivate: func() { w.presetAuto.SetActive(!w.presetAuto.Active()) }},
-		focusItem{widget: w.acChangeBtn, row: row + 1, col: 0, section: "assignments", onActivate: func() { w.acChangeBtn.Activate() }},
-		focusItem{widget: w.batteryChangeBtn, row: row + 2, col: 0, section: "assignments", onActivate: func() { w.batteryChangeBtn.Activate() }},
+		focusItem{widget: w.acChangeBtn, row: row, col: 0, section: "assignments", onActivate: func() { w.acChangeBtn.Activate() }},
+		focusItem{widget: w.batteryChangeBtn, row: row + 1, col: 0, section: "assignments", onActivate: func() { w.batteryChangeBtn.Activate() }},
 	)
-	row += 3
+	row += 2
 
 	for _, name := range sortedPresetNames(w.state.Presets) {
 		name := name
@@ -237,14 +236,16 @@ func (w *Window) rebuildPresetRows() {
 		actions.SetHomogeneous(true)
 		actions.AddCSSClass("btn-group")
 		apply := gtk.NewButtonWithLabel("Apply")
+		apply.AddCSSClass("suggested-action")
 		apply.ConnectClicked(func() { w.runStateAction("apply preset", func() (bool, error) { return api.SendPresetApply(name) }) })
 		update := gtk.NewButtonWithLabel("Update")
 		update.ConnectClicked(func() { w.runStateAction("update preset", func() (bool, error) { return api.SendPresetSave(name) }) })
 		remove := gtk.NewButtonWithLabel("Delete")
+		remove.AddCSSClass("destructive-action")
 		assigned := presetAssigned(name, w.state)
 		remove.SetSensitive(!assigned)
 		remove.ConnectClicked(func() {
-			w.showConfirmation("Delete Preset", fmt.Sprintf("Delete %q? Current hardware settings will not change.", name), "Delete", "presets", func() {
+			w.showConfirmation("Delete Preset", fmt.Sprintf("Delete %q? Current hardware settings will not change.", name), "Delete", "presets", true, func() {
 				w.runStateAction("delete preset", func() (bool, error) { return api.SendPresetDelete(name) })
 			})
 		})
@@ -361,7 +362,6 @@ func (w *Window) buildConfirmationView() *gtk.Box {
 	w.confirmMessage.AddCSSClass("confirm-message")
 	content.Append(w.confirmMessage)
 	w.confirmBtn = gtk.NewButtonWithLabel("Confirm")
-	w.confirmBtn.AddCSSClass("destructive-action")
 	w.confirmBtn.ConnectClicked(func() {
 		action := w.confirmAction
 		w.returnFromConfirmation()
@@ -386,7 +386,7 @@ func (w *Window) buildConfirmationView() *gtk.Box {
 	return view
 }
 
-func (w *Window) showConfirmation(title, message, actionLabel, returnView string, action func()) {
+func (w *Window) showConfirmation(title, message, actionLabel, returnView string, destructive bool, action func()) {
 	if w.viewStack == nil {
 		return
 	}
@@ -396,6 +396,13 @@ func (w *Window) showConfirmation(title, message, actionLabel, returnView string
 	w.confirmTitle.SetLabel(title)
 	w.confirmMessage.SetLabel(message)
 	w.confirmBtn.SetLabel(actionLabel)
+	if destructive {
+		w.confirmBtn.AddCSSClass("destructive-action")
+		w.confirmBtn.RemoveCSSClass("suggested-action")
+	} else {
+		w.confirmBtn.RemoveCSSClass("destructive-action")
+		w.confirmBtn.AddCSSClass("suggested-action")
+	}
 	w.confirmReturnView = returnView
 	w.confirmAction = action
 	w.viewStack.SetVisibleChildName("confirm")
@@ -427,45 +434,42 @@ func currentPolicyEnabled(state *api.State) bool {
 	return state != nil && state.PowerPolicy != nil && state.PowerPolicy.Enabled
 }
 
-func automationStatus(state *api.State) string {
-	if state == nil {
-		return "Power source unknown · Current settings"
-	}
-	source := map[string]string{"ac": "Plugged In", "battery": "Battery"}[state.PowerSource]
-	if source == "" {
-		source = "Unknown"
-	}
-	active := "Current settings"
-	if state.ActivePreset != "" {
-		active = "Using " + state.ActivePreset
-	}
-	prefix := ""
-	if !currentPolicyEnabled(state) {
-		prefix = "Automation off · "
-	}
-	return fmt.Sprintf("%s%s · %s", prefix, source, active)
-}
-
 func powerPolicySummary(state *api.State) (string, string) {
 	status := "MANUAL"
 	if currentPolicyEnabled(state) {
 		status = "AUTOMATIC"
 	}
 	if state == nil || state.PowerPolicy == nil {
-		return status, automationStatus(state)
+		return status, "No presets assigned to plug/battery"
 	}
-	return status, fmt.Sprintf("Plugged In: %s\nOn Battery: %s\n%s", state.PowerPolicy.ACPreset, state.PowerPolicy.BatteryPreset, automationStatus(state))
+	return status, fmt.Sprintf("Plug → %s · Battery → %s",
+		ruleEffect(state.PowerPolicy.ACPreset, state.Presets),
+		ruleEffect(state.PowerPolicy.BatteryPreset, state.Presets))
+}
+
+// ruleEffect renders one side of the automation rule: the preset's headline
+// profile when known (the useful behavior), falling back to its name.
+func ruleEffect(name string, presets map[string]api.Preset) string {
+	if name == "" {
+		return "Not assigned"
+	}
+	if p, ok := presets[name]; ok {
+		if prof := strings.TrimSpace(p.Profile); prof != "" {
+			return strings.Title(prof) //nolint:staticcheck // ASCII daemon value
+		}
+	}
+	return name
 }
 
 func assignmentSummary(name string, presets map[string]api.Preset) string {
 	if name == "" {
 		return "Not assigned"
 	}
-	preset, ok := presets[name]
-	if !ok {
-		return name + " · Missing preset"
+	effect := ruleEffect(name, presets)
+	if effect == name || effect == "Not assigned" {
+		return name
 	}
-	return name + "\n" + presetSummary(preset)
+	return fmt.Sprintf("%s → %s", name, effect)
 }
 
 func presetUsage(name string, state *api.State) string {
@@ -515,7 +519,7 @@ func presetSummary(preset api.Preset) string {
 	if preset.Undervolt != nil {
 		uv = fmt.Sprintf("%d", preset.Undervolt.CPUCO)
 	}
-	cpu := "CPU default"
+	cpu := "Default"
 	if preset.CPUPower != nil {
 		boost := "off"
 		if preset.CPUPower.Boost {
@@ -535,7 +539,16 @@ func presetSummary(preset api.Preset) string {
 			overdrive = "Off"
 		}
 	}
-	return fmt.Sprintf("%s · %s fan · %s\n%s\nTDP %s · UV %s · Overdrive %s", profile, fan, refresh, cpu, tdp, uv, overdrive)
+	rows := []string{
+		"Profile: " + profile,
+		"Fan: " + fan,
+		"TDP: " + tdp,
+		"Undervolt: " + uv,
+		"CPU: " + cpu,
+		"Refresh: " + refresh,
+		"Overdrive: " + overdrive,
+	}
+	return strings.Join(rows, "\n")
 }
 
 func eppDisplayName(epp string) string {

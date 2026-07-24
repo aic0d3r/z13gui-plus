@@ -95,11 +95,10 @@ type Window struct {
 	presetsBackBtn      *gtk.Button
 	presetsList         *gtk.Box
 	presetNameEntry     *gtk.Entry
-	presetAuto          *gtk.Switch
+	automationSwitch    *gtk.Switch // inline toggle on the main POWER AUTOMATION card
 	presetSaveBtn       *gtk.Button
 	presetRestoreBtn    *gtk.Button
 	presetStatus        *gtk.Label
-	automationBanner    *gtk.Label
 	acAssignment        *gtk.Box
 	batteryAssignment   *gtk.Box
 	acAssignmentLabel   *gtk.Label
@@ -182,6 +181,12 @@ type Window struct {
 	uvCpuLabel         *gtk.Label
 	saveUvBtn          *gtk.Button
 	resetUvBtn         *gtk.Button
+	// tuning dirty-state UI: markers + conditional banners
+	tdpDirtyMark       *gtk.Label
+	fanDirtyMark       *gtk.Label
+	uvDirtyMark        *gtk.Label
+	fanSafetyBanner    *gtk.Label // shown when a safety profile locks fan editing
+	tdpClampWarn       *gtk.Label // shown in basic mode when active PL1 exceeds the basic range
 	telemetryTempLabel *gtk.Label
 	telemetryFanLabel  *gtk.Label
 	telemetryGen       int

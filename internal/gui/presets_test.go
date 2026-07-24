@@ -22,7 +22,7 @@ func TestPresetStateChanged(t *testing.T) {
 
 func TestPowerPolicySummary(t *testing.T) {
 	status, detail := powerPolicySummary(nil)
-	if status != "MANUAL" || detail != "Power source unknown · Current settings" {
+	if status != "MANUAL" || detail != "No presets assigned to plug/battery" {
 		t.Fatalf("nil policy summary = %q, %q", status, detail)
 	}
 
@@ -32,12 +32,16 @@ func TestPowerPolicySummary(t *testing.T) {
 		PowerPolicy: &api.PowerPolicy{
 			Enabled: true, ACPreset: "Plugged In", BatteryPreset: "On Battery",
 		},
+		Presets: map[string]api.Preset{
+			"Plugged In": {Profile: "performance"},
+			"On Battery": {Profile: "quiet"},
+		},
 	}
 	status, detail = powerPolicySummary(state)
 	if status != "AUTOMATIC" {
 		t.Fatalf("enabled policy status = %q", status)
 	}
-	want := "Plugged In: Plugged In\nOn Battery: On Battery\nPlugged In · Using Plugged In"
+	want := "Plug → Performance · Battery → Quiet"
 	if detail != want {
 		t.Fatalf("enabled policy detail = %q, want %q", detail, want)
 	}
@@ -53,7 +57,7 @@ func TestPresetSummary(t *testing.T) {
 		RefreshRate:    180,
 		PanelOverdrive: &overdrive,
 	}
-	want := "Balanced · Auto fan · 180 Hz\n625 MHz min · Efficient CPU · Boost on\nTDP 45/55/65 W · UV -15 · Overdrive On"
+	want := "Profile: Balanced\nFan: Auto\nTDP: 45/55/65 W\nUndervolt: -15\nCPU: 625 MHz min · Efficient CPU · Boost on\nRefresh: 180 Hz\nOverdrive: On"
 	if got := presetSummary(preset); got != want {
 		t.Fatalf("presetSummary() = %q, want %q", got, want)
 	}
@@ -64,11 +68,11 @@ func TestCurrentSettingsSummaryUsesOverrideFlags(t *testing.T) {
 		Profile: "quiet",
 		TDP:     &api.TDPState{PL1SPL: 55, PL2SPPT: 65, FPPT: 75},
 	}
-	if got := currentSettingsSummary(state); !strings.Contains(got, "TDP Default") {
+	if got := currentSettingsSummary(state); !strings.Contains(got, "TDP: Default") {
 		t.Fatalf("inactive TDP included in current summary: %q", got)
 	}
 	state.TDPActive = true
-	if got := currentSettingsSummary(state); !strings.Contains(got, "TDP 55/65/75 W") {
+	if got := currentSettingsSummary(state); !strings.Contains(got, "TDP: 55/65/75 W") {
 		t.Fatalf("active TDP missing from current summary: %q", got)
 	}
 }
