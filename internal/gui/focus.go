@@ -346,8 +346,10 @@ func (w *Window) ensureVisible(widget gtk.Widgetter) {
 			scroll = w.presetsScroll
 		case "chooser":
 			scroll = w.chooserScroll
+		case "color":
+			scroll = w.colorScroll
 		default:
-			return // color and confirmation views have no scroll
+			return // confirmation view has no scroll
 		}
 	}
 	if scroll == nil {

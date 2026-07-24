@@ -450,6 +450,36 @@ popover.z13-popover scrolledwindow {
     color: @z13-text-dim;
 }
 
+/* Back button for sub-views (theme, color, tuning, presets). */
+.drawer .view-back-btn {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+/* Live telemetry values in the tuning view. */
+.drawer .telemetry-value {
+    font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
+    font-size: 13px;
+    font-weight: 700;
+    font-feature-settings: "tnum";
+}
+
+/* Slider descriptions — subordinate to value readouts. */
+.drawer .scale-desc {
+    font-size: 10px;
+    font-weight: 400;
+    color: @z13-text-faint;
+}
+
+/* Color preview — larger than preset swatches. */
+.drawer .color-preview {
+    min-width: 64px;
+    min-height: 40px;
+    border-radius: 8px;
+}
+
 /* Unified memory usage bar. */
 .drawer .memory-bar {
     min-height: 6px;

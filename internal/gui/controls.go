@@ -335,7 +335,7 @@ func (w *Window) buildThemeView() *gtk.Box {
 	header.Append(lbl)
 	view.Append(header)
 
-	content := gtk.NewBox(gtk.OrientationVertical, 2)
+	content := gtk.NewBox(gtk.OrientationVertical, 6)
 	content.SetMarginTop(4)
 	content.SetMarginBottom(12)
 	content.SetMarginStart(12)
@@ -423,13 +423,6 @@ func (w *Window) appendAccentDots(box *gtk.Box, accents []theme.Accent, isActive
 	if len(accents) == 0 {
 		return nil
 	}
-	accentLabel := gtk.NewLabel("Accent Color")
-	accentLabel.SetXAlign(0)
-	accentLabel.AddCSSClass("accent-label")
-	accentLabel.SetMarginStart(12)
-	accentLabel.SetMarginTop(2)
-	box.Append(accentLabel)
-
 	dotsGrid := gtk.NewBox(gtk.OrientationVertical, 4)
 	dotsGrid.SetMarginStart(12)
 	dotsGrid.SetMarginBottom(4)
@@ -452,7 +445,13 @@ func (w *Window) appendAccentDots(box *gtk.Box, accents []theme.Accent, isActive
 		provider.LoadFromString("button.color-preset { background: " + ac.Hex + "; }")
 		dot.StyleContext().AddProvider(provider, gtk.STYLE_PROVIDER_PRIORITY_USER+20) //nolint:staticcheck // per-widget dynamic color; no style-class alternative for unique hex backgrounds
 		dot.SetTooltipText(ac.Name)
-		dot.ConnectClicked(func() { onClick(ac) })
+		dot.ConnectClicked(func() {
+			onClick(ac)
+			for _, d := range dots {
+				d.RemoveCSSClass("accent-dot-active")
+			}
+			dot.AddCSSClass("accent-dot-active")
+		})
 		dots = append(dots, dot)
 		row.Append(dot)
 	}
@@ -483,6 +482,8 @@ func (w *Window) buildColorPickerView() *gtk.Box {
 	header.Append(w.colorViewTitle)
 	view.Append(header)
 
+	content := gtk.NewBox(gtk.OrientationVertical, 8)
+
 	// 8 preset buttons.
 	w.colorPickerPresets = nil
 	presetsRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
@@ -498,16 +499,16 @@ func (w *Window) buildColorPickerView() *gtk.Box {
 		w.colorPickerPresets = append(w.colorPickerPresets, btn)
 		presetsRow.Append(btn)
 	}
-	view.Append(presetsRow)
+	content.Append(presetsRow)
 
 	// HSL sliders.
 	w.colorHue = w.buildHSLScale("HUE", 0, 360)
 	w.colorSat = w.buildHSLScale("SATURATION", 0, 100)
 	w.colorLit = w.buildHSLScale("LIGHTNESS", 0, 100)
 
-	view.Append(hslScaleBox("HUE", w.colorHue))
-	view.Append(hslScaleBox("SATURATION", w.colorSat))
-	view.Append(hslScaleBox("LIGHTNESS", w.colorLit))
+	content.Append(hslScaleBox("HUE", w.colorHue))
+	content.Append(hslScaleBox("SATURATION", w.colorSat))
+	content.Append(hslScaleBox("LIGHTNESS", w.colorLit))
 
 	// Preview swatch + hex label.
 	w.colorSwatchProv = gtk.NewCSSProvider()
@@ -517,17 +518,25 @@ func (w *Window) buildColorPickerView() *gtk.Box {
 	)
 
 	w.colorPreview = gtk.NewBox(gtk.OrientationHorizontal, 0)
-	w.colorPreview.AddCSSClass("color-swatch")
+	w.colorPreview.AddCSSClass("color-preview")
 	w.colorPreview.SetName("color-picker-preview")
 
 	w.colorHexLabel = gtk.NewLabel("#FF0000")
-	w.colorHexLabel.AddCSSClass("section-label")
+	w.colorHexLabel.AddCSSClass("scale-value")
 
 	previewRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
 	previewRow.SetMarginTop(4)
 	previewRow.Append(w.colorPreview)
+	w.colorHexLabel.SetHExpand(true)
 	previewRow.Append(w.colorHexLabel)
-	view.Append(previewRow)
+	content.Append(previewRow)
+
+	scroll := gtk.NewScrolledWindow()
+	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
+	scroll.SetVExpand(true)
+	scroll.SetChild(content)
+	w.colorScroll = scroll
+	view.Append(scroll)
 
 	return view
 }

@@ -199,6 +199,7 @@ type Window struct {
 	rgbScroll          *gtk.ScrolledWindow // RGB tab scroll
 	systemScroll       *gtk.ScrolledWindow // System tab scroll
 	themeScroll        *gtk.ScrolledWindow // scrollable area in theme picker view
+	colorScroll        *gtk.ScrolledWindow // scrollable area in color picker view
 	viewStack          *gtk.Stack          // switches between main/theme/color views
 	editingColor       *colorInput         // which color the color-picker view is editing
 	colorViewTitle     *gtk.Label          // "COLOR 1" or "COLOR 2" in color view header
@@ -585,6 +586,7 @@ func (w *Window) applyTheme(id, accentID string) {
 	w.themeProvider.LoadFromString(theme.BuildThemeCSS(colors, defaultThemeCSS))
 	gtk.StyleContextAddProviderForDisplay(display, w.themeProvider, gtk.STYLE_PROVIDER_PRIORITY_USER)
 	theme.SaveAppConfig(theme.AppConfig{Theme: id, Accent: accentID})
+	w.isCustomTheme = false
 	if w.appearanceSummary != nil {
 		w.appearanceSummary.SetLabel(themeButtonLabel(id, accentID, false))
 	}

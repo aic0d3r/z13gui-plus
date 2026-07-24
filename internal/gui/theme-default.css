@@ -90,6 +90,16 @@ window.z13-drawer-window {
     font-feature-settings: "tnum";
 }
 
+/* Live telemetry values */
+.telemetry-value {
+    color: @z13-text;
+}
+
+/* Slider descriptions — dimmer than value readouts */
+.scale-desc {
+    color: @z13-text-faint;
+}
+
 /* Slider name labels */
 .scale-name {
     color: @z13-text-dim;

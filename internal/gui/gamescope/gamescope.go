@@ -61,11 +61,11 @@ import (
 )
 
 const (
-	referenceWidth = 1707.0      // 2560 / 1.5; matches KDE 150% at Z13 native resolution
-	minScale       = 1.0         // lower bound for UI scale
-	maxScale       = 3.0         // upper bound for UI scale
-	marginFraction = 20          // screen height / N for 5% top/bottom margins
-	fullOpacity    = 0xFFFFFFFF  // _NET_WM_WINDOW_OPACITY value for fully visible
+	referenceWidth = 1707.0     // 2560 / 1.5; matches KDE 150% at Z13 native resolution
+	minScale       = 1.0        // lower bound for UI scale
+	maxScale       = 3.0        // upper bound for UI scale
+	marginFraction = 20         // screen height / N for 5% top/bottom margins
+	fullOpacity    = 0xFFFFFFFF // _NET_WM_WINDOW_OPACITY value for fully visible
 )
 
 // Backend manages the gamescope X11 overlay window.
@@ -116,7 +116,7 @@ func (b *Backend) Configure(_ func() bool, onDismiss func()) {
 			return
 		}
 		b.xdisplay = C.display_get_xdisplay(unsafe.Pointer(display.Native())) //nolint:govet // GObject pointer is C-heap-allocated and pinned; uintptr→unsafe.Pointer is safe
-		b.xid = C.surface_get_xid(unsafe.Pointer(surface.Native()))         //nolint:govet // GObject pointer is C-heap-allocated and pinned; uintptr→unsafe.Pointer is safe
+		b.xid = C.surface_get_xid(unsafe.Pointer(surface.Native()))           //nolint:govet // GObject pointer is C-heap-allocated and pinned; uintptr→unsafe.Pointer is safe
 		b.ready = true
 
 		// Store output dimensions for WrapContent (which runs after realize).
@@ -297,34 +297,38 @@ func (b *Backend) scaledCSS() string {
 .tdp-warning { font-size: %.0fpx; margin-top: %.0fpx; margin-bottom: %.0fpx; }
 .fan-curve-area { min-height: %.0fpx; border-radius: %.0fpx; }
 .custom-actions button { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
-.advanced-check { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }`,
+.advanced-check { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
+.telemetry-value { font-size: %.0fpx; }
+.color-preview { min-width: %.0fpx; min-height: %.0fpx; }`,
 		s,
-		14*s,                     // .drawer font-size
-		48*s, 4*s, 10*s, 6*s,    // btn-group button
-		48*s, 4*s, 10*s, 6*s,    // checkbutton
-		52*s,                     // mode-grid btn-group button
-		48*s,                     // tab-btn
-		24*s, 24*s,               // scale slider
-		6*s,                      // scale value margin
-		11*s, 3*s,                // drawer-title
-		13*s, 2*s, 2*s,           // section-group
-		11*s, 1*s, 6*s, 2*s,     // section-label
-		10*s, 2*s, 2*s,           // scale-value
-		10*s, 4*s,                // scale-name
-		28*s, 28*s, 4*s,          // color-swatch
-		28*s, 28*s, 4*s,          // color-preset
-		32*s, 32*s, 4*s, 6*s,    // bottom-bar button
-		9*s, 1*s,                 // accent-label
-		2*s,                      // accent-dot-active border
-		10*s, 0.5*s,              // toggle-label
-		22*s, 40*s, 11*s,         // settings-row switch (height, width, border-radius)
-		18*s, 18*s, 9*s,          // switch slider (width, height, border-radius)
-		32*s, 32*s, 4*s,          // view-back-btn
-		2*s, 2*s,                 // gamepad-focus (outline-width, outline-offset)
-		2*s, 2*s,                 // gamepad-editing (outline-width, outline-offset)
-		10*s, 4*s, 4*s,           // tdp-warning (font-size, margin-top, margin-bottom)
-		240*s, 6*s,               // fan-curve-area (min-height, border-radius)
-		36*s, 4*s, 8*s, 6*s,     // custom-actions button (min-height, padding-v, padding-h, border-radius)
-		36*s, 4*s, 10*s, 6*s,    // advanced-check (min-height, padding-v, padding-h, border-radius)
+		14*s,                 // .drawer font-size
+		48*s, 4*s, 10*s, 6*s, // btn-group button
+		48*s, 4*s, 10*s, 6*s, // checkbutton
+		52*s,       // mode-grid btn-group button
+		48*s,       // tab-btn
+		24*s, 24*s, // scale slider
+		6*s,       // scale value margin
+		11*s, 3*s, // drawer-title
+		13*s, 2*s, 2*s, // section-group
+		11*s, 1*s, 6*s, 2*s, // section-label
+		10*s, 2*s, 2*s, // scale-value
+		10*s, 4*s, // scale-name
+		32*s, 32*s, 4*s, // color-swatch
+		32*s, 32*s, 4*s, // color-preset
+		32*s, 32*s, 4*s, 6*s, // bottom-bar button
+		9*s, 1*s, // accent-label
+		2*s,         // accent-dot-active border
+		10*s, 0.5*s, // toggle-label
+		22*s, 40*s, 11*s, // settings-row switch (height, width, border-radius)
+		18*s, 18*s, 9*s, // switch slider (width, height, border-radius)
+		40*s, 40*s, 4*s, // view-back-btn
+		2*s, 2*s, // gamepad-focus (outline-width, outline-offset)
+		2*s, 2*s, // gamepad-editing (outline-width, outline-offset)
+		10*s, 4*s, 4*s, // tdp-warning (font-size, margin-top, margin-bottom)
+		240*s, 6*s, // fan-curve-area (min-height, border-radius)
+		40*s, 4*s, 8*s, 6*s, // custom-actions button (min-height, padding-v, padding-h, border-radius)
+		40*s, 4*s, 10*s, 6*s, // advanced-check (min-height, padding-v, padding-h, border-radius)
+		13*s,       // telemetry-value font-size
+		64*s, 40*s, // color-preview (min-width, min-height)
 	)
 }
