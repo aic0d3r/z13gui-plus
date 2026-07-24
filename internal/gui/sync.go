@@ -536,6 +536,33 @@ func (w *Window) updateBatteryHero(b *api.BatteryState) {
 	if w.battDesignLabel != nil {
 		w.battDesignLabel.SetLabel(fmt.Sprintf("%.2f Wh", b.EnergyDesignWh))
 	}
+	// System draw + estimated runtime. DRAW is only meaningful when the
+	// battery is discharging (that is the one honest whole-system figure;
+	// on AC there is no reliable total). TIME is direction-aware: time to
+	// empty when discharging, time to full (to the charge threshold) when
+	// charging — if the battery reports a nonzero rate.
+	draw, remaining := "—", "—"
+	powerW, err := strconv.ParseFloat(strings.TrimSpace(b.PowerWatts), 64)
+	canRate := err == nil && powerW > 0
+	switch {
+	case b.Status == "Discharging" && canRate && b.EnergyNowWh > 0:
+		draw = fmt.Sprintf("%.1f W", powerW)
+		remaining = formatBatteryRuntime(b.EnergyNowWh / powerW)
+	case b.Status == "Charging" && canRate:
+		target := b.EnergyFullWh
+		if b.ThresholdPct > 0 && b.ThresholdPct < 100 {
+			target = b.EnergyFullWh * float64(b.ThresholdPct) / 100.0
+		}
+		if target > b.EnergyNowWh {
+			remaining = formatBatteryRuntime((target - b.EnergyNowWh) / powerW)
+		}
+	}
+	if w.battDrawLabel != nil {
+		w.battDrawLabel.SetLabel(draw)
+	}
+	if w.battTimeLabel != nil {
+		w.battTimeLabel.SetLabel(remaining)
+	}
 	if w.battPill != nil {
 		// Threshold preset chip: 100=Standard, 80=Balanced, <80=Max Life.
 		w.battPill.RemoveCSSClass("success")
@@ -563,6 +590,16 @@ func formatBatteryDecimal(value string) string {
 		return "—"
 	}
 	return fmt.Sprintf("%.2f", n)
+}
+
+// formatBatteryRuntime renders an estimated runtime as "Xh Ym".
+func formatBatteryRuntime(hours float64) string {
+	if hours < 0 {
+		hours = 0
+	}
+	h := int(hours)
+	m := int((hours - float64(h)) * 60)
+	return fmt.Sprintf("%dh %dm", h, m)
 }
 
 // queueApply debounces rapid API calls from continuous inputs (color wheel,

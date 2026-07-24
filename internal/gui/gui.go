@@ -131,6 +131,8 @@ type Window struct {
 	battEnergyLabel   *gtk.Label // "ENERGY 39.80 / 64.30 Wh"
 	battVoltageLabel  *gtk.Label // "VOLTAGE 16.80 V"
 	battDesignLabel   *gtk.Label // "DESIGN 70.00 Wh"
+	battDrawLabel     *gtk.Label // "DRAW 12.3 W" — system draw, only when battery discharging
+	battTimeLabel     *gtk.Label // "TIME 4h 12m" — estimated runtime, only when discharging
 	battPill          *gtk.Label // threshold preset chip
 
 	// Overview tab — full live telemetry (CPU/GPU temp+util, clocks, VRAM, mem).

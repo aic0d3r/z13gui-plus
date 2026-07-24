@@ -988,6 +988,16 @@ func (w *Window) buildBatteryHero() *gtk.Box {
 	capacityRow.Append(metric)
 	card.Append(capacityRow)
 
+	powerRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	powerRow.SetHomogeneous(true)
+	metric, value = batteryMetric("DRAW")
+	w.battDrawLabel = value
+	powerRow.Append(metric)
+	metric, value = batteryMetric("TIME")
+	w.battTimeLabel = value
+	powerRow.Append(metric)
+	card.Append(powerRow)
+
 	box.Append(card)
 	w.batteryHero = box
 	return box
