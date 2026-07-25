@@ -97,7 +97,7 @@
 }
 
 .drawer .card.card-inactive {
-    opacity: 0.35;
+    opacity: 0.55;
 }
 
 /* Card title — small caps mono */
@@ -127,7 +127,12 @@
 }
 
 .drawer .automation-off {
-    opacity: 0.35;
+    opacity: 0.55;
+}
+
+.drawer .setting-description {
+    font-size: 11px;
+    margin: -2px 6px 2px;
 }
 
 /* Pill — status chip */
@@ -250,12 +255,18 @@
     min-height: 40px;
 }
 
-/* Preset color buttons — compact square touch targets. */
+/* Preset color buttons — square touch targets in a 2x4 grid. */
 .color-preset {
     padding: 0;
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 40px;
+    min-height: 40px;
     border-radius: 6px;
+}
+
+.drawer .color-hex {
+    font-size: 12px;
+    font-weight: 700;
+    font-feature-settings: "tnum";
 }
 
 /* Bottom bar — palette and future gear button */
@@ -442,6 +453,14 @@ popover.z13-popover scrolledwindow {
 
 .drawer .battery-metric-value {
     font-feature-settings: "tnum";
+}
+
+.drawer .battery-time-metric .battery-metric-value {
+    font-size: 18px;
+}
+
+.drawer .battery-bar {
+    min-height: 6px;
 }
 
 .drawer .battery-status {

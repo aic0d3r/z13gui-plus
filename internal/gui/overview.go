@@ -53,7 +53,6 @@ func (w *Window) buildOverviewHero() *gtk.Box {
 	header.Append(title)
 	w.overviewStatus = gtk.NewLabel("NORMAL")
 	w.overviewStatus.AddCSSClass("pill")
-	w.overviewStatus.AddCSSClass("success")
 	header.Append(w.overviewStatus)
 	card.Append(header)
 
@@ -71,10 +70,10 @@ func (w *Window) buildOverviewHero() *gtk.Box {
 
 	metricRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	metricRow.SetHomogeneous(true)
-	metric, value := overviewMetric("CPU T")
+	metric, value := overviewMetric("CPU TEMP")
 	w.cpuTempValue = value
 	metricRow.Append(metric)
-	metric, value = overviewMetric("GPU T")
+	metric, value = overviewMetric("GPU TEMP")
 	w.gpuTempValue = value
 	metricRow.Append(metric)
 	metric, value = overviewMetric("CPU LOAD")
@@ -146,7 +145,7 @@ func (w *Window) buildOverviewMetrics() *gtk.Box {
 	card.AddCSSClass("card")
 	card.AddCSSClass("overview-system-card")
 
-	title := gtk.NewLabel("SYSTEM")
+	title := gtk.NewLabel("HARDWARE")
 	title.SetHAlign(gtk.AlignStart)
 	title.AddCSSClass("card-title")
 	card.Append(title)
@@ -170,6 +169,7 @@ func (w *Window) buildOverviewMetrics() *gtk.Box {
 	card.Append(memoryRow)
 
 	row, lbl := metricRow("MEMORY CLOCK")
+	row.AddCSSClass("secondary-metric")
 	card.Append(row)
 	w.overviewMemClock = lbl
 
@@ -243,7 +243,7 @@ func formatNPU(available bool, util int, powerW float64) (string, string) {
 		return "UNAVAILABLE", "NO DATA"
 	}
 	if util == 0 && powerW == 0 {
-		return "IDLE", "0.00 W"
+		return "IDLE", "0.0 W"
 	}
 	if powerW <= 0 {
 		return "LOW POWER", "POWER N/A"
@@ -252,5 +252,5 @@ func formatNPU(available bool, util int, powerW float64) (string, string) {
 	if powerW >= npuActivePowerW {
 		status = "ACTIVE"
 	}
-	return status, fmt.Sprintf("%.2f W", powerW)
+	return status, fmt.Sprintf("%.1f W", powerW)
 }

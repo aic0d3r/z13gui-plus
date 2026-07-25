@@ -440,11 +440,19 @@ func powerPolicySummary(state *api.State) (string, string) {
 		status = "AUTOMATIC"
 	}
 	if state == nil || state.PowerPolicy == nil {
-		return status, "No presets assigned to plug/battery"
+		return status, "No presets assigned to AC/battery"
 	}
-	return status, fmt.Sprintf("Plug → %s · Battery → %s",
-		ruleEffect(state.PowerPolicy.ACPreset, state.Presets),
-		ruleEffect(state.PowerPolicy.BatteryPreset, state.Presets))
+	detail := fmt.Sprintf("AC: %s · Battery: %s",
+		assignmentSummary(state.PowerPolicy.ACPreset, state.Presets),
+		assignmentSummary(state.PowerPolicy.BatteryPreset, state.Presets))
+	if state.ActivePreset != "" {
+		active := state.ActivePreset
+		if state.PowerSource != "" {
+			active += " (" + strings.ToUpper(state.PowerSource) + ")"
+		}
+		detail += "\nActive now: " + active
+	}
+	return status, detail
 }
 
 // ruleEffect renders one side of the automation rule: the preset's headline

@@ -13,15 +13,18 @@ import (
 )
 
 // presetColors are the 8 quick-select colors shown as square buttons.
-var presetColors = []string{
-	"FF0000", // red
-	"FF6600", // orange
-	"FFFF00", // yellow
-	"00FF00", // green
-	"00FFFF", // cyan
-	"0000FF", // blue
-	"FF00FF", // magenta
-	"FFFFFF", // white
+var presetColors = []struct {
+	hex  string
+	name string
+}{
+	{"FF0000", "Red"},
+	{"FF6600", "Orange"},
+	{"FFFF00", "Yellow"},
+	{"00FF00", "Green"},
+	{"00FFFF", "Cyan"},
+	{"0000FF", "Blue"},
+	{"FF00FF", "Magenta"},
+	{"FFFFFF", "White"},
 }
 
 // colorInput holds the current-color swatch, preset buttons, and a Custom
@@ -31,6 +34,7 @@ type colorInput struct {
 	swatch     *gtk.Box      // current-color square (CSS ID driven)
 	presetBtns []*gtk.Button // individual preset color buttons
 	customBtn  *gtk.Button   // "Custom" button (navigates to color view)
+	hexLabel   *gtk.Label    // current #RRGGBB value
 	hex        string        // current RRGGBB uppercase
 	label      string        // display label ("COLOR 1" / "COLOR 2")
 }
@@ -40,18 +44,20 @@ type colorInput struct {
 func (w *Window) newColorInput(initialHex, swatchName, label string) *colorInput {
 	ci := &colorInput{hex: strings.ToUpper(initialHex), label: label}
 
-	// Current-color swatch (non-interactive colored square).
 	ci.swatch = gtk.NewBox(gtk.OrientationHorizontal, 0)
 	ci.swatch.SetName(swatchName)
 	ci.swatch.AddCSSClass("color-swatch")
 
-	// Preset buttons, each expanding equally to fill the row width.
-	presetsRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	for _, hex := range presetColors {
-		h := hex
+	presetsGrid := gtk.NewGrid()
+	presetsGrid.SetColumnSpacing(4)
+	presetsGrid.SetRowSpacing(4)
+	presetsGrid.SetColumnHomogeneous(true)
+	for i, preset := range presetColors {
+		h := preset.hex
 		btn := gtk.NewButton()
 		btn.AddCSSClass("color-preset")
 		btn.SetHExpand(true)
+		btn.SetTooltipText(fmt.Sprintf("%s · #%s", preset.name, h))
 		p := gtk.NewCSSProvider()
 		p.LoadFromString(fmt.Sprintf("button.color-preset { background: #%s; }", h))
 		btn.StyleContext().AddProvider(p, gtk.STYLE_PROVIDER_PRIORITY_USER+5) //nolint:staticcheck // per-widget dynamic color
@@ -61,20 +67,22 @@ func (w *Window) newColorInput(initialHex, swatchName, label string) *colorInput
 			w.sendApply()
 		})
 		ci.presetBtns = append(ci.presetBtns, btn)
-		presetsRow.Append(btn)
+		presetsGrid.Attach(btn, i%4, i/4, 1, 1)
 	}
 
 	ci.row = gtk.NewBox(gtk.OrientationVertical, 4)
-	ci.row.Append(presetsRow)
+	ci.row.Append(presetsGrid)
 
-	// Custom button navigates to the HSL color picker view.
-	ci.customBtn = gtk.NewButton()
-	ci.customBtn.SetLabel("Custom")
+	ci.customBtn = gtk.NewButtonWithLabel("Custom Color")
 	ci.customBtn.AddCSSClass("action-btn")
 	ci.customBtn.SetHExpand(true)
 	ci.customBtn.ConnectClicked(func() { w.showColorView(ci) })
+	ci.hexLabel = gtk.NewLabel("#" + ci.hex)
+	ci.hexLabel.AddCSSClass("color-hex")
+	ci.hexLabel.SetHExpand(true)
 	controlsRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
 	controlsRow.Append(ci.swatch)
+	controlsRow.Append(ci.hexLabel)
 	controlsRow.Append(ci.customBtn)
 	ci.row.Append(controlsRow)
 
@@ -84,6 +92,23 @@ func (w *Window) newColorInput(initialHex, swatchName, label string) *colorInput
 // updateSwatches refreshes the shared CSS provider so both current-color
 // swatches display the latest hex values.
 func (w *Window) updateSwatches() {
+	syncInput := func(ci *colorInput) {
+		if ci == nil {
+			return
+		}
+		if ci.hexLabel != nil {
+			ci.hexLabel.SetLabel("#" + ci.hex)
+		}
+		for i, btn := range ci.presetBtns {
+			btn.RemoveCSSClass("selected")
+			if i < len(presetColors) && ci.hex == presetColors[i].hex {
+				btn.AddCSSClass("selected")
+			}
+		}
+	}
+	syncInput(w.color1)
+	syncInput(w.color2)
+
 	if w.swatchProvider == nil {
 		return
 	}
@@ -169,6 +194,12 @@ func (w *Window) updateColorPreview() {
 	))
 	if w.colorHexLabel != nil {
 		w.colorHexLabel.SetLabel("#" + hex)
+	}
+	for i, btn := range w.colorPickerPresets {
+		btn.RemoveCSSClass("selected")
+		if i < len(presetColors) && hex == presetColors[i].hex {
+			btn.AddCSSClass("selected")
+		}
 	}
 }
 

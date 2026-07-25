@@ -67,6 +67,7 @@ type Window struct {
 	rgbEffectCard       *gtk.Box
 	speedBtns           map[string]*gtk.Button
 	brightScale         *gtk.Scale
+	brightValueLabel    *gtk.Label
 	profileBtns         map[string]*gtk.Button
 	profileSummary      *gtk.Label
 	tuningHeader        *collapsibleHeader
@@ -124,16 +125,19 @@ type Window struct {
 
 	// Premium hero widgets — battery card (Overview tab).
 	// Power tab telemetry gauges removed; live stats live on Overview tab only.
-	batteryHero       *gtk.Box   // container for the Overview battery card
-	battCapacityLabel *gtk.Label // battery percentage
-	battStatusLabel   *gtk.Label // Charging / Discharging / Not charging
-	battHealthLabel   *gtk.Label // "HEALTH 91%"
-	battEnergyLabel   *gtk.Label // "ENERGY 39.80 / 64.30 Wh"
-	battVoltageLabel  *gtk.Label // "VOLTAGE 16.80 V"
-	battDesignLabel   *gtk.Label // "DESIGN 70.00 Wh"
-	battDrawLabel     *gtk.Label // "DRAW 12.3 W" — system draw, only when battery discharging
-	battTimeLabel     *gtk.Label // "TIME 4h 12m" — estimated runtime, only when discharging
-	battPill          *gtk.Label // threshold preset chip
+	batteryHero       *gtk.Box         // container for the Overview battery card
+	battCapacityLabel *gtk.Label       // battery percentage
+	battStatusLabel   *gtk.Label       // charging / source status
+	battProgress      *gtk.ProgressBar // current charge percentage
+	battHealthLabel   *gtk.Label       // battery health percentage
+	battEnergyLabel   *gtk.Label       // current / usable full charge
+	battVoltageLabel  *gtk.Label       // current battery voltage
+	battDesignLabel   *gtk.Label       // design capacity
+	battDrawMetric    *gtk.Box         // system draw metric, visible only on battery
+	battDrawLabel     *gtk.Label       // whole-system draw while discharging
+	battTimeCaption   *gtk.Label       // REMAINING / TO FULL / AT LIMIT / STATUS
+	battTimeLabel     *gtk.Label       // direction-aware battery time or terminal state
+	battPill          *gtk.Label       // threshold preset chip
 
 	// Overview tab — full live telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
 	overviewScroll      *gtk.ScrolledWindow

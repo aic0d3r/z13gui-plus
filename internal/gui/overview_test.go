@@ -29,10 +29,10 @@ func TestFormatNPU(t *testing.T) {
 		wantDetail string
 	}{
 		{"sensor unavailable", false, 0, 0, "UNAVAILABLE", "NO DATA"},
-		{"idle", true, 0, 0, "IDLE", "0.00 W"},
+		{"idle", true, 0, 0, "IDLE", "0.0 W"},
 		{"power unavailable", true, 100, 0, "LOW POWER", "POWER N/A"},
-		{"low power", true, 100, 0.42, "LOW POWER", "0.42 W"},
-		{"active", true, 96, 1.85, "ACTIVE", "1.85 W"},
+		{"low power", true, 100, 0.42, "LOW POWER", "0.4 W"},
+		{"active", true, 96, 1.85, "ACTIVE", "1.9 W"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -22,7 +22,7 @@ func TestPresetStateChanged(t *testing.T) {
 
 func TestPowerPolicySummary(t *testing.T) {
 	status, detail := powerPolicySummary(nil)
-	if status != "MANUAL" || detail != "No presets assigned to plug/battery" {
+	if status != "MANUAL" || detail != "No presets assigned to AC/battery" {
 		t.Fatalf("nil policy summary = %q, %q", status, detail)
 	}
 
@@ -41,7 +41,7 @@ func TestPowerPolicySummary(t *testing.T) {
 	if status != "AUTOMATIC" {
 		t.Fatalf("enabled policy status = %q", status)
 	}
-	want := "Plug → Performance · Battery → Quiet"
+	want := "AC: Plugged In → Performance · Battery: On Battery → Quiet\nActive now: Plugged In (AC)"
 	if detail != want {
 		t.Fatalf("enabled policy detail = %q, want %q", detail, want)
 	}

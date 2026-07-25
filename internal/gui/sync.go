@@ -53,7 +53,6 @@ func setOnOffSummary(label *gtk.Label, active bool) {
 	label.RemoveCSSClass("success")
 	if active {
 		label.SetLabel("ON")
-		label.AddCSSClass("success")
 	} else {
 		label.SetLabel("OFF")
 	}
@@ -264,10 +263,18 @@ func (w *Window) syncFanPreset() {
 	}
 	if w.fanSummary != nil {
 		w.fanSummary.SetLabel(summary)
+		w.fanSummary.RemoveCSSClass("warning")
+		if locked {
+			w.fanSummary.AddCSSClass("warning")
+		}
 	}
 	if w.fanSafetyLabel != nil {
 		w.fanSafetyLabel.SetLabel(detail)
 		w.fanSafetyLabel.SetVisible(detail != "")
+		w.fanSafetyLabel.RemoveCSSClass("warning")
+		if locked {
+			w.fanSafetyLabel.AddCSSClass("warning")
+		}
 	}
 	if w.tuningSummary != nil {
 		w.tuningSummary.SetLabel(tuningStatus(w.state))
@@ -315,7 +322,25 @@ func fanStatus(state *api.State) (active, summary, detail string, locked bool) {
 
 func tuningStatus(state *api.State) string {
 	if state == nil {
-		return "TDP — · UV —"
+		return "CPU — · TDP — · UV —"
+	}
+	cpu := "CPU —"
+	if state.CPUPower != nil {
+		epp := strings.ToUpper(strings.ReplaceAll(state.CPUPower.EPP, "_", " "))
+		switch state.CPUPower.EPP {
+		case "balance_performance":
+			epp = "RESPONSIVE"
+		case "balance_power":
+			epp = "EFFICIENT"
+		case "performance":
+			epp = "PERFORMANCE"
+		case "power":
+			epp = "POWER SAVER"
+		}
+		cpu = "CPU " + epp
+		if state.CPUPower.Boost {
+			cpu += " + BOOST"
+		}
 	}
 	tdp := "FIRMWARE"
 	if state.TDPActive && state.TDP != nil {
@@ -325,7 +350,7 @@ func tuningStatus(state *api.State) string {
 	if state.UndervoltActive && state.Undervolt != nil {
 		uv = fmt.Sprintf("%d", state.Undervolt.CPUCO)
 	}
-	return fmt.Sprintf("TDP %s · UV %s", tdp, uv)
+	return fmt.Sprintf("%s · TDP %s · UV %s", cpu, tdp, uv)
 }
 
 // syncRefreshRate highlights the refresh rate button matching the daemon state.
@@ -405,7 +430,7 @@ func (w *Window) syncOverviewTelemetry() {
 		} else if maxTemp >= thermalWarningC {
 			status, class = "WARM", "warning"
 		} else if maxTemp > 0 {
-			status, class = "NORMAL", "success"
+			status = "NORMAL"
 		}
 		w.overviewStatus.SetLabel(status)
 		w.overviewStatus.RemoveCSSClass("success")
@@ -484,10 +509,19 @@ func (w *Window) syncOverviewTelemetry() {
 	if w.overviewMemoryLbl != nil {
 		w.overviewMemoryLbl.SetLabel(formatMemory(memoryUsed, memoryTotal))
 	}
-	if w.overviewMemoryBar != nil && memoryTotal > 0 {
-		w.overviewMemoryBar.SetFraction(float64(memoryUsed) / float64(memoryTotal))
-	} else if w.overviewMemoryBar != nil {
-		w.overviewMemoryBar.SetFraction(0)
+	if w.overviewMemoryBar != nil {
+		w.overviewMemoryBar.RemoveCSSClass("warning")
+		w.overviewMemoryBar.RemoveCSSClass("danger")
+		fraction := 0.0
+		if memoryTotal > 0 {
+			fraction = float64(memoryUsed) / float64(memoryTotal)
+		}
+		w.overviewMemoryBar.SetFraction(fraction)
+		if fraction >= 0.9 {
+			w.overviewMemoryBar.AddCSSClass("danger")
+		} else if fraction >= 0.8 {
+			w.overviewMemoryBar.AddCSSClass("warning")
+		}
 	}
 }
 
@@ -510,13 +544,37 @@ func (w *Window) markOverviewStale() {
 // updateBatteryHero updates the System tab battery card from live telemetry.
 // Called from syncState (initial) and from the 1s telemetry poll.
 func (w *Window) updateBatteryHero(b *api.BatteryState) {
+	capacity := min(100, max(0, b.CapacityPct))
 	if w.battCapacityLabel != nil {
-		w.battCapacityLabel.SetLabel(fmt.Sprintf("%d%%", b.CapacityPct))
+		w.battCapacityLabel.SetLabel(fmt.Sprintf("%d%%", capacity))
 	}
+	if w.battProgress != nil {
+		w.battProgress.SetFraction(float64(capacity) / 100)
+	}
+
+	statusKind := strings.ToLower(b.Status)
+	source := strings.ToLower(w.state.PowerSource)
+	onAC := source == "ac"
+	onBattery := source == "battery"
+	atLimit := onAC && b.ThresholdPct > 0 && b.ThresholdPct < 100 &&
+		capacity >= b.ThresholdPct && statusKind != "charging"
 	if w.battStatusLabel != nil {
 		status := b.Status
-		if w.state.PowerSource != "" {
-			status += "  ·  " + strings.ToUpper(w.state.PowerSource)
+		switch {
+		case atLimit:
+			status = fmt.Sprintf("Holding at %d%%", b.ThresholdPct)
+		case statusKind == "charging" && onAC:
+			status = "Charging on AC"
+		case statusKind == "charging":
+			status = "Charging"
+		case statusKind == "full":
+			status = "Fully charged"
+		case statusKind == "discharging" || onBattery:
+			status = "On battery"
+		case onAC && status != "":
+			status += " on AC"
+		case status == "":
+			status = "—"
 		}
 		w.battStatusLabel.SetLabel(status)
 	}
@@ -524,7 +582,7 @@ func (w *Window) updateBatteryHero(b *api.BatteryState) {
 		w.battHealthLabel.SetLabel(fmt.Sprintf("%d%%", b.HealthPct))
 	}
 	if w.battEnergyLabel != nil {
-		w.battEnergyLabel.SetLabel(fmt.Sprintf("%.2f / %.2f Wh", b.EnergyNowWh, b.EnergyFullWh))
+		w.battEnergyLabel.SetLabel(fmt.Sprintf("%.1f / %.1f Wh", b.EnergyNowWh, b.EnergyFullWh))
 	}
 	if w.battVoltageLabel != nil {
 		voltage := formatBatteryDecimal(b.VoltageVolts)
@@ -534,34 +592,50 @@ func (w *Window) updateBatteryHero(b *api.BatteryState) {
 		w.battVoltageLabel.SetLabel(voltage)
 	}
 	if w.battDesignLabel != nil {
-		w.battDesignLabel.SetLabel(fmt.Sprintf("%.2f Wh", b.EnergyDesignWh))
+		w.battDesignLabel.SetLabel(fmt.Sprintf("%.1f Wh", b.EnergyDesignWh))
 	}
-	// System draw + estimated runtime. DRAW is only meaningful when the
-	// battery is discharging (that is the one honest whole-system figure;
-	// on AC there is no reliable total). TIME is direction-aware: time to
-	// empty when discharging, time to full (to the charge threshold) when
-	// charging — if the battery reports a nonzero rate.
-	draw, remaining := "—", "—"
+
+	draw, timeCaption, timeValue := "—", "REMAINING", "—"
+	showDraw := statusKind == "discharging" || onBattery
 	powerW, err := strconv.ParseFloat(strings.TrimSpace(b.PowerWatts), 64)
 	canRate := err == nil && powerW > 0
 	switch {
-	case b.Status == "Discharging" && canRate && b.EnergyNowWh > 0:
-		draw = fmt.Sprintf("%.1f W", powerW)
-		remaining = formatBatteryRuntime(b.EnergyNowWh / powerW)
-	case b.Status == "Charging" && canRate:
-		target := b.EnergyFullWh
-		if b.ThresholdPct > 0 && b.ThresholdPct < 100 {
-			target = b.EnergyFullWh * float64(b.ThresholdPct) / 100.0
+	case showDraw:
+		if canRate && b.EnergyNowWh > 0 {
+			draw = fmt.Sprintf("%.1f W", powerW)
+			timeValue = formatBatteryRuntime(b.EnergyNowWh / powerW)
 		}
-		if target > b.EnergyNowWh {
-			remaining = formatBatteryRuntime((target - b.EnergyNowWh) / powerW)
+	case statusKind == "charging":
+		timeCaption = "TO FULL"
+		if canRate {
+			target := b.EnergyFullWh
+			if b.ThresholdPct > 0 && b.ThresholdPct < 100 {
+				target = b.EnergyFullWh * float64(b.ThresholdPct) / 100
+			}
+			if target > b.EnergyNowWh {
+				timeValue = formatBatteryRuntime((target - b.EnergyNowWh) / powerW)
+			}
 		}
+	case atLimit:
+		timeCaption = "AT LIMIT"
+		timeValue = fmt.Sprintf("%d%%", b.ThresholdPct)
+	case statusKind == "full":
+		timeCaption = "STATUS"
+		timeValue = "FULL"
+	case onAC:
+		timeCaption = "TO FULL"
+	}
+	if w.battDrawMetric != nil {
+		w.battDrawMetric.SetVisible(showDraw)
 	}
 	if w.battDrawLabel != nil {
 		w.battDrawLabel.SetLabel(draw)
 	}
+	if w.battTimeCaption != nil {
+		w.battTimeCaption.SetLabel(timeCaption)
+	}
 	if w.battTimeLabel != nil {
-		w.battTimeLabel.SetLabel(remaining)
+		w.battTimeLabel.SetLabel(timeValue)
 	}
 	if w.battPill != nil {
 		// Threshold preset chip: 100=Standard, 80=Balanced, <80=Max Life.

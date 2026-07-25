@@ -13,6 +13,7 @@ import (
 	"github.com/dahui/z13gui/internal/theme"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+	"github.com/diamondburned/gotk4/pkg/pango"
 )
 
 // addTouchActivate works around a GTK4 X11 issue where CheckButton and Switch
@@ -218,6 +219,11 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 			}
 		}, nil)
 	}))
+	overdriveDetail := gtk.NewLabel("Faster pixel response with slightly higher power use")
+	overdriveDetail.SetHAlign(gtk.AlignStart)
+	overdriveDetail.SetWrap(true)
+	overdriveDetail.AddCSSClass("setting-description")
+	display.Append(overdriveDetail)
 	inner.Append(display)
 
 	startup, summary := statusCard("STARTUP")
@@ -484,22 +490,26 @@ func (w *Window) buildColorPickerView() *gtk.Box {
 
 	content := gtk.NewBox(gtk.OrientationVertical, 8)
 
-	// 8 preset buttons.
+	// 2×4 preset grid keeps every swatch at a touch-friendly size.
 	w.colorPickerPresets = nil
-	presetsRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	for _, hex := range presetColors {
-		h := hex
+	presetsGrid := gtk.NewGrid()
+	presetsGrid.SetColumnSpacing(4)
+	presetsGrid.SetRowSpacing(4)
+	presetsGrid.SetColumnHomogeneous(true)
+	for i, preset := range presetColors {
+		h := preset.hex
 		btn := gtk.NewButton()
 		btn.AddCSSClass("color-preset")
 		btn.SetHExpand(true)
+		btn.SetTooltipText(fmt.Sprintf("%s · #%s", preset.name, h))
 		p := gtk.NewCSSProvider()
 		p.LoadFromString(fmt.Sprintf("button.color-preset { background: #%s; }", h))
 		btn.StyleContext().AddProvider(p, gtk.STYLE_PROVIDER_PRIORITY_USER+5) //nolint:staticcheck // per-widget dynamic color
 		btn.ConnectClicked(func() { w.colorPickerPresetClicked(h) })
 		w.colorPickerPresets = append(w.colorPickerPresets, btn)
-		presetsRow.Append(btn)
+		presetsGrid.Attach(btn, i%4, i/4, 1, 1)
 	}
-	content.Append(presetsRow)
+	content.Append(presetsGrid)
 
 	// HSL sliders.
 	w.colorHue = w.buildHSLScale("HUE", 0, 360)
@@ -747,19 +757,33 @@ func (w *Window) buildSpeedBox() *gtk.Box {
 // buildBrightnessBox creates the brightness scale (0–3).
 func (w *Window) buildBrightnessBox() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
-	box.Append(sectionLabel("BRIGHTNESS"))
+	header := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	title := sectionLabel("BRIGHTNESS")
+	title.SetHExpand(true)
+	header.Append(title)
+	w.brightValueLabel = gtk.NewLabel(brightnessLabel(3))
+	w.brightValueLabel.AddCSSClass("scale-value")
+	header.Append(w.brightValueLabel)
+	box.Append(header)
 
 	sc := gtk.NewScaleWithRange(gtk.OrientationHorizontal, 0, 3, 1)
 	sc.SetDigits(0)
-	sc.SetDrawValue(true)
+	sc.SetDrawValue(false)
 	sc.SetValue(3)
 	sc.SetFocusable(false)
 	sc.ConnectValueChanged(func() {
+		w.brightValueLabel.SetLabel(brightnessLabel(int(sc.Value())))
 		w.queueApply()
 	})
 	w.brightScale = sc
 	box.Append(sc)
 	return box
+}
+
+func brightnessLabel(level int) string {
+	labels := [...]string{"DARK", "LOW", "MEDIUM", "HIGH"}
+	level = min(max(level, 0), len(labels)-1)
+	return fmt.Sprintf("%s · %d", labels[level], level)
 }
 
 // profiles lists the firmware performance profiles.
@@ -778,7 +802,10 @@ func statusCard(title string) (*gtk.Box, *gtk.Label) {
 	label.AddCSSClass("card-title")
 	header.Append(label)
 	summary := gtk.NewLabel("—")
+	summary.SetMaxWidthChars(18)
+	summary.SetEllipsize(pango.EllipsizeEnd)
 	summary.AddCSSClass("pill")
+	summary.Connect("notify::label", func() { summary.SetTooltipText(summary.Label()) })
 	header.Append(summary)
 	card.Append(header)
 	return card, summary
@@ -956,14 +983,29 @@ func (w *Window) buildBatteryHero() *gtk.Box {
 	header.Append(w.battCapacityLabel)
 	card.Append(header)
 
-	statusRow := gtk.NewBox(gtk.OrientationHorizontal, 6)
 	w.battStatusLabel = gtk.NewLabel("—")
 	w.battStatusLabel.AddCSSClass("card-sub")
 	w.battStatusLabel.AddCSSClass("battery-status")
 	w.battStatusLabel.SetHAlign(gtk.AlignStart)
-	w.battStatusLabel.SetHExpand(true)
-	statusRow.Append(w.battStatusLabel)
-	card.Append(statusRow)
+	card.Append(w.battStatusLabel)
+
+	w.battProgress = gtk.NewProgressBar()
+	w.battProgress.SetHExpand(true)
+	w.battProgress.AddCSSClass("battery-bar")
+	card.Append(w.battProgress)
+
+	powerRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	powerRow.SetHomogeneous(true)
+	metric, caption, value := batteryMetric("REMAINING")
+	metric.AddCSSClass("battery-time-metric")
+	w.battTimeCaption = caption
+	w.battTimeLabel = value
+	powerRow.Append(metric)
+	metric, _, value = batteryMetric("DRAW")
+	w.battDrawMetric = metric
+	w.battDrawLabel = value
+	powerRow.Append(metric)
+	card.Append(powerRow)
 
 	strategyRow := gtk.NewBox(gtk.OrientationHorizontal, 6)
 	stratCaption := gtk.NewLabel("STRATEGY")
@@ -978,40 +1020,30 @@ func (w *Window) buildBatteryHero() *gtk.Box {
 
 	energyRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
 	energyRow.SetHomogeneous(true)
-	metric, value := batteryMetric("ENERGY")
+	metric, _, value = batteryMetric("CHARGE")
 	w.battEnergyLabel = value
 	energyRow.Append(metric)
-	metric, value = batteryMetric("VOLTAGE")
+	metric, _, value = batteryMetric("VOLTAGE")
 	w.battVoltageLabel = value
 	energyRow.Append(metric)
 	card.Append(energyRow)
 
 	capacityRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
 	capacityRow.SetHomogeneous(true)
-	metric, value = batteryMetric("HEALTH")
+	metric, _, value = batteryMetric("HEALTH")
 	w.battHealthLabel = value
 	capacityRow.Append(metric)
-	metric, value = batteryMetric("DESIGN")
+	metric, _, value = batteryMetric("DESIGN")
 	w.battDesignLabel = value
 	capacityRow.Append(metric)
 	card.Append(capacityRow)
-
-	powerRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
-	powerRow.SetHomogeneous(true)
-	metric, value = batteryMetric("DRAW")
-	w.battDrawLabel = value
-	powerRow.Append(metric)
-	metric, value = batteryMetric("TIME")
-	w.battTimeLabel = value
-	powerRow.Append(metric)
-	card.Append(powerRow)
 
 	box.Append(card)
 	w.batteryHero = box
 	return box
 }
 
-func batteryMetric(label string) (*gtk.Box, *gtk.Label) {
+func batteryMetric(label string) (*gtk.Box, *gtk.Label, *gtk.Label) {
 	box := gtk.NewBox(gtk.OrientationVertical, 1)
 	caption := gtk.NewLabel(label)
 	caption.SetHAlign(gtk.AlignStart)
@@ -1021,7 +1053,7 @@ func batteryMetric(label string) (*gtk.Box, *gtk.Label) {
 	value.AddCSSClass("battery-metric-value")
 	box.Append(caption)
 	box.Append(value)
-	return box, value
+	return box, caption, value
 }
 
 var cpuEPPs = []struct {
@@ -1077,17 +1109,23 @@ func (w *Window) buildAdvancedTuningSection() *gtk.Box {
 	content.Append(w.buildToggle("CPU Boost", "Allow frequencies above the nominal maximum", &w.cpuBoostSwitch, func(enabled bool) {
 		w.runStateAction("set CPU boost", func() (bool, error) { return api.SendCPUBoostSet(enabled) })
 	}))
+	boostDetail := gtk.NewLabel("Higher peak performance with increased power use and heat")
+	boostDetail.SetHAlign(gtk.AlignStart)
+	boostDetail.SetWrap(true)
+	boostDetail.AddCSSClass("setting-description")
+	content.Append(boostDetail)
 	content.Append(separator())
-	w.tuningBtn = gtk.NewButtonWithLabel("Open tuning")
+	w.tuningBtn = gtk.NewButtonWithLabel("Open Power Tuning")
 	w.tuningBtn.AddCSSClass("action-btn")
 	w.tuningBtn.ConnectClicked(func() { w.showCustomView() })
 	content.Append(w.tuningBtn)
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
 	box.AddCSSClass("card")
-	header := newCollapsibleHeader("ADVANCED TUNING", false)
+	header := newCollapsibleHeader("CPU & POWER TUNING", false)
 	box.Append(header.button)
-	w.tuningSummary = gtk.NewLabel("TDP FIRMWARE · UV STOCK")
+	w.tuningSummary = gtk.NewLabel("CPU — · TDP FIRMWARE · UV STOCK")
 	w.tuningSummary.SetHAlign(gtk.AlignStart)
+	w.tuningSummary.SetWrap(true)
 	w.tuningSummary.AddCSSClass("preset-summary")
 	box.Append(w.tuningSummary)
 	content.SetVisible(false)
@@ -1383,18 +1421,18 @@ func (w *Window) rgbTabFocusItems() []focusItem {
 	}
 	row += 2
 
-	// Color 1 presets — horizontal row of 8 buttons.
+	// Color 1 presets — two rows of four buttons.
 	if w.color1 != nil {
 		vis := func() bool { return controlsEnabled() && w.color1Box.IsVisible() }
-		for col, btn := range w.color1.presetBtns {
+		for i, btn := range w.color1.presetBtns {
 			btn := btn
 			items = append(items, focusItem{
-				widget: btn, row: row, col: col,
+				widget: btn, row: row + i/4, col: i % 4,
 				section: "color1", isVisible: vis,
 				onActivate: func() { btn.Activate() },
 			})
 		}
-		row++
+		row += 2
 		items = append(items, focusItem{
 			widget: w.color1.customBtn, row: row, col: 0,
 			section: "color1", isVisible: vis,
@@ -1406,15 +1444,15 @@ func (w *Window) rgbTabFocusItems() []focusItem {
 	// Color 2 presets.
 	if w.color2 != nil {
 		vis := func() bool { return controlsEnabled() && w.color2Box.IsVisible() }
-		for col, btn := range w.color2.presetBtns {
+		for i, btn := range w.color2.presetBtns {
 			btn := btn
 			items = append(items, focusItem{
-				widget: btn, row: row, col: col,
+				widget: btn, row: row + i/4, col: i % 4,
 				section: "color2", isVisible: vis,
 				onActivate: func() { btn.Activate() },
 			})
 		}
-		row++
+		row += 2
 		items = append(items, focusItem{
 			widget: w.color2.customBtn, row: row, col: 0,
 			section: "color2", isVisible: vis,
@@ -1545,21 +1583,21 @@ func (w *Window) buildColorFocusList() {
 		})
 	}
 
-	// Row 1: color presets.
-	for col, btn := range w.colorPickerPresets {
+	// Rows 1-2: color presets.
+	for i, btn := range w.colorPickerPresets {
 		btn := btn
 		items = append(items, focusItem{
-			widget: btn, row: 1, col: col,
+			widget: btn, row: 1 + i/4, col: i % 4,
 			section:    "presets",
 			onActivate: func() { btn.Activate() },
 		})
 	}
 
-	// Rows 2-4: HSL sliders (editable).
+	// Rows 3-5: HSL sliders (editable).
 	for i, sc := range []*gtk.Scale{w.colorHue, w.colorSat, w.colorLit} {
 		oL, oR, gV, sV := scaleAdjust(sc, 5)
 		items = append(items, focusItem{
-			widget: sc, row: 2 + i, col: 0,
+			widget: sc, row: 3 + i, col: 0,
 			section:  "sliders",
 			editable: true,
 			onLeft:   oL, onRight: oR,

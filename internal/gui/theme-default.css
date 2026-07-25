@@ -288,6 +288,18 @@ window.z13-drawer-window {
     color: alpha(@z13-text, 0.78);
 }
 
+.drawer .setting-description {
+    color: @z13-text-faint;
+}
+
+.drawer .card-sub.warning {
+    color: @z13-warning;
+}
+
+.drawer .secondary-metric {
+    opacity: 0.72;
+}
+
 .drawer .battery-summary-value {
     color: @z13-text;
 }
@@ -305,6 +317,7 @@ window.z13-drawer-window {
 .drawer .telemetry-stale .overview-value,
 .drawer .telemetry-stale .battery-summary-value,
 .drawer .telemetry-stale .battery-metric-value,
+.drawer .telemetry-stale .battery-bar,
 .drawer .telemetry-stale .pill,
 .drawer .telemetry-stale .card-sub,
 .drawer .telemetry-stale .memory-bar {
@@ -318,6 +331,24 @@ window.z13-drawer-window {
 }
 
 .drawer .memory-bar progress {
+    background: alpha(@z13-text, 0.55);
+    border-radius: 999px;
+}
+
+.drawer .memory-bar.warning progress {
+    background: @z13-warning;
+}
+
+.drawer .memory-bar.danger progress {
+    background: @z13-danger;
+}
+
+.drawer .battery-bar trough {
+    background: @z13-surface;
+    border-radius: 999px;
+}
+
+.drawer .battery-bar progress {
     background: linear-gradient(180deg, @z13-accent, shade(@z13-accent, 0.85));
     border-radius: 999px;
 }
@@ -404,6 +435,15 @@ window.z13-drawer-window {
 .drawer .color-preset:hover {
     border: 2px solid @z13-text;
     transform: scale(1.08);
+}
+
+.drawer .color-preset.selected {
+    border: 3px solid @z13-text;
+}
+
+.drawer .color-hex {
+    color: @z13-text;
+    font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
 }
 
 /* Bottom bar — palette menu button */

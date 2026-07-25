@@ -51,14 +51,17 @@ func TestFanStatus(t *testing.T) {
 }
 
 func TestTuningStatus(t *testing.T) {
-	if got := tuningStatus(&api.State{}); got != "TDP FIRMWARE · UV STOCK" {
+	if got := tuningStatus(&api.State{}); got != "CPU — · TDP FIRMWARE · UV STOCK" {
 		t.Fatalf("default tuningStatus() = %q", got)
 	}
 	state := &api.State{
-		TDPActive: true, TDP: &api.TDPState{PL1SPL: 55},
-		UndervoltActive: true, Undervolt: &api.UndervoltState{CPUCO: -20},
+		CPUPower:        &api.CPUPowerState{EPP: "balance_performance", Boost: true},
+		TDPActive:       true,
+		TDP:             &api.TDPState{PL1SPL: 55},
+		UndervoltActive: true,
+		Undervolt:       &api.UndervoltState{CPUCO: -20},
 	}
-	if got := tuningStatus(state); got != "TDP 55 W · UV -20" {
+	if got := tuningStatus(state); got != "CPU RESPONSIVE + BOOST · TDP 55 W · UV -20" {
 		t.Fatalf("tuningStatus() = %q", got)
 	}
 }
@@ -97,5 +100,16 @@ func TestFormatBatteryDecimal(t *testing.T) {
 		if got := formatBatteryDecimal(input); got != want {
 			t.Errorf("formatBatteryDecimal(%q) = %q, want %q", input, got, want)
 		}
+	}
+}
+
+func TestBrightnessLabel(t *testing.T) {
+	for level, want := range []string{"DARK · 0", "LOW · 1", "MEDIUM · 2", "HIGH · 3"} {
+		if got := brightnessLabel(level); got != want {
+			t.Errorf("brightnessLabel(%d) = %q, want %q", level, got, want)
+		}
+	}
+	if got := brightnessLabel(99); got != "HIGH · 3" {
+		t.Errorf("brightnessLabel clamps high value: %q", got)
 	}
 }
