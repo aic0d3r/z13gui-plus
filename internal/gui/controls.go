@@ -954,9 +954,6 @@ func (w *Window) buildBatteryHero() *gtk.Box {
 	w.battCapacityLabel = gtk.NewLabel("—")
 	w.battCapacityLabel.AddCSSClass("battery-summary-value")
 	header.Append(w.battCapacityLabel)
-	w.battPill = gtk.NewLabel("—")
-	w.battPill.AddCSSClass("pill")
-	header.Append(w.battPill)
 	card.Append(header)
 
 	statusRow := gtk.NewBox(gtk.OrientationHorizontal, 6)
@@ -967,6 +964,17 @@ func (w *Window) buildBatteryHero() *gtk.Box {
 	w.battStatusLabel.SetHExpand(true)
 	statusRow.Append(w.battStatusLabel)
 	card.Append(statusRow)
+
+	strategyRow := gtk.NewBox(gtk.OrientationHorizontal, 6)
+	stratCaption := gtk.NewLabel("STRATEGY")
+	stratCaption.SetHAlign(gtk.AlignStart)
+	stratCaption.SetHExpand(true)
+	stratCaption.AddCSSClass("battery-metric-label")
+	strategyRow.Append(stratCaption)
+	w.battPill = gtk.NewLabel("—")
+	w.battPill.AddCSSClass("pill")
+	strategyRow.Append(w.battPill)
+	card.Append(strategyRow)
 
 	energyRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
 	energyRow.SetHomogeneous(true)
