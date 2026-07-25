@@ -640,6 +640,11 @@ func (w *Window) setLightingEnabled(enabled bool) {
 	if enabled {
 		setActiveButton(w.modeButtons, activeButton(w.modeButtons, defaultMode))
 		w.syncModeVis()
+		// Floor brightness at the minimum visible level; a synced brightness
+		// of 0 (e.g. device was off) would otherwise re-apply as fully dark.
+		if w.brightScale != nil && w.brightScale.Value() == 0 {
+			w.brightScale.SetValue(1)
+		}
 		w.sendApply()
 		return
 	}
