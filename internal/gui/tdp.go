@@ -654,7 +654,7 @@ func (w *Window) sendTdp() error {
 		pl3 := fmt.Sprintf("%d", int(w.tdpPL3Scale.Value()))
 		maxPL := int(math.Max(w.tdpPL1Scale.Value(), math.Max(w.tdpPL2Scale.Value(), w.tdpPL3Scale.Value())))
 		force := maxPL > tdpMaxSafe
-		_, err := api.SendTdpSet("", pl1, pl2, pl3, force)
+		_, err := api.SendTdpSet(pl1, pl1, pl2, pl3, force)
 		return err
 	}
 	watts := fmt.Sprintf("%d", int(w.tdpBasicScale.Value()))
