@@ -61,6 +61,9 @@ func TestPresetSummary(t *testing.T) {
 	if got := presetSummary(preset); got != want {
 		t.Fatalf("presetSummary() = %q, want %q", got, want)
 	}
+	if got, want := compactPresetSummary(preset), "Balanced · Auto · 45/55/65 W"; got != want {
+		t.Fatalf("compactPresetSummary() = %q, want %q", got, want)
+	}
 }
 
 func TestCurrentSettingsSummaryUsesOverrideFlags(t *testing.T) {
@@ -82,7 +85,7 @@ func TestPresetUsageSeparatesActiveAndAssigned(t *testing.T) {
 		ActivePreset: "Daily",
 		PowerPolicy:  &api.PowerPolicy{ACPreset: "Daily", BatteryPreset: "Mobile"},
 	}
-	if got := presetUsage("Daily", state); got != "ACTIVE · WHEN PLUGGED IN" {
+	if got := presetUsage("Daily", state); got != "ACTIVE NOW · PLUGGED IN" {
 		t.Fatalf("presetUsage() = %q", got)
 	}
 	if !presetAssigned("Daily", state) || presetAssigned("Manual", state) {

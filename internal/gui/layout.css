@@ -24,6 +24,19 @@
     border-radius: 8px;
 }
 
+/* Compact navigation rows for automation assignments and saved presets. */
+.drawer .assignment-row,
+.drawer .preset-row {
+    min-height: 56px;
+    padding: 8px 10px;
+    border-radius: 8px;
+}
+
+.drawer .assignment-row .card-title,
+.drawer .preset-row .card-title {
+    margin-bottom: 0;
+}
+
 /* Confirmation dialog message text */
 .drawer .confirm-message {
     padding: 10px;
