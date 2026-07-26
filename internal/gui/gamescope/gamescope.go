@@ -279,13 +279,11 @@ func (b *Backend) scaledCSS() string {
 .drawer scale slider { min-width: %.0fpx; min-height: %.0fpx; }
 .drawer scale value { margin-bottom: %.0fpx; }
 .drawer-title { font-size: %.0fpx; letter-spacing: %.0fpx; }
-.section-group { font-size: %.0fpx; letter-spacing: %.0fpx; margin-top: %.0fpx; }
 .section-label { font-size: %.0fpx; letter-spacing: %.0fpx; margin-top: %.0fpx; margin-bottom: %.0fpx; }
 .scale-value { font-size: %.0fpx; margin-top: %.0fpx; margin-bottom: %.0fpx; }
 .scale-name { font-size: %.0fpx; margin-top: %.0fpx; }
 .color-swatch { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
 .color-preset { padding: 0; min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
-.bottom-bar button { min-width: %.0fpx; min-height: %.0fpx; padding: %.0fpx; border-radius: %.0fpx; }
 .accent-label { font-size: %.0fpx; letter-spacing: %.0fpx; }
 .accent-dot-active { border-width: %.0fpx; }
 .drawer .settings-row .toggle-label { font-size: %.0fpx; letter-spacing: %.1fpx; }
@@ -311,13 +309,11 @@ func (b *Backend) scaledCSS() string {
 		24*s, 24*s, // scale slider
 		6*s,       // scale value margin
 		11*s, 3*s, // drawer-title
-		13*s, 2*s, 2*s, // section-group
 		11*s, 1*s, 6*s, 2*s, // section-label
 		10*s, 2*s, 2*s, // scale-value
 		10*s, 4*s, // scale-name
 		40*s, 40*s, 6*s, // color-swatch
 		32*s, 32*s, 4*s, // color-preset
-		32*s, 32*s, 4*s, 6*s, // bottom-bar button
 		9*s, 1*s, // accent-label
 		2*s,         // accent-dot-active border
 		10*s, 0.5*s, // toggle-label

@@ -1153,13 +1153,6 @@ func sectionLabel(text string) *gtk.Label {
 }
 
 // groupLabel creates a section group heading (e.g. "TDP AND POWER", "RGB").
-func groupLabel(text string) *gtk.Label {
-	l := gtk.NewLabel(text)
-	l.SetHAlign(gtk.AlignStart)
-	l.AddCSSClass("section-group")
-	return l
-}
-
 // separator creates a horizontal separator line.
 func separator() *gtk.Separator {
 	return gtk.NewSeparator(gtk.OrientationHorizontal)
@@ -1174,7 +1167,6 @@ func separator() *gtk.Separator {
 type collapsibleHeader struct {
 	button  *gtk.ToggleButton
 	chevron *gtk.Image
-	suffix  *gtk.Label
 }
 
 // newCollapsibleHeader builds the header widget. The ToggleButton wraps a
@@ -1191,17 +1183,8 @@ func newCollapsibleHeader(label string, defaultOpen bool) *collapsibleHeader {
 	lbl := gtk.NewLabel(label)
 	lbl.AddCSSClass("section-collapse-label")
 	lbl.SetHAlign(gtk.AlignStart)
+	lbl.SetHExpand(true)
 	contents.Append(lbl)
-
-	spacer := gtk.NewBox(gtk.OrientationHorizontal, 0)
-	spacer.SetHExpand(true)
-	contents.Append(spacer)
-
-	h.suffix = gtk.NewLabel("")
-	h.suffix.AddCSSClass("collapse-suffix")
-	h.suffix.SetHAlign(gtk.AlignEnd)
-	h.suffix.SetVisible(false)
-	contents.Append(h.suffix)
 
 	h.button = gtk.NewToggleButton()
 	h.button.SetChild(contents)
@@ -1225,15 +1208,6 @@ func (h *collapsibleHeader) updateChevron() {
 }
 
 // SetSuffix shows or hides the trailing value label. Empty string hides it.
-func (h *collapsibleHeader) SetSuffix(s string) {
-	if s == "" {
-		h.suffix.SetVisible(false)
-	} else {
-		h.suffix.SetText(s)
-		h.suffix.SetVisible(true)
-	}
-}
-
 // collapsibleSection wraps a section label + content in a collapsible group.
 // Defaults to expanded. Header meets the 40px touch target floor.
 func collapsibleSection(label string, defaultOpen bool, content gtk.Widgetter) *gtk.Box {

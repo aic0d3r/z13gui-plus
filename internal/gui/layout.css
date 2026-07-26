@@ -12,8 +12,7 @@
     padding: 0;
 }
 
-/* Premium structural typography — Cantarell + Meslo numerals.
-   Mono stack is overridden per-widget via .card-value etc. */
+/* Premium structural typography — Cantarell + Meslo numerals. */
 .drawer, window.z13-drawer-window {
     font-feature-settings: "tnum" 0;
 }
@@ -109,13 +108,6 @@
     margin-bottom: 4px;
 }
 
-/* Card primary value — large mono (gauges, %s) */
-.drawer .card-value {
-    font-size: 22px;
-    font-weight: 700;
-    font-feature-settings: "tnum";
-}
-
 /* Card sub-row — secondary value */
 .drawer .card-sub {
     font-size: 12px;
@@ -200,16 +192,6 @@
     text-transform: uppercase;
 }
 
-/* Section group headings — larger, used for "POWER" / "RGB" / "SYSTEM" */
-.section-group {
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-top: 2px;
-    margin-bottom: 2px;
-}
-
 /* Section labels — small caps, 8px grid */
 .section-label {
     font-size: 10px;
@@ -269,15 +251,7 @@
     font-feature-settings: "tnum";
 }
 
-/* Bottom bar — palette and future gear button */
-.bottom-bar button {
-    min-width: 40px;
-    min-height: 40px;
-    padding: 4px;
-    border-radius: 8px;
-}
-
-/* Accent label in theme picker popover */
+/* Accent label in the theme picker */
 .accent-label {
     font-size: 9px;
     font-weight: 700;
@@ -289,25 +263,6 @@
 .accent-dot-active {
     border-width: 2px;
     border-style: solid;
-}
-
-/* Footer toggle labels — small, compact */
-.bottom-bar .toggle-label {
-    font-size: 10px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    font-weight: 600;
-}
-
-/* Footer switches — keep compact */
-.bottom-bar switch {
-    min-height: 22px;
-    min-width: 40px;
-}
-
-/* Scrolled container inside theme picker popover */
-popover.z13-popover scrolledwindow {
-    background: transparent;
 }
 
 /* Gamepad focus indicator — outline on the currently focused widget */
@@ -384,17 +339,6 @@ popover.z13-popover scrolledwindow {
 
 .drawer .card > .section-collapse .section-collapse-label {
     font-size: 13px;
-}
-
-/* Trailing value suffix on the header (e.g., "TURBO" next to "NPU POWER").
-   Right-aligned, smaller, dimmer so the label stays the primary readout. */
-.drawer .collapse-suffix {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: @z13-text-dim;
-    font-feature-settings: "tnum";
 }
 
 /* Overview tab — right-aligned mono values in the metrics grid. */

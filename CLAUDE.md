@@ -32,7 +32,7 @@ Makefile                        build, install, lint, clean, snapshot, release
 internal/gui/
   gui.go                        Window struct, backend selection, show/hide, subscribeLoop, theming
   backend.go                    Backend interface (Configure, WrapContent, Show, Hide)
-  controls.go                   All GTK widget construction (drawer, views, bottom bar)
+  controls.go                   All GTK widget construction (drawer and views)
   tdp.go                        Custom profile view: TDP sliders, fan curve editor, undervolt, telemetry
   sync.go                       Daemon state sync and API send functions
   color.go                      colorInput struct, HSL conversion, color picker view logic
@@ -141,17 +141,16 @@ The gamescope backend renders z13gui as an X11 overlay in Steam Gaming Mode.
 - **Popups don't work**: GTK4 popovers/dropdowns create separate X11 windows that
   gamescope doesn't composite. Solved via view switching (see below).
 
-### View switching (gamescope only)
+### View switching
 
 In both KDE and gamescope modes, `buildContent()` wraps content in a `gtk.Stack` with 4 pages:
 - `"main"` — normal drawer (profiles, RGB, battery, etc.)
 - `"custom"` — internal stack key for the Advanced Tuning view (TDP, fan curve,
   undervolt, telemetry); the user-facing profile is still physical
-- `"theme"` — theme picker (radio buttons + accent dots, replaces popover in gamescope)
-- `"color"` — HSL color picker (H/S/L sliders + presets + preview, replaces popover in gamescope)
+- `"theme"` — theme picker (radio buttons + accent dots)
+- `"color"` — HSL color picker (H/S/L sliders + presets + preview)
 
-Bottom bar stays visible across all views. `hide()` resets to "main".
-In KDE mode, theme/color views use popovers instead of stack pages.
+Both backends use these stack pages; no popovers are constructed. `hide()` resets to "main".
 
 ### Service environment
 

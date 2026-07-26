@@ -83,7 +83,6 @@ type Reader struct {
 	devices  map[string]*evdev.InputDevice // gamepad devices: read events + grab
 	grabOnly map[string]*evdev.InputDevice // Steam virtual gamepads: grab only
 	grabbed  bool                          // true while overlay is visible (exclusive grab)
-	stop     chan struct{}
 }
 
 // New creates a Reader. handler is called (via dispatch) for each action.
@@ -96,34 +95,20 @@ func New(handler Handler, isVisible func() bool, dispatch func(func())) *Reader 
 		dispatch:  dispatch,
 		devices:   make(map[string]*evdev.InputDevice),
 		grabOnly:  make(map[string]*evdev.InputDevice),
-		stop:      make(chan struct{}),
 	}
 }
 
-// Run scans for gamepad devices and reads events. Blocks until Stop is called.
+// Run scans for gamepad devices and reads events for the process lifetime.
 func (r *Reader) Run() {
 	r.scan()
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
-	for {
-		select {
-		case <-r.stop:
-			return
-		case <-ticker.C:
-			r.scan()
-		}
+	for range ticker.C {
+		r.scan()
 	}
 }
 
 // Stop terminates the reader and all device goroutines.
-func (r *Reader) Stop() {
-	select {
-	case <-r.stop:
-	default:
-		close(r.stop)
-	}
-}
-
 // GrabAll acquires exclusive access (EVIOCGRAB) on all tracked devices
 // so events are not delivered to other readers (e.g. the background game).
 // New devices discovered while grabbed are auto-grabbed in tryOpen.
@@ -358,12 +343,6 @@ func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
 	}
 
 	for {
-		select {
-		case <-r.stop:
-			return
-		default:
-		}
-
 		ev, err := dev.ReadOne()
 		if err != nil {
 			return // device disconnected
@@ -431,11 +410,6 @@ func (r *Reader) holdLoop(path string, dev *evdev.InputDevice) {
 	}()
 
 	for {
-		select {
-		case <-r.stop:
-			return
-		default:
-		}
 		_, err := dev.ReadOne()
 		if err != nil {
 			return // device disconnected

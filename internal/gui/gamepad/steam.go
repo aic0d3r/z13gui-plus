@@ -89,7 +89,6 @@ func ThawFrozen() {
 type SteamInputBlocker interface {
 	BlockSteam() int
 	UnblockSteam(pid int)
-	Close()
 }
 
 // NewSteamInputBlocker creates a SteamInputBlocker. Tries BPF LSM first
@@ -138,10 +137,6 @@ func (b *bpfBlocker) UnblockSteam(pid int) {
 	slog.Info("steam: BPF unblocked", "pid", pid)
 }
 
-func (b *bpfBlocker) Close() {
-	b.hb.Close()
-}
-
 // --- SIGSTOP fallback ---
 
 type sigstopBlocker struct{}
@@ -169,8 +164,6 @@ func (s *sigstopBlocker) UnblockSteam(pid int) {
 		slog.Info("steam: thawed", "pid", pid)
 	}
 }
-
-func (s *sigstopBlocker) Close() {}
 
 // findChildren returns PIDs of all direct child processes of ppid.
 func findChildren(ppid int) []int {

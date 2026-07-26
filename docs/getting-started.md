@@ -71,5 +71,5 @@ is present.
 The UI scales automatically to match the output resolution. Use `Z13GUI_SCALE`
 to override the auto-detected scale factor if the UI appears too large or small.
 
-Popups and dropdowns are replaced with full-view alternatives (theme picker,
-HSL color picker) because gamescope does not composite separate popup windows.
+Theme and color controls use full-view alternatives on every backend because
+gamescope does not composite separate popup windows.

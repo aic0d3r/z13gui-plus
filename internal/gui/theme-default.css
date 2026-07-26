@@ -72,12 +72,6 @@ window.z13-drawer-window {
     font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
 }
 
-/* Section group headings */
-.section-group {
-    color: @z13-text;
-    font-weight: 700;
-}
-
 /* Section labels */
 .section-label {
     color: @z13-text-faint;
@@ -244,14 +238,6 @@ window.z13-drawer-window {
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
-}
-
-/* Hero card primary value (large mono) */
-.drawer .card-value {
-    color: @z13-text;
-    font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
-    font-feature-settings: "tnum";
-    font-weight: 700;
 }
 
 /* Hero card secondary row */
@@ -446,81 +432,9 @@ window.z13-drawer-window {
     font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
 }
 
-/* Bottom bar — palette menu button */
-.bottom-bar menubutton > button {
-    background: @z13-surface;
-    color: @z13-text-dim;
-    border: 1px solid @z13-border;
-    font-weight: 700;
-    transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.bottom-bar menubutton > button:hover {
-    background: @z13-surface-alt;
-    color: @z13-text;
-    border-color: @z13-border-hi;
-}
-
-/* Popovers (theme picker, color chooser) — not inside .drawer */
-popover.z13-popover > contents {
-    background: @z13-surface;
-    color: @z13-text;
-    border: 1px solid @z13-border-hi;
-    border-radius: 10px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-}
-
-/* Checkbuttons inside popovers (theme radio list) */
-popover.z13-popover checkbutton {
-    color: @z13-text;
-    background: @z13-bg;
-    border: 1px solid @z13-border;
-}
-
-popover.z13-popover checkbutton:hover {
-    background: @z13-surface-alt;
-}
-
-popover.z13-popover checkbutton:checked {
-    background: linear-gradient(180deg, @z13-accent, shade(@z13-accent, 0.85));
-    color: #ffffff;
-    border-color: @z13-accent;
-}
-
-popover.z13-popover checkbutton indicator {
-    background: @z13-bg;
-    border: 1px solid @z13-border;
-    border-radius: 50%;
-}
-
-popover.z13-popover checkbutton:checked indicator {
-    background: @z13-accent;
-    border-color: @z13-accent;
-}
-
-/* Labels inside popovers */
-popover.z13-popover .section-label {
-    color: @z13-text-faint;
-}
-
-popover.z13-popover .accent-label {
-    color: @z13-text-faint;
-}
-
 /* Active accent dot — theme-aware border (visible on both dark and light) */
 .accent-dot-active {
     border-color: @z13-text;
-}
-
-/* DropDown (profile selector) */
-.drawer dropdown > button {
-    background: @z13-surface;
-    color: @z13-text;
-    border: 1px solid @z13-border;
-}
-
-.drawer dropdown > button:hover {
-    background: @z13-surface-alt;
 }
 
 /* Slider value label */
