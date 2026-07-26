@@ -36,12 +36,18 @@ internal/gui/
   tdp.go                        Custom profile view: TDP sliders, fan curve editor, undervolt, telemetry
   sync.go                       Daemon state sync and API send functions
   color.go                      colorInput struct, HSL conversion, color picker view logic
+  focus.go                      2D grid gamepad focus navigation + modal slider editing
   log.go                        Split-level slog handler (app vs GTK noise filtering)
   layout.css                    Embedded structural CSS (touch targets, sizing) — PRIORITY_APPLICATION
   theme-default.css             Embedded theme template with @define-color placeholders — PRIORITY_USER
   theme-default.toml            Embedded default theme colors (rog-dark), used by --print-theme
+internal/gui/fonts/
+  font.go                       Embedded Inter font loading
 internal/gui/layershell/
   layershell.go                 Layer-shell display backend (KDE/Wayland)
+internal/gui/gamepad/
+  gamepad.go                    evdev gamepad reader; device classification + EVIOCGRAB
+  steam.go                      Steam PID discovery; drives the hidraw blocker
 internal/gui/gamepad/hidblocker/
   hidblocker.go                 BPF LSM blocker: blocks hidraw reads for specific PIDs
   blocker.bpf.c                 BPF C program (SEC("lsm/file_permission"), returns -EAGAIN)
@@ -56,6 +62,9 @@ internal/theme/
   theme.go                      Theme types, TOML parsing, CSS generation, config persistence
   builtins.go                   15 built-in themes (8 dark, 7 light) with accent variants
   theme_test.go                 Theme parsing and CSS generation tests
+internal/togglegate/
+  togglegate.go                 Pure debounce helper for duplicate gui-toggle bursts
+  togglegate_test.go            Unit tests (pure Go, no GTK4)
 contrib/
   z13gui.service                systemd user service (EnvironmentFile for gamescope-session)
   z13gui.desktop                Desktop entry
@@ -89,11 +98,38 @@ contrib/
     would otherwise bleed onto that monitor because KWin doesn't clip layer-surface
     overflow to the assigned output. `Backend.margin`/`Backend.opacity` track current
     state; use `setMargin`/`setOpacity` to keep them in sync.
+- **Single instance / activate guard**: `gtk.NewApplication("com.github.dahui.z13gui", 0)`
+  registers the app on the session bus, so launching the binary a second time does not
+  start a second process — GApplication forwards `activate` to the running instance and
+  the new process exits. `main.go` therefore holds the `*gui.Window` and only calls
+  `gui.New` on first activation; re-activation calls `Toggle()` instead. Without that
+  guard each re-activation builds an entire second drawer (its own layer surface,
+  subscribe loop, gamepad reader, telemetry poller) overlapping the first, and both stay
+  live and interactive. One click on `contrib/z13gui.desktop` while the user service is
+  running is enough to trigger it. Diagnostic: two `drawer initialized` log lines under
+  a single PID means the guard is missing or broken.
 - **State source of truth**: daemon is the source of truth. On show, `api.SendGetState()`
   is called and `syncState()` updates widgets. Widget signals are suppressed during sync
   via `Window.syncing bool`.
 - **Subscribe loop**: background goroutine, exponential backoff reconnect, dispatches
-  `Toggle()` via `glib.IdleAdd`.
+  `Toggle()` onto the GTK main thread via `glib.TimeoutAdd(0, ...)` followed by
+  `MainContextDefault().Wakeup()` (the wakeup is required — the loop may deliver an
+  event while the main context is blocked).
+- **Toggle debounce**: on some firmware revisions a single Armoury Crate press reaches
+  the GUI as two `gui-toggle` events in the same instant, which cancel each other out
+  (an open drawer gets hide → show and appears stuck open). `subscribeLoop` gates events
+  through `togglegate.Accept(last, now, daemonToggleDebounce)` (leading edge: keep the
+  first event of a burst, drop the rest; the window does not extend on suppression).
+  **The window is 50ms and must stay well under ~120ms.** It is a duplicate filter, not
+  an animation rate limiter: measured human tapping bottoms out near 129ms between
+  presses, so a larger window discards deliberate input — the original 250ms swallowed
+  38% of presses in a 96-event sample from real use. If a future change wants to rate
+  limit the 200ms slide animation, do it in `Toggle()`/the backend, not here.
+  The debounce timestamp is a **local variable** in `subscribeLoop`, not a `Window`
+  field: every other piece of `Window` state is main-thread-owned, so keeping this one
+  out of the struct makes it unreachable from the main thread and removes any chance of
+  an unsynchronized read. Do not promote it to a field — reading it from `show()`/
+  `hide()` would be a data race, and `internal/gui` is not covered by `go test -race`.
 - **CSS architecture**:
   - `layout.css` → `STYLE_PROVIDER_PRIORITY_APPLICATION` (structural, not overridable)
   - `theme-default.css` → `STYLE_PROVIDER_PRIORITY_USER` (colors, user-overridable)
@@ -169,7 +205,12 @@ Functions used:
 - `api.SendBatteryLimitSet(limit int) (bool, error)`
 - `api.SendPanelOverdriveSet(value int) (bool, error)` — 0 or 1
 - `api.SendBootSoundSet(value int) (bool, error)` — 0 or 1
-- `api.SendTdpSet(watts, pl1, pl2, pl3 string, force bool) (bool, error)` — set TDP
+- `api.SendTdpSet(watts, pl1, pl2, pl3 string, force bool) (bool, error)` — set TDP.
+  **`watts` (the `set` field) is mandatory even in advanced mode.** The daemon's
+  `handleTDP` does `strconv.Atoi(req.Set)` before it looks at `pl1`/`pl2`/`pl3` and
+  rejects the request with `TDP value must be an integer` if it is empty. `watts` is
+  then used only as the default for any PL field left blank, so advanced mode passes
+  PL1 as the base value (`SendTdpSet(pl1, pl1, pl2, pl3, force)` in `sendTdp()`).
 - `api.SendTdpReset() (bool, error)` — reset TDP to firmware defaults
 - `api.SendFanCurveSet(curve string) (bool, error)` — set custom fan curve ("temp:pwm,..." format)
 - `api.SendFanCurveReset() (bool, error)` — reset fan curves to auto
@@ -225,6 +266,7 @@ The subscribe loop handles this with backoff retry.
 ```sh
 make build      # CGO_ENABLED=1 go build -o z13gui .
 sudo make install  # installs pre-built binary to /usr/local/bin/z13gui
+make test       # unit tests for the pure-Go packages (no GTK4 headers needed)
 make lint       # golangci-lint run ./...
 make clean      # rm z13gui
 make snapshot   # goreleaser local build (no publish)
@@ -232,6 +274,11 @@ make release    # goreleaser build + publish
 ```
 
 Requires at build time: `gtk4-layer-shell` C library (`pkg-config gtk4-layer-shell-0`).
+
+`make test` enumerates the pure-Go packages explicitly (`internal/theme`,
+`internal/togglegate`) rather than using `./...`, because `internal/gui` needs CGO and
+GTK4 headers. **Add new pure-Go packages to the `test` and `cover` targets** — otherwise
+their tests never run; there is no CI test job (the only workflow is release).
 
 ## Known GTK issues (do not re-introduce)
 
@@ -267,6 +314,8 @@ Feature-complete for both KDE and gamescope modes:
 - Gamescope X11 overlay with opacity-based visibility + keyboard grab + STEAM_INPUT_FOCUS
 - Touch activation workaround for gamescope (CAPTURE-phase GestureClick on CheckButton/Switch)
 - Pointer-inside guard for KDE focus-loss handling (spurious drop vs genuine click-outside)
+- 50ms duplicate filter on daemon `gui-toggle` events (`internal/togglegate`)
+- Single-instance activate guard (re-activation toggles instead of building a second drawer)
 - GTK_A11Y=none for systemd AT-SPI timeout prevention
 - RGB lighting controls (mode, color presets + custom chooser/HSL picker, speed, brightness)
 - Profile switching via buttons (quiet/balanced/performance/custom)

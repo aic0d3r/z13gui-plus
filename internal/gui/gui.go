@@ -17,6 +17,7 @@ import (
 	"github.com/dahui/z13gui/internal/gui/gamescope"
 	"github.com/dahui/z13gui/internal/gui/layershell"
 	"github.com/dahui/z13gui/internal/theme"
+	"github.com/dahui/z13gui/internal/togglegate"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
@@ -31,7 +32,20 @@ var defaultThemeCSS string
 //go:embed theme-default.toml
 var defaultThemeTOML string
 
-const drawerWidth = 320 // drawer panel width in pixels
+const (
+	drawerWidth = 320 // drawer panel width in pixels
+
+	// daemonToggleDebounce suppresses hardware-duplicated gui-toggle events: some
+	// firmware revisions report a single Armoury Crate press twice within the same
+	// evdev instant. It is deliberately NOT an animation rate limiter — deliberate
+	// rapid presses must all register.
+	//
+	// Sizing: measured human tapping on a Z13 bottoms out around 129ms between
+	// presses, so anything at or above ~120ms starts discarding real input (a 250ms
+	// window swallowed 38% of presses in a 96-event sample). 50ms leaves ~2.5x
+	// headroom below the human floor while still catching same-instant duplicates.
+	daemonToggleDebounce = 50 * time.Millisecond
+)
 
 // Window is the overlay drawer. All methods must be called from the GTK main
 // thread except subscribeLoop, which runs in a background goroutine.
@@ -472,6 +486,11 @@ func (w *Window) handleGamepadAction(action gamepad.Action) {
 // with exponential backoff.
 func (w *Window) subscribeLoop() {
 	backoff := time.Second
+	// Debounce state for duplicate gui-toggle bursts. Deliberately a local, not a
+	// Window field: every other piece of Window state is main-thread-owned, and
+	// keeping this out of the struct makes it unreachable from the main thread.
+	// Declared outside the reconnect loop so the window survives a reconnect.
+	var lastToggle time.Time
 	for {
 		ch, cancel, err := api.Subscribe([]string{"gui-toggle"})
 		if err != nil || ch == nil {
@@ -485,14 +504,22 @@ func (w *Window) subscribeLoop() {
 		slog.Info("daemon connected")
 		backoff = time.Second
 		for event := range ch {
-			if event == "gui-toggle" {
-				slog.Debug("gui-toggle received, dispatching")
-				glib.TimeoutAdd(0, func() bool {
-					w.Toggle()
-					return false
-				})
-				glib.MainContextDefault().Wakeup()
+			if event != "gui-toggle" {
+				continue
 			}
+			receivedAt := time.Now()
+			lastAccepted, ok := togglegate.Accept(lastToggle, receivedAt, daemonToggleDebounce)
+			if !ok {
+				slog.Debug("gui-toggle suppressed", "since", receivedAt.Sub(lastToggle))
+				continue
+			}
+			lastToggle = lastAccepted
+			slog.Debug("gui-toggle received, dispatching")
+			glib.TimeoutAdd(0, func() bool {
+				w.Toggle()
+				return false
+			})
+			glib.MainContextDefault().Wakeup()
 		}
 		cancel()
 	}

@@ -98,9 +98,22 @@ func main() {
 		os.Exit(0)
 	}()
 
+	// GApplication registers com.github.dahui.z13gui on the session bus, so a
+	// second launch of the binary does not start a second process: it forwards
+	// "activate" to the running instance and exits. Without this guard that fires
+	// gui.New again, building a second full drawer — its own layer surface,
+	// subscribe loop, gamepad reader and telemetry poller — overlapping the first.
+	// Launching from the desktop entry while the user service runs is enough to
+	// trigger it. On re-activation, toggle the existing drawer instead.
+	var win *gui.Window
 	app := gtk.NewApplication("com.github.dahui.z13gui", 0)
 	app.ConnectActivate(func() {
-		gui.New(app)
+		if win != nil {
+			slog.Info("re-activated, toggling existing drawer")
+			win.Toggle()
+			return
+		}
+		win = gui.New(app)
 	})
 	os.Exit(app.Run(gtkArgs))
 }
