@@ -83,11 +83,7 @@ jobs:
             fi
           fi
 
-          {
-            echo "version=$VERSION"
-            echo "sha256=$SHA256"
-            echo "pkgrel=$PKGREL"
-          } >> "$GITHUB_OUTPUT"
+          printf 'version=%s\nsha256=%s\npkgrel=%s\n' "$VERSION" "$SHA256" "$PKGREL" >> "$GITHUB_OUTPUT"
 
       - name: Patch PKGBUILD
         run: |
