@@ -27,11 +27,22 @@ var presetColors = []struct {
 	{"FFFFFF", "White"},
 }
 
+func newColorPresetButton(name, hex string, clicked func()) *gtk.Button {
+	btn := gtk.NewButton()
+	btn.AddCSSClass("color-preset")
+	btn.SetHExpand(true)
+	btn.SetTooltipText(fmt.Sprintf("%s · #%s", name, hex))
+	provider := gtk.NewCSSProvider()
+	provider.LoadFromString(fmt.Sprintf("button.color-preset { background: #%s; }", hex))
+	btn.StyleContext().AddProvider(provider, gtk.STYLE_PROVIDER_PRIORITY_USER+5) //nolint:staticcheck // per-widget dynamic color
+	btn.ConnectClicked(clicked)
+	return btn
+}
+
 // colorInput holds the current-color swatch, preset buttons, and a Custom
 // button that navigates to the HSL color picker view.
 type colorInput struct {
 	row        *gtk.Box      // entire color input container
-	swatch     *gtk.Box      // current-color square (CSS ID driven)
 	presetBtns []*gtk.Button // individual preset color buttons
 	customBtn  *gtk.Button   // "Custom" button (navigates to color view)
 	hexLabel   *gtk.Label    // current #RRGGBB value
@@ -44,25 +55,17 @@ type colorInput struct {
 func (w *Window) newColorInput(initialHex, swatchName, label string) *colorInput {
 	ci := &colorInput{hex: strings.ToUpper(initialHex), label: label}
 
-	ci.swatch = gtk.NewBox(gtk.OrientationHorizontal, 0)
-	ci.swatch.SetName(swatchName)
-	ci.swatch.AddCSSClass("color-swatch")
+	swatch := gtk.NewBox(gtk.OrientationHorizontal, 0)
+	swatch.SetName(swatchName)
+	swatch.AddCSSClass("color-swatch")
 
 	presetsGrid := gtk.NewGrid()
 	presetsGrid.SetColumnSpacing(4)
 	presetsGrid.SetRowSpacing(4)
 	presetsGrid.SetColumnHomogeneous(true)
 	for i, preset := range presetColors {
-		h := preset.hex
-		btn := gtk.NewButton()
-		btn.AddCSSClass("color-preset")
-		btn.SetHExpand(true)
-		btn.SetTooltipText(fmt.Sprintf("%s · #%s", preset.name, h))
-		p := gtk.NewCSSProvider()
-		p.LoadFromString(fmt.Sprintf("button.color-preset { background: #%s; }", h))
-		btn.StyleContext().AddProvider(p, gtk.STYLE_PROVIDER_PRIORITY_USER+5) //nolint:staticcheck // per-widget dynamic color
-		btn.ConnectClicked(func() {
-			ci.hex = h
+		btn := newColorPresetButton(preset.name, preset.hex, func() {
+			ci.hex = preset.hex
 			w.updateSwatches()
 			w.sendApply()
 		})
@@ -81,7 +84,7 @@ func (w *Window) newColorInput(initialHex, swatchName, label string) *colorInput
 	ci.hexLabel.AddCSSClass("color-hex")
 	ci.hexLabel.SetHExpand(true)
 	controlsRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
-	controlsRow.Append(ci.swatch)
+	controlsRow.Append(swatch)
 	controlsRow.Append(ci.hexLabel)
 	controlsRow.Append(ci.customBtn)
 	ci.row.Append(controlsRow)

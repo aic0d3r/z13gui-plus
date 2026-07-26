@@ -36,10 +36,10 @@ type Backend struct {
 }
 
 // New creates a layer-shell backend. drawerWidth is the drawer panel width in pixels.
-func New(appWin *gtk.ApplicationWindow, gtkWin *gtk.Window, drawerWidth int) *Backend {
+func New(appWin *gtk.ApplicationWindow, drawerWidth int) *Backend {
 	return &Backend{
 		appWin:       appWin,
-		gtkWin:       gtkWin,
+		gtkWin:       &appWin.Window,
 		drawerWidth:  drawerWidth,
 		hiddenMargin: -(drawerWidth - 1),
 		margin:       -(drawerWidth - 1),

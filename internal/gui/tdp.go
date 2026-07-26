@@ -5,6 +5,7 @@ package gui
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/dahui/z13ctl/api"
@@ -59,18 +60,8 @@ func (fc *fanCurveEditor) curveString() string {
 // enforceConstraints ensures temps are strictly increasing and PWM non-decreasing.
 func (fc *fanCurveEditor) enforceConstraints(idx int) {
 	// Clamp the dragged point first.
-	if fc.points[idx].Temp < 35 {
-		fc.points[idx].Temp = 35
-	}
-	if fc.points[idx].Temp > 105 {
-		fc.points[idx].Temp = 105
-	}
-	if fc.points[idx].PWM < 0 {
-		fc.points[idx].PWM = 0
-	}
-	if fc.points[idx].PWM > 255 {
-		fc.points[idx].PWM = 255
-	}
+	fc.points[idx].Temp = min(max(fc.points[idx].Temp, 35), 105)
+	fc.points[idx].PWM = min(max(fc.points[idx].PWM, 0), 255)
 
 	// Cascade temps forward (must be strictly increasing).
 	for i := idx + 1; i < 8; i++ {
@@ -98,18 +89,8 @@ func (fc *fanCurveEditor) enforceConstraints(idx int) {
 	}
 	// Final clamp pass.
 	for i := range fc.points {
-		if fc.points[i].Temp < 35 {
-			fc.points[i].Temp = 35
-		}
-		if fc.points[i].Temp > 105 {
-			fc.points[i].Temp = 105
-		}
-		if fc.points[i].PWM < 0 {
-			fc.points[i].PWM = 0
-		}
-		if fc.points[i].PWM > 255 {
-			fc.points[i].PWM = 255
-		}
+		fc.points[i].Temp = min(max(fc.points[i].Temp, 35), 105)
+		fc.points[i].PWM = min(max(fc.points[i].PWM, 0), 255)
 	}
 }
 
@@ -121,24 +102,10 @@ func (fc *fanCurveEditor) pwmToY(pwm int) float64 {
 	return fc.chartY + fc.chartH - (float64(pwm)/255.0)*fc.chartH // inverted
 }
 func (fc *fanCurveEditor) xToTemp(x float64) int {
-	t := 35 + int(math.Round((x-fc.chartX)/fc.chartW*70.0))
-	if t < 35 {
-		t = 35
-	}
-	if t > 105 {
-		t = 105
-	}
-	return t
+	return min(max(35+int(math.Round((x-fc.chartX)/fc.chartW*70.0)), 35), 105)
 }
 func (fc *fanCurveEditor) yToPWM(y float64) int {
-	p := int(math.Round((fc.chartY + fc.chartH - y) / fc.chartH * 255.0))
-	if p < 0 {
-		p = 0
-	}
-	if p > 255 {
-		p = 255
-	}
-	return p
+	return min(max(int(math.Round((fc.chartY+fc.chartH-y)/fc.chartH*255.0)), 0), 255)
 }
 
 // hitTest returns the index of the point nearest to (x,y) within tolerance, or -1.
@@ -386,21 +353,8 @@ func (w *Window) tuningActionRow(save **gtk.Button, saveLabel string, onSave fun
 func (w *Window) buildCustomView() *gtk.Box {
 	view := gtk.NewBox(gtk.OrientationVertical, 0)
 
-	// Header: back button + title.
-	w.customBackBtn = gtk.NewButton()
-	w.customBackBtn.SetIconName("go-previous-symbolic")
-	w.customBackBtn.AddCSSClass("view-back-btn")
-	w.customBackBtn.ConnectClicked(func() { w.showMainView() })
-
-	header := gtk.NewBox(gtk.OrientationHorizontal, 8)
-	header.SetMarginTop(10)
-	header.SetMarginBottom(6)
-	header.SetMarginStart(14)
-	header.Append(w.customBackBtn)
-	lbl := gtk.NewLabel("Power Tuning")
-	lbl.SetHAlign(gtk.AlignStart)
-	lbl.AddCSSClass("drawer-title")
-	header.Append(lbl)
+	header, back, _ := viewHeader("Power Tuning", func() { w.showMainView() })
+	w.customBackBtn = back
 	view.Append(header)
 
 	content := gtk.NewBox(gtk.OrientationVertical, 8)
@@ -459,11 +413,11 @@ func (w *Window) buildCustomView() *gtk.Box {
 	w.tdpAdvancedBox = gtk.NewBox(gtk.OrientationVertical, 4)
 	w.tdpAdvancedBox.SetVisible(false)
 
-	w.tdpWarningLabel = gtk.NewLabel("Values above 75W may throttle or damage hardware. Use caution.")
-	w.tdpWarningLabel.SetWrap(true)
-	w.tdpWarningLabel.SetHAlign(gtk.AlignStart)
-	w.tdpWarningLabel.AddCSSClass("tdp-warning")
-	w.tdpAdvancedBox.Append(w.tdpWarningLabel)
+	tdpWarningLabel := gtk.NewLabel("Values above 75W may throttle or damage hardware. Use caution.")
+	tdpWarningLabel.SetWrap(true)
+	tdpWarningLabel.SetHAlign(gtk.AlignStart)
+	tdpWarningLabel.AddCSSClass("tdp-warning")
+	w.tdpAdvancedBox.Append(tdpWarningLabel)
 
 	w.tdpPL1Scale, w.tdpPL1Label = w.buildTdpScale("PL1 (SPL)", "Sustained power limit — the long-term average power the CPU targets.")
 	w.tdpPL2Scale, w.tdpPL2Label = w.buildTdpScale("PL2 (SPPT)", "Short boost — maximum power during brief burst workloads.")
@@ -490,7 +444,7 @@ func (w *Window) buildCustomView() *gtk.Box {
 	// TDP inline actions.
 	content.Append(w.tuningActionRow(&w.saveTdpBtn, "Save TDP", w.saveCustomTdp, &w.resetTdpBtn, "Reset TDP", w.resetTdp))
 
-	content.Append(separator())
+	content.Append(gtk.NewSeparator(gtk.OrientationHorizontal))
 
 	// --- UNDERVOLT (own section; hidden when unavailable) ---
 	w.uvBox = gtk.NewBox(gtk.OrientationVertical, 4)
@@ -507,7 +461,7 @@ func (w *Window) buildCustomView() *gtk.Box {
 	w.uvBox.Append(w.tuningActionRow(&w.saveUvBtn, "Save UV", w.saveUndervolt, &w.resetUvBtn, "Reset UV", w.resetUndervolt))
 	content.Append(w.uvBox)
 
-	content.Append(separator())
+	content.Append(gtk.NewSeparator(gtk.OrientationHorizontal))
 
 	// --- FAN CURVE ---
 	fanHdr, fanMark := sectionHeader("FAN CURVE")
@@ -534,7 +488,7 @@ func (w *Window) buildCustomView() *gtk.Box {
 			"Reset All",
 			"custom",
 			false,
-			func() { w.resetAllOverrides() },
+			func() { w.runStateAction("reset all tuning overrides", api.SendTuningReset) },
 		)
 	})
 	content.Append(w.resetAllBtn)
@@ -624,10 +578,7 @@ func (w *Window) syncCustomView() {
 	if w.state.TDP != nil {
 		tdp := w.state.TDP
 		if w.tdpBasicScale != nil {
-			v := float64(tdp.PL1SPL)
-			if v > tdpMaxBasic {
-				v = tdpMaxBasic
-			}
+			v := min(float64(tdp.PL1SPL), tdpMaxBasic)
 			w.tdpBasicScale.SetValue(v)
 			w.tdpBasicLabel.SetLabel(fmt.Sprintf("%d W", int(v)))
 		}
@@ -756,12 +707,7 @@ func (w *Window) fanDirty() bool {
 	if w.state == nil || w.state.FanCurve == nil || len(w.state.FanCurve.Points) != 8 {
 		return w.fanCurve.points != defaultFanCurve()
 	}
-	for i := 0; i < 8; i++ {
-		if w.fanCurve.points[i] != w.state.FanCurve.Points[i] {
-			return true
-		}
-	}
-	return false
+	return !slices.Equal(w.fanCurve.points[:], w.state.FanCurve.Points)
 }
 
 // uvDirty reports whether the Curve Optimizer slider differs from the saved state.
@@ -847,10 +793,6 @@ func (w *Window) resetUndervolt() {
 	w.showConfirmation("Reset Undervolt", "Reset Curve Optimizer to stock (0)?", "Reset", "custom", false, func() {
 		w.runStateAction("reset undervolt override", api.SendUndervoltReset)
 	})
-}
-
-func (w *Window) resetAllOverrides() {
-	w.runStateAction("reset all tuning overrides", api.SendTuningReset)
 }
 
 // startTelemetryPolling keeps live telemetry and power automation state current

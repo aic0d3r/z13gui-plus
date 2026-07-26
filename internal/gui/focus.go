@@ -375,20 +375,8 @@ func (w *Window) ensureVisible(widget gtk.Widgetter) {
 // scaleAdjust returns onLeft/onRight/getValue/setValue functions for a slider.
 func scaleAdjust(sc *gtk.Scale, step float64) (onLeft, onRight func(), getValue func() float64, setValue func(float64)) {
 	adj := sc.Adjustment()
-	onLeft = func() {
-		v := adj.Value() - step
-		if v < adj.Lower() {
-			v = adj.Lower()
-		}
-		adj.SetValue(v)
-	}
-	onRight = func() {
-		v := adj.Value() + step
-		if v > adj.Upper() {
-			v = adj.Upper()
-		}
-		adj.SetValue(v)
-	}
+	onLeft = func() { adj.SetValue(max(adj.Value()-step, adj.Lower())) }
+	onRight = func() { adj.SetValue(min(adj.Value()+step, adj.Upper())) }
 	getValue = func() float64 { return adj.Value() }
 	setValue = func(v float64) { adj.SetValue(v) }
 	return

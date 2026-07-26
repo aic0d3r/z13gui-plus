@@ -99,7 +99,6 @@ func (w *Window) buildOverviewHero() *gtk.Box {
 	card.Append(powerRow)
 
 	box.Append(card)
-	w.overviewHero = box
 	return box
 }
 
@@ -238,19 +237,15 @@ const (
 
 // formatNPU renders power first because it distinguishes low-power background
 // clients from real computation better than the driver's raw column occupancy.
-func formatNPU(available bool, util int, powerW float64) (status, detail string) {
+func formatNPU(available bool, util int, powerW float64) string {
 	if !available {
-		return "UNAVAILABLE", "NO DATA"
+		return "NO DATA"
 	}
 	if util == 0 && powerW == 0 {
-		return "IDLE", "0.0 W"
+		return "0.0 W"
 	}
 	if powerW <= 0 {
-		return "LOW POWER", "POWER N/A"
+		return "POWER N/A"
 	}
-	status = "LOW POWER"
-	if powerW >= npuActivePowerW {
-		status = "ACTIVE"
-	}
-	return status, fmt.Sprintf("%.1f W", powerW)
+	return fmt.Sprintf("%.1f W", powerW)
 }

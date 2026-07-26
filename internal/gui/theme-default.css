@@ -176,7 +176,6 @@ window.z13-drawer-window {
     background: @z13-surface;
     color: @z13-text;
     border: 1px solid @z13-border;
-    font-weight: 700;
     transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -202,7 +201,6 @@ window.z13-drawer-window {
     color: @z13-text-faint;
     border: 1px solid transparent;
     transition: all 220ms cubic-bezier(0.4, 0, 0.2, 1);
-    font-weight: 700;
 }
 
 .drawer .main-tab-row button:hover {
@@ -245,32 +243,23 @@ window.z13-drawer-window {
 /* Mode grid buttons — slightly taller, more important */
 .drawer .mode-grid.btn-group button {
     min-height: 42px;
-    font-weight: 700;
 }
 
 /* Premium card — used for hero widgets (battery, gauges) */
 .drawer .card {
     background: linear-gradient(180deg, @z13-surface-hi, @z13-surface-alt);
     border: 1px solid @z13-border;
-    border-radius: 12px;
-    padding: 10px;
 }
 
 /* Hero card title */
 .drawer .card-title {
     color: alpha(@z13-text, 0.85);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
 }
 
 /* Hero card secondary row */
 .drawer .card-sub {
     color: @z13-text-dim;
     font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
-    font-feature-settings: "tnum";
-    font-size: 12px;
 }
 
 .drawer .overview-metric {
@@ -368,13 +357,7 @@ window.z13-drawer-window {
 .drawer .pill {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid @z13-border-hi;
-    border-radius: 999px;
-    padding: 3px 10px;
     color: @z13-text-dim;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
 }
 
 .drawer .pill.success {
@@ -410,7 +393,6 @@ window.z13-drawer-window {
 .fan-curve-area {
     background: linear-gradient(180deg, @z13-surface-alt, @z13-surface);
     border: 1px solid @z13-border-hi;
-    border-radius: 8px;
 }
 
 /* Sliders — fat touch targets, premium trough */
@@ -466,7 +448,6 @@ window.z13-drawer-window {
 .drawer scale value {
     color: @z13-text;
     font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
-    font-feature-settings: "tnum";
 }
 
 /* Toggle rows and switches */

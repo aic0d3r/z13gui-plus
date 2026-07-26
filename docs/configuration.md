@@ -23,14 +23,8 @@ You can edit this file by hand. Changes take effect the next time z13gui starts.
 
 ## Theme priority
 
-z13gui resolves its theme using the following priority chain (first match wins):
-
-1. `~/.config/z13gui/theme.toml` — custom color definitions
-2. `~/.config/z13gui/theme.css` — full CSS override
-3. `~/.config/z13gui/config.toml` `theme = "id"` — built-in theme selection
-4. Compiled-in default (ROG Dark)
-
-See [Theming](theming.md) for the full theming guide.
+See [Theme priority](theming.md#theme-priority) for the resolution order and
+custom-theme behavior.
 
 ---
 

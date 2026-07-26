@@ -100,7 +100,6 @@ func (w *Window) buildMainTabRow() *gtk.Box {
 		{"system", "System"},
 	}
 	for _, t := range tabs {
-		t := t
 		btn := gtk.NewButtonWithLabel(t.label)
 		btn.SetHExpand(true)
 		btn.ConnectClicked(func() { w.switchTab(t.name) })
@@ -325,20 +324,8 @@ func (w *Window) buildToggle(label, tooltip string, sw **gtk.Switch, onChange fu
 func (w *Window) buildThemeView() *gtk.Box {
 	view := gtk.NewBox(gtk.OrientationVertical, 0)
 
-	w.themeBackBtn = gtk.NewButton()
-	w.themeBackBtn.SetIconName("go-previous-symbolic")
-	w.themeBackBtn.AddCSSClass("view-back-btn")
-	w.themeBackBtn.ConnectClicked(func() { w.showMainView() })
-
-	header := gtk.NewBox(gtk.OrientationHorizontal, 8)
-	header.SetMarginTop(10)
-	header.SetMarginBottom(6)
-	header.SetMarginStart(14)
-	header.Append(w.themeBackBtn)
-	lbl := gtk.NewLabel("Theme")
-	lbl.SetHAlign(gtk.AlignStart)
-	lbl.AddCSSClass("drawer-title")
-	header.Append(lbl)
+	header, back, _ := viewHeader("Theme", func() { w.showMainView() })
+	w.themeBackBtn = back
 	view.Append(header)
 
 	content := gtk.NewBox(gtk.OrientationVertical, 6)
@@ -436,7 +423,6 @@ func (w *Window) appendAccentDots(box *gtk.Box, accents []theme.Accent, isActive
 	var dots []*gtk.Button
 	var row *gtk.Box
 	for i, ac := range accents {
-		ac := ac
 		if i%dotsPerRow == 0 {
 			row = gtk.NewBox(gtk.OrientationHorizontal, 4)
 			dotsGrid.Append(row)
@@ -497,24 +483,16 @@ func (w *Window) buildColorPickerView() *gtk.Box {
 	presetsGrid.SetRowSpacing(4)
 	presetsGrid.SetColumnHomogeneous(true)
 	for i, preset := range presetColors {
-		h := preset.hex
-		btn := gtk.NewButton()
-		btn.AddCSSClass("color-preset")
-		btn.SetHExpand(true)
-		btn.SetTooltipText(fmt.Sprintf("%s · #%s", preset.name, h))
-		p := gtk.NewCSSProvider()
-		p.LoadFromString(fmt.Sprintf("button.color-preset { background: #%s; }", h))
-		btn.StyleContext().AddProvider(p, gtk.STYLE_PROVIDER_PRIORITY_USER+5) //nolint:staticcheck // per-widget dynamic color
-		btn.ConnectClicked(func() { w.colorPickerPresetClicked(h) })
+		btn := newColorPresetButton(preset.name, preset.hex, func() { w.colorPickerPresetClicked(preset.hex) })
 		w.colorPickerPresets = append(w.colorPickerPresets, btn)
 		presetsGrid.Attach(btn, i%4, i/4, 1, 1)
 	}
 	content.Append(presetsGrid)
 
 	// HSL sliders.
-	w.colorHue = w.buildHSLScale("HUE", 0, 360)
-	w.colorSat = w.buildHSLScale("SATURATION", 0, 100)
-	w.colorLit = w.buildHSLScale("LIGHTNESS", 0, 100)
+	w.colorHue = w.buildHSLScale(0, 360)
+	w.colorSat = w.buildHSLScale(0, 100)
+	w.colorLit = w.buildHSLScale(0, 100)
 
 	content.Append(hslScaleBox("HUE", w.colorHue))
 	content.Append(hslScaleBox("SATURATION", w.colorSat))
@@ -527,16 +505,16 @@ func (w *Window) buildColorPickerView() *gtk.Box {
 		gtk.STYLE_PROVIDER_PRIORITY_USER+10,
 	)
 
-	w.colorPreview = gtk.NewBox(gtk.OrientationHorizontal, 0)
-	w.colorPreview.AddCSSClass("color-preview")
-	w.colorPreview.SetName("color-picker-preview")
+	colorPreview := gtk.NewBox(gtk.OrientationHorizontal, 0)
+	colorPreview.AddCSSClass("color-preview")
+	colorPreview.SetName("color-picker-preview")
 
 	w.colorHexLabel = gtk.NewLabel("#FF0000")
 	w.colorHexLabel.AddCSSClass("scale-value")
 
 	previewRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
 	previewRow.SetMarginTop(4)
-	previewRow.Append(w.colorPreview)
+	previewRow.Append(colorPreview)
 	w.colorHexLabel.SetHExpand(true)
 	previewRow.Append(w.colorHexLabel)
 	content.Append(previewRow)
@@ -552,7 +530,7 @@ func (w *Window) buildColorPickerView() *gtk.Box {
 }
 
 // buildHSLScale creates a Scale for an HSL component.
-func (w *Window) buildHSLScale(_ string, lo, hi float64) *gtk.Scale {
+func (w *Window) buildHSLScale(lo, hi float64) *gtk.Scale {
 	sc := gtk.NewScaleWithRange(gtk.OrientationHorizontal, lo, hi, 1)
 	sc.SetDigits(0)
 	sc.SetDrawValue(true)
@@ -706,10 +684,8 @@ func (w *Window) buildModeSection() *gtk.Box {
 	return box
 }
 
-// setActiveButton removes .active from all buttons in the map and adds it
-// to the button matching the given key. Used for button groups that replaced
-// radio buttons (profiles, modes, speeds).
-func setActiveButton(btns map[string]*gtk.Button, active string) {
+// setActiveButton marks only the button matching the given key active.
+func setActiveButton[K comparable](btns map[K]*gtk.Button, active K) {
 	for k, b := range btns {
 		if k == active {
 			b.AddCSSClass("active")
@@ -731,7 +707,6 @@ func (w *Window) buildButtonGroup(
 	row.AddCSSClass("btn-group")
 	row.SetHomogeneous(true)
 	for _, opt := range options {
-		opt := opt
 		btn := gtk.NewButtonWithLabel(strings.Title(opt)) //nolint:staticcheck // strings.Title is fine for ASCII-only mode/speed/profile labels
 		btn.ConnectClicked(func() {
 			setActiveButton(dst, opt)
@@ -761,9 +736,9 @@ func (w *Window) buildBrightnessBox() *gtk.Box {
 	title := sectionLabel("BRIGHTNESS")
 	title.SetHExpand(true)
 	header.Append(title)
-	w.brightValueLabel = gtk.NewLabel(brightnessLabel(3))
-	w.brightValueLabel.AddCSSClass("scale-value")
-	header.Append(w.brightValueLabel)
+	valueLabel := gtk.NewLabel(brightnessLabel(3))
+	valueLabel.AddCSSClass("scale-value")
+	header.Append(valueLabel)
 	box.Append(header)
 
 	sc := gtk.NewScaleWithRange(gtk.OrientationHorizontal, 0, 3, 1)
@@ -772,7 +747,7 @@ func (w *Window) buildBrightnessBox() *gtk.Box {
 	sc.SetValue(3)
 	sc.SetFocusable(false)
 	sc.ConnectValueChanged(func() {
-		w.brightValueLabel.SetLabel(brightnessLabel(int(sc.Value())))
+		valueLabel.SetLabel(brightnessLabel(int(sc.Value())))
 		w.queueApply()
 	})
 	w.brightScale = sc
@@ -859,7 +834,6 @@ func (w *Window) buildBatteryPresets() *gtk.Box {
 	row.AddCSSClass("btn-group")
 	row.SetHomogeneous(true)
 	for _, p := range batteryPresets {
-		p := p
 		btn := gtk.NewButtonWithLabel(fmt.Sprintf("%s %d%%", p.label, p.pct))
 		btn.ConnectClicked(func() {
 			if w.syncing {
@@ -886,7 +860,6 @@ func (w *Window) buildFanPresetSection() *gtk.Box {
 	row.AddCSSClass("btn-group")
 	row.SetHomogeneous(true)
 	for _, name := range fanPresets {
-		name := name
 		btn := gtk.NewButtonWithLabel(strings.Title(name)) //nolint:staticcheck // ASCII-only preset labels
 		btn.ConnectClicked(func() {
 			if w.syncing {
@@ -923,7 +896,6 @@ func (w *Window) buildRefreshRateSection() *gtk.Box {
 	row.AddCSSClass("btn-group")
 	row.SetHomogeneous(true)
 	for _, hz := range refreshRates {
-		hz := hz
 		btn := gtk.NewButtonWithLabel(fmt.Sprintf("%d Hz", hz))
 		btn.ConnectClicked(func() {
 			if w.syncing {
@@ -931,12 +903,12 @@ func (w *Window) buildRefreshRateSection() *gtk.Box {
 			}
 			w.pendingRefreshRate = hz
 			w.refreshPendingUntil = time.Now().Add(5 * time.Second)
-			setActiveIntButton(w.refreshBtns, hz)
+			setActiveButton(w.refreshBtns, hz)
 			w.runStateActionQuiet("refresh rate", func() (bool, error) {
 				return api.SendRefreshRateSet(hz)
 			}, func() {
 				if w.pendingRefreshRate != 0 {
-					setActiveIntButton(w.refreshBtns, w.pendingRefreshRate)
+					setActiveButton(w.refreshBtns, w.pendingRefreshRate)
 					w.displaySummary.SetLabel(fmt.Sprintf("%d HZ", w.pendingRefreshRate))
 				}
 			}, func() {
@@ -950,17 +922,6 @@ func (w *Window) buildRefreshRateSection() *gtk.Box {
 	}
 	box.Append(row)
 	return box
-}
-
-// setActiveIntButton is the int-keyed variant of setActiveButton.
-func setActiveIntButton(btns map[int]*gtk.Button, active int) {
-	for k, b := range btns {
-		if k == active {
-			b.AddCSSClass("active")
-		} else {
-			b.RemoveCSSClass("active")
-		}
-	}
 }
 
 // buildBatteryHero builds the Overview battery card with capacity, status,
@@ -1039,7 +1000,6 @@ func (w *Window) buildBatteryHero() *gtk.Box {
 	card.Append(capacityRow)
 
 	box.Append(card)
-	w.batteryHero = box
 	return box
 }
 
@@ -1095,7 +1055,6 @@ func (w *Window) buildAdvancedTuningSection() *gtk.Box {
 	grid.SetColumnHomogeneous(true)
 	grid.AddCSSClass("btn-group")
 	for i, option := range cpuEPPs {
-		option := option
 		btn := gtk.NewButtonWithLabel(option.label)
 		btn.ConnectClicked(func() {
 			if !w.syncing {
@@ -1114,7 +1073,7 @@ func (w *Window) buildAdvancedTuningSection() *gtk.Box {
 	boostDetail.SetWrap(true)
 	boostDetail.AddCSSClass("setting-description")
 	content.Append(boostDetail)
-	content.Append(separator())
+	content.Append(gtk.NewSeparator(gtk.OrientationHorizontal))
 	w.tuningBtn = gtk.NewButtonWithLabel("Open Power Tuning")
 	w.tuningBtn.AddCSSClass("action-btn")
 	w.tuningBtn.ConnectClicked(func() { w.showCustomView() })
@@ -1150,11 +1109,6 @@ func sectionLabel(text string) *gtk.Label {
 	l.SetHAlign(gtk.AlignStart)
 	l.AddCSSClass("section-label")
 	return l
-}
-
-// separator creates a horizontal separator line.
-func separator() *gtk.Separator {
-	return gtk.NewSeparator(gtk.OrientationHorizontal)
 }
 
 // newCollapsibleHeader builds a toggle with an expansion-state chevron.
@@ -1319,7 +1273,6 @@ func (w *Window) rgbTabFocusItems() []focusItem {
 
 	// Device tabs — horizontal row.
 	for col, btn := range []*gtk.CheckButton{w.tabKB, w.tabLB} {
-		btn := btn
 		items = append(items, focusItem{
 			widget: btn, row: row, col: col,
 			section:    "tabs",
@@ -1353,7 +1306,6 @@ func (w *Window) rgbTabFocusItems() []focusItem {
 	if w.color1 != nil {
 		vis := func() bool { return controlsEnabled() && w.color1Box.IsVisible() }
 		for i, btn := range w.color1.presetBtns {
-			btn := btn
 			items = append(items, focusItem{
 				widget: btn, row: row + i/4, col: i % 4,
 				section: "color1", isVisible: vis,
@@ -1373,7 +1325,6 @@ func (w *Window) rgbTabFocusItems() []focusItem {
 	if w.color2 != nil {
 		vis := func() bool { return controlsEnabled() && w.color2Box.IsVisible() }
 		for i, btn := range w.color2.presetBtns {
-			btn := btn
 			items = append(items, focusItem{
 				widget: btn, row: row + i/4, col: i % 4,
 				section: "color2", isVisible: vis,
@@ -1473,7 +1424,6 @@ func (w *Window) buildThemeFocusList() {
 
 	row := 1
 	for i, btn := range w.themeRadios {
-		btn := btn
 		items = append(items, focusItem{
 			widget: btn, row: row, col: 0,
 			section:    "theme",
@@ -1484,7 +1434,6 @@ func (w *Window) buildThemeFocusList() {
 		// Accent dots for this theme.
 		if i < len(w.themeDots) && len(w.themeDots[i]) > 0 {
 			for j, dot := range w.themeDots[i] {
-				dot := dot
 				items = append(items, focusItem{
 					widget: dot, row: row + j/dotsPerRow, col: j % dotsPerRow,
 					section:    "theme",
@@ -1513,7 +1462,6 @@ func (w *Window) buildColorFocusList() {
 
 	// Rows 1-2: color presets.
 	for i, btn := range w.colorPickerPresets {
-		btn := btn
 		items = append(items, focusItem{
 			widget: btn, row: 1 + i/4, col: i % 4,
 			section:    "presets",

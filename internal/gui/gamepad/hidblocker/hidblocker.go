@@ -22,13 +22,10 @@ type Blocker struct {
 	link link.Link
 }
 
-// ErrLSMNotAvailable is returned when BPF LSM is not enabled in the kernel.
-var ErrLSMNotAvailable = errors.New("BPF LSM not available: bpf not in /sys/kernel/security/lsm")
-
 // New loads the BPF program and attaches it to the file_permission LSM hook.
 func New() (*Blocker, error) {
 	if !lsmEnabled() {
-		return nil, ErrLSMNotAvailable
+		return nil, errors.New("BPF LSM not available: bpf not in /sys/kernel/security/lsm")
 	}
 
 	major, err := hidrawMajor()

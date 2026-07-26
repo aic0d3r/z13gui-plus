@@ -5,8 +5,9 @@ package gui
 import (
 	"fmt"
 	"log/slog"
+	"maps"
 	"reflect"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/dahui/z13ctl/api"
@@ -267,7 +268,6 @@ func (w *Window) rebuildPresetRows() {
 	row += 3
 
 	for _, name := range sortedPresetNames(w.state.Presets) {
-		name := name
 		preset := w.state.Presets[name]
 		button := gtk.NewButton()
 		button.AddCSSClass("preset-row")
@@ -443,7 +443,6 @@ func (w *Window) showPresetChooser(target string) {
 	}
 	w.chooserFocusItems = w.chooserFocusItems[:1]
 	for i, name := range sortedPresetNames(w.state.Presets) {
-		name := name
 		button := gtk.NewButtonWithLabel(name + "\n" + compactPresetSummary(w.state.Presets[name]))
 		selected := ""
 		if w.state.PowerPolicy != nil {
@@ -547,12 +546,7 @@ func (w *Window) returnFromConfirmation() {
 }
 
 func sortedPresetNames(presets map[string]api.Preset) []string {
-	names := make([]string, 0, len(presets))
-	for name := range presets {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names
+	return slices.Sorted(maps.Keys(presets))
 }
 
 func currentPolicyEnabled(state *api.State) bool {

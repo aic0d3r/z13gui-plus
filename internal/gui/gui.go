@@ -51,13 +51,12 @@ const (
 // thread except subscribeLoop, which runs in a background goroutine.
 type Window struct {
 	win       *gtk.ApplicationWindow
-	gtkWin    *gtk.Window // alias for backend calls
-	backend   Backend     // display backend (layer-shell or gamescope)
-	gamescope bool        // true when running under gamescope (X11 overlay mode)
-	state     *api.State  // latest daemon state; nil until first successful fetch
-	tab       string      // active device tab: "keyboard" or "lightbar"
-	activeTab string      // active main tab: "overview", "power", "rgb", "system" (persisted)
-	visible   bool        // true when the drawer is on-screen or animating in
+	backend   Backend    // display backend (layer-shell or gamescope)
+	gamescope bool       // true when running under gamescope (X11 overlay mode)
+	state     *api.State // latest daemon state; nil until first successful fetch
+	tab       string     // active device tab: "keyboard" or "lightbar"
+	activeTab string     // active main tab: "overview", "power", "rgb", "system" (persisted)
+	visible   bool       // true when the drawer is on-screen or animating in
 
 	swatchProvider *gtk.CSSProvider // dynamic swatch background colors
 	themeProvider  *gtk.CSSProvider // current theme; replaced on applyTheme()
@@ -81,7 +80,6 @@ type Window struct {
 	rgbEffectCard       *gtk.Box
 	speedBtns           map[string]*gtk.Button
 	brightScale         *gtk.Scale
-	brightValueLabel    *gtk.Label
 	profileBtns         map[string]*gtk.Button
 	profileSummary      *gtk.Label
 	tuningHeader        *gtk.ToggleButton
@@ -148,7 +146,6 @@ type Window struct {
 
 	// Premium hero widgets — battery card (Overview tab).
 	// Power tab telemetry gauges removed; live stats live on Overview tab only.
-	batteryHero       *gtk.Box         // container for the Overview battery card
 	battCapacityLabel *gtk.Label       // battery percentage
 	battStatusLabel   *gtk.Label       // charging / source status
 	battProgress      *gtk.ProgressBar // current charge percentage
@@ -164,7 +161,6 @@ type Window struct {
 
 	// Overview tab — full live telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
 	overviewScroll      *gtk.ScrolledWindow
-	overviewHero        *gtk.Box   // container for the Overview tab hero header
 	cpuTempValue        *gtk.Label // CPU temperature (Overview)
 	gpuTempValue        *gtk.Label // GPU temperature (Overview)
 	cpuUtilValue        *gtk.Label // CPU utilisation %
@@ -197,7 +193,6 @@ type Window struct {
 	tdpPL1Label        *gtk.Label
 	tdpPL2Label        *gtk.Label
 	tdpPL3Label        *gtk.Label
-	tdpWarningLabel    *gtk.Label
 	fanCurve           *fanCurveEditor
 	saveTdpBtn         *gtk.Button
 	saveFanBtn         *gtk.Button
@@ -236,7 +231,6 @@ type Window struct {
 	colorHue           *gtk.Scale          // H: 0-360
 	colorSat           *gtk.Scale          // S: 0-100
 	colorLit           *gtk.Scale          // L: 0-100
-	colorPreview       *gtk.Box            // swatch preview in color view
 	colorHexLabel      *gtk.Label          // hex display in color view
 	colorSwatchProv    *gtk.CSSProvider    // color picker preview swatch CSS
 	paletteBtn         *gtk.Button         // theme button in bottom bar
@@ -286,13 +280,13 @@ func New(app *gtk.Application) *Window {
 
 	w.win = gtk.NewApplicationWindow(app)
 	w.win.AddCSSClass("z13-drawer-window")
-	w.gtkWin = &w.win.Window
+	gtkWin := &w.win.Window
 
 	// Select display backend.
 	if w.gamescope {
-		w.backend = gamescope.New(w.win, w.gtkWin, drawerWidth)
+		w.backend = gamescope.New(w.win, drawerWidth)
 	} else {
-		w.backend = layershell.New(w.win, w.gtkWin, drawerWidth)
+		w.backend = layershell.New(w.win, drawerWidth)
 	}
 
 	w.backend.Configure(func() bool { return w.visible }, w.hide)
@@ -335,7 +329,7 @@ func New(app *gtk.Application) *Window {
 			w.hideGamepadFocus()
 		}
 	})
-	w.gtkWin.AddController(motion)
+	gtkWin.AddController(motion)
 
 	// Block arrow keys from reaching child widgets. GTK4 uses arrow keys
 	// to navigate radio groups (auto-activating them) and adjust scales.
@@ -349,7 +343,7 @@ func New(app *gtk.Application) *Window {
 		}
 		return false
 	})
-	w.gtkWin.AddController(keyBlock)
+	gtkWin.AddController(keyBlock)
 
 	slog.Info("drawer initialized")
 	return w

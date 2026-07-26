@@ -5,12 +5,6 @@ import (
 	"testing"
 )
 
-func TestLsmEnabled(t *testing.T) {
-	// Just verify it doesn't panic — result depends on kernel config.
-	result := lsmEnabled()
-	t.Logf("lsmEnabled: %v", result)
-}
-
 func TestHidrawMajor(t *testing.T) {
 	major, err := hidrawMajor()
 	if err != nil {

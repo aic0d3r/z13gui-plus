@@ -5,7 +5,6 @@ After=graphical-session.target
 PartOf=graphical-session.target
 
 [Service]
-Type=simple
 ExecStart=z13gui
 Environment=GTK_A11Y=none
 EnvironmentFile=-%t/gamescope-environment

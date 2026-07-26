@@ -27,7 +27,6 @@ theme:
     - navigation.top
     - search.suggest
     - search.highlight
-    - content.tabs.link
     - content.code.copy
 
 markdown_extensions:
@@ -39,7 +38,6 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
   - tables
-  - attr_list
 
 nav:
   - Home: index.md

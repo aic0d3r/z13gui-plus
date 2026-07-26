@@ -78,18 +78,16 @@ type Backend struct {
 	xid      C.ulong
 	ready    bool // true after realize extracts XID
 
-	outputWidth  int     // from realize; used in WrapContent for sizing
 	outputHeight int     // from realize; used in WrapContent for margins
-	scale        float64 // outputWidth / 1280, clamped [1.0, 3.0]
-	panel        *gtk.Box
+	scale        float64 // monitor width / referenceWidth, clamped [minScale, maxScale]
 	onDismiss    func()
 }
 
 // New creates a gamescope backend. drawerWidth is the drawer panel width in pixels.
-func New(appWin *gtk.ApplicationWindow, gtkWin *gtk.Window, drawerWidth int) *Backend {
+func New(appWin *gtk.ApplicationWindow, drawerWidth int) *Backend {
 	return &Backend{
 		appWin:      appWin,
-		gtkWin:      gtkWin,
+		gtkWin:      &appWin.Window,
 		drawerWidth: drawerWidth,
 	}
 }
@@ -119,13 +117,12 @@ func (b *Backend) Configure(_ func() bool, onDismiss func()) {
 		b.xid = C.surface_get_xid(unsafe.Pointer(surface.Native()))           //nolint:govet // GObject pointer is C-heap-allocated and pinned; uintptr→unsafe.Pointer is safe
 		b.ready = true
 
-		// Store output dimensions for WrapContent (which runs after realize).
+		// Store output height for WrapContent (which runs after realize).
 		// Compute a UI scale so the drawer occupies the same physical
 		// screen fraction as KDE at 150% (~18.75% of screen width).
 		// Z13GUI_SCALE env var overrides auto-detection.
 		if monitor := display.MonitorAtSurface(surface); monitor != nil {
 			geo := monitor.Geometry()
-			b.outputWidth = geo.Width()
 			b.outputHeight = geo.Height()
 			if envScale := os.Getenv("Z13GUI_SCALE"); envScale != "" {
 				if v, err := strconv.ParseFloat(envScale, 64); err == nil && v > 0 {
@@ -144,7 +141,7 @@ func (b *Backend) Configure(_ func() bool, onDismiss func()) {
 			slog.Info("gamescope: sized to monitor", "w", geo.Width(), "h", geo.Height(), "scale", b.scale)
 		}
 
-		b.setAtom("STEAM_OVERLAY", true)
+		b.setCardinal("STEAM_OVERLAY", 1)
 		b.setCardinal("_NET_WM_WINDOW_OPACITY", 0) // start hidden
 		slog.Info("gamescope: overlay atom set", "xid", uint64(b.xid))
 	})
@@ -189,8 +186,7 @@ func (b *Backend) WrapContent(drawer gtk.Widgetter) gtk.Widgetter {
 	if scaledWidth < b.drawerWidth {
 		scaledWidth = b.drawerWidth
 	}
-	b.panel = gtk.NewBox(gtk.OrientationVertical, 0)
-	panel := b.panel
+	panel := gtk.NewBox(gtk.OrientationVertical, 0)
 	panel.SetSizeRequest(scaledWidth, -1)
 	panel.SetHExpand(false)
 
@@ -227,7 +223,7 @@ func (b *Backend) Show() {
 	slog.Debug("gamescope: Show enter", "ready", b.ready)
 	if b.ready {
 		b.setCardinal("_NET_WM_WINDOW_OPACITY", fullOpacity)
-		b.setAtom("STEAM_INPUT_FOCUS", true)
+		b.setCardinal("STEAM_INPUT_FOCUS", 1)
 		kbResult := C.grab_keyboard(b.xdisplay, b.xid)
 		slog.Debug("gamescope: overlay shown", "grabKB", int(kbResult))
 	} else {
@@ -241,7 +237,7 @@ func (b *Backend) Hide() {
 	slog.Debug("gamescope: Hide enter", "ready", b.ready)
 	if b.ready {
 		C.ungrab_keyboard(b.xdisplay)
-		b.setAtom("STEAM_INPUT_FOCUS", false)
+		b.setCardinal("STEAM_INPUT_FOCUS", 0)
 		b.setCardinal("_NET_WM_WINDOW_OPACITY", 0)
 		slog.Debug("gamescope: overlay hidden")
 	}
@@ -252,15 +248,6 @@ func (b *Backend) setCardinal(name string, value uint32) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	C.set_cardinal(b.xdisplay, b.xid, cname, C.uint32_t(value))
-}
-
-// setAtom sets or clears a boolean CARDINAL atom (0 or 1).
-func (b *Backend) setAtom(name string, on bool) {
-	v := uint32(0)
-	if on {
-		v = 1
-	}
-	b.setCardinal(name, v)
 }
 
 // scaledCSS returns CSS rules that override layout.css pixel values scaled by

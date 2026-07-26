@@ -32,7 +32,7 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.release)
     steps:
       - name: Install dependencies
-        run: pacman -Syu --noconfirm git base-devel go gtk4 gtk4-layer-shell gobject-introspection
+        run: pacman -Syu --noconfirm git base-devel gtk4 gtk4-layer-shell gobject-introspection
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -83,9 +83,11 @@ jobs:
             fi
           fi
 
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "sha256=$SHA256"   >> "$GITHUB_OUTPUT"
-          echo "pkgrel=$PKGREL"   >> "$GITHUB_OUTPUT"
+          {
+            echo "version=$VERSION"
+            echo "sha256=$SHA256"
+            echo "pkgrel=$PKGREL"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Patch PKGBUILD
         run: |
@@ -96,19 +98,18 @@ jobs:
       - name: Generate .SRCINFO
         run: |
           docker run --rm -v "$PWD/contrib/aur:/pkg" archlinux:latest \
-            bash -c "pacman -Sy --noconfirm pacman-contrib && useradd -m builder && chown -R builder /pkg && su builder -c 'cd /pkg && makepkg --printsrcinfo > .SRCINFO'"
+            bash -c "useradd -m builder && chown -R builder /pkg && su builder -c 'cd /pkg && makepkg --printsrcinfo > .SRCINFO'"
 
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.AUR_KEY }}" > ~/.ssh/aur
           chmod 600 ~/.ssh/aur
-          for i in $(seq 1 100); do
-            ssh-keyscan -t ed25519,ecdsa,rsa aur.archlinux.org >> ~/.ssh/known_hosts 2>/dev/null && break
-            DELAY=$(( (10 + (i - 1) * 5) < 30 ? (10 + (i - 1) * 5) : 30 ))
-            echo "Keyscan attempt $i failed, retrying in ${DELAY}s..."
-            sleep "$DELAY"
+          for _ in 1 2 3; do
+            ssh-keyscan -t ed25519,ecdsa,rsa aur.archlinux.org >> ~/.ssh/known_hosts && break
+            sleep 5
           done
+          test -s ~/.ssh/known_hosts
           cat >> ~/.ssh/config <<'EOF'
           Host aur.archlinux.org
             IdentityFile ~/.ssh/aur
@@ -117,28 +118,24 @@ jobs:
 
       - name: Push to AUR
         run: |
-          for i in $(seq 1 100); do
-            git clone ssh://aur@aur.archlinux.org/z13gui-bin.git /tmp/aur-repo && break
-            DELAY=$(( (10 + (i - 1) * 5) < 30 ? (10 + (i - 1) * 5) : 30 ))
-            echo "Clone attempt $i failed, retrying in ${DELAY}s..."
+          for _ in 1 2 3; do
             rm -rf /tmp/aur-repo
-            sleep "$DELAY"
+            git clone ssh://aur@aur.archlinux.org/z13gui-bin.git /tmp/aur-repo && break
+            sleep 5
           done
+          test -d /tmp/aur-repo/.git
           cp contrib/aur/PKGBUILD contrib/aur/.SRCINFO /tmp/aur-repo/
-          [ -f contrib/aur/z13gui-bin.install ] && cp contrib/aur/z13gui-bin.install /tmp/aur-repo/
+          cp contrib/aur/z13gui-bin.install /tmp/aur-repo/
           cd /tmp/aur-repo
           git config user.name "z13gui Release Bot"
           git config user.email "noreply@github.com"
           git add -A
           git diff --cached --quiet && echo "No changes to push" && exit 0
           git commit -m "Update to ${{ github.event.inputs.tag || github.ref_name }}"
-          for i in $(seq 1 100); do
+          for _ in 1 2 3; do
             git push && exit 0
-            DELAY=$(( (10 + (i - 1) * 5) < 30 ? (10 + (i - 1) * 5) : 30 ))
-            echo "Push attempt $i failed, retrying in ${DELAY}s..."
-            sleep "$DELAY"
+            sleep 5
           done
-          echo "All push attempts failed"
           exit 1
 
   docs:
@@ -156,12 +153,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
-
-      - uses: actions/cache@v4
-        with:
-          key: mkdocs-material-${{ hashFiles('requirements.txt') }}
-          path: .cache
-          restore-keys: mkdocs-material-
 
       - name: Install MkDocs Material
         run: pip install -r requirements.txt

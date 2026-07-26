@@ -24,15 +24,15 @@ const (
 )
 
 // modeVis defines which subsections are visible for a given lighting mode.
-type modeVis struct{ color1, color2, speed, brightness bool }
+type modeVis struct{ color1, color2, speed bool }
 
 // modeVisMap maps lighting mode names to their subsection visibility.
 var modeVisMap = map[string]modeVis{
-	"static":  {true, false, false, true},
-	"breathe": {true, true, true, true},
-	"cycle":   {false, false, true, true},
-	"rainbow": {false, false, true, true},
-	"strobe":  {true, false, true, true},
+	"static":  {true, false, false},
+	"breathe": {true, true, true},
+	"cycle":   {false, false, true},
+	"rainbow": {false, false, true},
+	"strobe":  {true, false, true},
 }
 
 // activeButton returns the key of the button with the .active CSS class,
@@ -50,7 +50,6 @@ func setOnOffSummary(label *gtk.Label, active bool) {
 	if label == nil {
 		return
 	}
-	label.RemoveCSSClass("success")
 	if active {
 		label.SetLabel("ON")
 	} else {
@@ -65,10 +64,7 @@ func (w *Window) syncModeVis() {
 	if w.rgbEffectSummary != nil {
 		w.rgbEffectSummary.SetLabel(strings.ToUpper(mode))
 	}
-	v, ok := modeVisMap[mode]
-	if !ok {
-		v = modeVis{true, true, true, true}
-	}
+	v := modeVisMap[mode]
 	if w.color1Box != nil {
 		w.color1Box.SetVisible(v.color1)
 	}
@@ -77,9 +73,6 @@ func (w *Window) syncModeVis() {
 	}
 	if w.speedBox != nil {
 		w.speedBox.SetVisible(v.speed)
-	}
-	if w.brightBox != nil {
-		w.brightBox.SetVisible(v.brightness)
 	}
 }
 
@@ -231,7 +224,7 @@ func (w *Window) syncBattery() {
 	if w.state == nil {
 		return
 	}
-	setActiveIntButton(w.battPresetBtns, w.state.Battery)
+	setActiveButton(w.battPresetBtns, w.state.Battery)
 	if w.batterySummary != nil {
 		w.batterySummary.SetLabel(batteryStrategySummary(w.state.Battery))
 	}
@@ -362,14 +355,14 @@ func (w *Window) syncRefreshRate() {
 		if w.state.RefreshRate == w.pendingRefreshRate || time.Now().After(w.refreshPendingUntil) {
 			w.pendingRefreshRate = 0
 		} else {
-			setActiveIntButton(w.refreshBtns, w.pendingRefreshRate)
+			setActiveButton(w.refreshBtns, w.pendingRefreshRate)
 			if w.displaySummary != nil {
 				w.displaySummary.SetLabel(fmt.Sprintf("%d HZ", w.pendingRefreshRate))
 			}
 			return
 		}
 	}
-	setActiveIntButton(w.refreshBtns, w.state.RefreshRate)
+	setActiveButton(w.refreshBtns, w.state.RefreshRate)
 	if w.displaySummary != nil {
 		if _, ok := w.refreshBtns[w.state.RefreshRate]; ok {
 			w.displaySummary.SetLabel(fmt.Sprintf("%d HZ", w.state.RefreshRate))
@@ -434,7 +427,6 @@ func (w *Window) syncOverviewTelemetry() {
 			status = "NORMAL"
 		}
 		w.overviewStatus.SetLabel(status)
-		w.overviewStatus.RemoveCSSClass("success")
 		w.overviewStatus.RemoveCSSClass("warning")
 		w.overviewStatus.RemoveCSSClass("danger")
 		if class != "" {
@@ -489,8 +481,7 @@ func (w *Window) syncOverviewTelemetry() {
 		w.overviewGPUClock.SetLabel(formatGHz(t.GPUClockMHz))
 	}
 	if w.overviewNPUPower != nil {
-		_, detail := formatNPU(t.NPUAvailable, t.NPUUtil, t.NPUPowerW)
-		w.overviewNPUPower.SetLabel(detail)
+		w.overviewNPUPower.SetLabel(formatNPU(t.NPUAvailable, t.NPUUtil, t.NPUPowerW))
 		w.overviewNPUPower.RemoveCSSClass("npu-high")
 		w.overviewNPUPower.RemoveCSSClass("npu-dim")
 		if t.NPUAvailable && t.NPUPowerW < npuActivePowerW {
@@ -640,9 +631,9 @@ func (w *Window) updateBatteryHero(b *api.BatteryState) {
 	}
 	if w.battPill != nil {
 		// Threshold preset chip: 100=Standard, 80=Balanced, <80=Max Life.
-		w.battPill.RemoveCSSClass("success")
 		w.battPill.RemoveCSSClass("warning")
 		w.battPill.RemoveCSSClass("accent")
+		w.battPill.RemoveCSSClass("success")
 		var label, cls string
 		switch {
 		case b.ThresholdPct >= 100:
@@ -669,9 +660,7 @@ func formatBatteryDecimal(value string) string {
 
 // formatBatteryRuntime renders an estimated runtime as "Xh Ym".
 func formatBatteryRuntime(hours float64) string {
-	if hours < 0 {
-		hours = 0
-	}
+	hours = max(hours, 0)
 	h := int(hours)
 	m := int((hours - float64(h)) * 60)
 	return fmt.Sprintf("%dh %dm", h, m)

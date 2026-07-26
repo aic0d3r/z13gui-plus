@@ -2,10 +2,6 @@ version: 2
 
 project_name: z13gui
 
-before:
-  hooks:
-    - go mod tidy
-
 builds:
   - id: z13gui
     binary: z13gui
@@ -43,8 +39,6 @@ nfpms:
     maintainer: "Jeff Hagadorn <noreply@github.com>"
     description: GTK4 overlay GUI companion for z13ctl
     license: Apache-2.0
-    provides:
-      - z13gui
     dependencies:
       - gtk4
       - gtk4-layer-shell
