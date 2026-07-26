@@ -33,21 +33,30 @@ var defaultThemeCSS string
 var defaultThemeTOML string
 
 const (
-	drawerWidth          = 320 // drawer panel width in pixels
-	daemonToggleDebounce = 250 * time.Millisecond
+	drawerWidth = 320 // drawer panel width in pixels
+
+	// daemonToggleDebounce suppresses hardware-duplicated gui-toggle events: some
+	// firmware revisions report a single Armoury Crate press twice within the same
+	// evdev instant. It is deliberately NOT an animation rate limiter — deliberate
+	// rapid presses must all register.
+	//
+	// Sizing: measured human tapping on a Z13 bottoms out around 129ms between
+	// presses, so anything at or above ~120ms starts discarding real input (a 250ms
+	// window swallowed 38% of presses in a 96-event sample). 50ms leaves ~2.5x
+	// headroom below the human floor while still catching same-instant duplicates.
+	daemonToggleDebounce = 50 * time.Millisecond
 )
 
 // Window is the overlay drawer. All methods must be called from the GTK main
 // thread except subscribeLoop, which runs in a background goroutine.
 type Window struct {
-	win              *gtk.ApplicationWindow
-	gtkWin           *gtk.Window // alias for backend calls
-	backend          Backend     // display backend (layer-shell or gamescope)
-	gamescope        bool        // true when running under gamescope (X11 overlay mode)
-	state            *api.State  // latest daemon state; nil until first successful fetch
-	tab              string      // active device tab: "keyboard" or "lightbar"
-	visible          bool        // true when the drawer is on-screen or animating in
-	lastDaemonToggle time.Time   // last accepted gui-toggle event from the daemon; suppresses duplicate bursts
+	win       *gtk.ApplicationWindow
+	gtkWin    *gtk.Window // alias for backend calls
+	backend   Backend     // display backend (layer-shell or gamescope)
+	gamescope bool        // true when running under gamescope (X11 overlay mode)
+	state     *api.State  // latest daemon state; nil until first successful fetch
+	tab       string      // active device tab: "keyboard" or "lightbar"
+	visible   bool        // true when the drawer is on-screen or animating in
 
 	swatchProvider *gtk.CSSProvider // dynamic swatch background colors
 	themeProvider  *gtk.CSSProvider // current theme; replaced on applyTheme()
@@ -358,6 +367,11 @@ func (w *Window) handleGamepadAction(action gamepad.Action) {
 // with exponential backoff.
 func (w *Window) subscribeLoop() {
 	backoff := time.Second
+	// Debounce state for duplicate gui-toggle bursts. Deliberately a local, not a
+	// Window field: every other piece of Window state is main-thread-owned, and
+	// keeping this out of the struct makes it unreachable from the main thread.
+	// Declared outside the reconnect loop so the window survives a reconnect.
+	var lastToggle time.Time
 	for {
 		ch, cancel, err := api.Subscribe([]string{"gui-toggle"})
 		if err != nil || ch == nil {
@@ -375,12 +389,12 @@ func (w *Window) subscribeLoop() {
 				continue
 			}
 			receivedAt := time.Now()
-			lastAccepted, ok := togglegate.Accept(w.lastDaemonToggle, receivedAt, daemonToggleDebounce)
+			lastAccepted, ok := togglegate.Accept(lastToggle, receivedAt, daemonToggleDebounce)
 			if !ok {
-				slog.Warn("gui-toggle suppressed", "since", receivedAt.Sub(w.lastDaemonToggle))
+				slog.Debug("gui-toggle suppressed", "since", receivedAt.Sub(lastToggle))
 				continue
 			}
-			w.lastDaemonToggle = lastAccepted
+			lastToggle = lastAccepted
 			slog.Debug("gui-toggle received, dispatching")
 			glib.TimeoutAdd(0, func() bool {
 				w.Toggle()

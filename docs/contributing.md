@@ -72,11 +72,17 @@ make lint      # run golangci-lint
 make test      # run unit tests (pure Go, no GTK4 required)
 ```
 
-Tests are in `internal/theme` (pure Go, no hardware or GTK4 dependency). GUI
-packages are integration-tested manually against hardware.
+Tests live in the pure-Go packages (`internal/theme`, `internal/togglegate`) — no
+hardware or GTK4 dependency. GUI packages are integration-tested manually against
+hardware.
 
-Pull requests must pass both `make build` and `make lint` without errors, and
-should include tests for any changes to `internal/theme`.
+`make test` lists those packages explicitly instead of using `./...`, since
+`internal/gui` requires CGO and GTK4 headers. If you add a new pure-Go package with
+tests, add it to the `test` and `cover` targets in the Makefile or its tests will
+never run.
+
+Pull requests must pass `make build`, `make lint`, and `make test` without errors,
+and should include tests for any changes to the pure-Go packages.
 
 ---
 
@@ -84,6 +90,7 @@ should include tests for any changes to `internal/theme`.
 
 - `internal/theme` — fully unit-testable; covers color parsing, CSS generation,
   config persistence, and all 78 built-in theme/accent combinations
+- `internal/togglegate` — pure debounce helper for duplicate `gui-toggle` bursts
 - `internal/gui` — requires GTK4; integration-tested manually against hardware
 - Display backends (layershell, gamescope) — require a compositor or gamescope;
   no automated tests
