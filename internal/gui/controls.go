@@ -1122,14 +1122,14 @@ func (w *Window) buildAdvancedTuningSection() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
 	box.AddCSSClass("card")
 	header := newCollapsibleHeader("CPU & POWER TUNING", false)
-	box.Append(header.button)
+	box.Append(header)
 	w.tuningSummary = gtk.NewLabel("CPU — · TDP FIRMWARE · UV STOCK")
 	w.tuningSummary.SetHAlign(gtk.AlignStart)
 	w.tuningSummary.SetWrap(true)
 	w.tuningSummary.AddCSSClass("preset-summary")
 	box.Append(w.tuningSummary)
 	content.SetVisible(false)
-	header.button.ConnectToggled(func() { content.SetVisible(header.button.Active()) })
+	header.ConnectToggled(func() { content.SetVisible(header.Active()) })
 	box.Append(content)
 	w.tuningHeader = header
 	return box
@@ -1152,33 +1152,17 @@ func sectionLabel(text string) *gtk.Label {
 	return l
 }
 
-// groupLabel creates a section group heading (e.g. "TDP AND POWER", "RGB").
 // separator creates a horizontal separator line.
 func separator() *gtk.Separator {
 	return gtk.NewSeparator(gtk.OrientationHorizontal)
 }
 
-// collapsibleHeader is the clickable header row of a collapsible section.
-// Layout: [chevron] [LABEL] ............ [suffix]
-// The chevron rotates between expanded (pan-down) and collapsed (pan-end).
-// The suffix is optional and can be updated at runtime — used to show the
-// current value (e.g., "TURBO" for NPU power mode) so the user can see
-// the state without expanding.
-type collapsibleHeader struct {
-	button  *gtk.ToggleButton
-	chevron *gtk.Image
-}
-
-// newCollapsibleHeader builds the header widget. The ToggleButton wraps a
-// custom child box so we control the icon + label + suffix layout precisely.
-func newCollapsibleHeader(label string, defaultOpen bool) *collapsibleHeader {
-	h := &collapsibleHeader{}
-
+// newCollapsibleHeader builds a toggle with an expansion-state chevron.
+func newCollapsibleHeader(label string, defaultOpen bool) *gtk.ToggleButton {
 	contents := gtk.NewBox(gtk.OrientationHorizontal, 8)
-
-	h.chevron = gtk.NewImageFromIconName("pan-end-symbolic")
-	h.chevron.AddCSSClass("disclosure-icon")
-	contents.Append(h.chevron)
+	chevron := gtk.NewImageFromIconName("pan-end-symbolic")
+	chevron.AddCSSClass("disclosure-icon")
+	contents.Append(chevron)
 
 	lbl := gtk.NewLabel(label)
 	lbl.AddCSSClass("section-collapse-label")
@@ -1186,51 +1170,21 @@ func newCollapsibleHeader(label string, defaultOpen bool) *collapsibleHeader {
 	lbl.SetHExpand(true)
 	contents.Append(lbl)
 
-	h.button = gtk.NewToggleButton()
-	h.button.SetChild(contents)
-	h.button.AddCSSClass("section-collapse")
-	h.button.SetActive(defaultOpen)
-	h.button.SetHExpand(true)
-
-	h.updateChevron()
-	h.button.ConnectToggled(h.updateChevron)
-
-	return h
-}
-
-// updateChevron swaps the icon based on the active (expanded) state.
-func (h *collapsibleHeader) updateChevron() {
-	if h.button.Active() {
-		h.chevron.SetFromIconName("pan-down-symbolic")
-	} else {
-		h.chevron.SetFromIconName("pan-end-symbolic")
+	button := gtk.NewToggleButton()
+	button.SetChild(contents)
+	button.AddCSSClass("section-collapse")
+	button.SetActive(defaultOpen)
+	button.SetHExpand(true)
+	updateChevron := func() {
+		if button.Active() {
+			chevron.SetFromIconName("pan-down-symbolic")
+		} else {
+			chevron.SetFromIconName("pan-end-symbolic")
+		}
 	}
-}
-
-// SetSuffix shows or hides the trailing value label. Empty string hides it.
-// collapsibleSection wraps a section label + content in a collapsible group.
-// Defaults to expanded. Header meets the 40px touch target floor.
-func collapsibleSection(label string, defaultOpen bool, content gtk.Widgetter) *gtk.Box {
-	box, _ := collapsibleSectionWithSuffix(label, defaultOpen, content)
-	return box
-}
-
-// collapsibleSectionWithSuffix is like collapsibleSection but also returns
-// the header so callers can update the trailing suffix at runtime (e.g.,
-// to show "TURBO" next to "NPU POWER" when collapsed).
-func collapsibleSectionWithSuffix(label string, defaultOpen bool, content gtk.Widgetter) (*gtk.Box, *collapsibleHeader) {
-	box := gtk.NewBox(gtk.OrientationVertical, 4)
-	h := newCollapsibleHeader(label, defaultOpen)
-	box.Append(h.button)
-
-	contentWidget := gtk.BaseWidget(content)
-	contentWidget.SetVisible(defaultOpen)
-	h.button.ConnectToggled(func() {
-		contentWidget.SetVisible(h.button.Active())
-	})
-
-	box.Append(content)
-	return box, h
+	updateChevron()
+	button.ConnectToggled(updateChevron)
+	return button
 }
 
 // buildMainFocusList builds the 2D focus grid for the main drawer view.
@@ -1312,7 +1266,7 @@ func (w *Window) powerTabFocusItems() []focusItem {
 	row++
 
 	if w.tuningHeader != nil {
-		btn := w.tuningHeader.button
+		btn := w.tuningHeader
 		items = append(items, focusItem{
 			widget: btn, row: row, col: 0,
 			section:    "tuning",
@@ -1320,7 +1274,7 @@ func (w *Window) powerTabFocusItems() []focusItem {
 		})
 		row++
 	}
-	tuningVisible := func() bool { return w.tuningHeader != nil && w.tuningHeader.button.Active() }
+	tuningVisible := func() bool { return w.tuningHeader != nil && w.tuningHeader.Active() }
 	if w.cpuMinScale != nil {
 		left, right, get, set := scaleAdjust(w.cpuMinScale, 25)
 		items = append(items, focusItem{

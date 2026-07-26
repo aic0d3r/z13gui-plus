@@ -70,7 +70,7 @@ type Window struct {
 	brightValueLabel    *gtk.Label
 	profileBtns         map[string]*gtk.Button
 	profileSummary      *gtk.Label
-	tuningHeader        *collapsibleHeader
+	tuningHeader        *gtk.ToggleButton
 	tuningSummary       *gtk.Label
 	tuningBtn           *gtk.Button
 	cpuMinScale         *gtk.Scale

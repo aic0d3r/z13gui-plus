@@ -284,7 +284,6 @@ func (b *Backend) scaledCSS() string {
 .scale-name { font-size: %.0fpx; margin-top: %.0fpx; }
 .color-swatch { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
 .color-preset { padding: 0; min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
-.accent-label { font-size: %.0fpx; letter-spacing: %.0fpx; }
 .accent-dot-active { border-width: %.0fpx; }
 .drawer .settings-row .toggle-label { font-size: %.0fpx; letter-spacing: %.1fpx; }
 .drawer .settings-row switch { min-height: %.0fpx; min-width: %.0fpx; border-radius: %.0fpx; }
@@ -314,7 +313,6 @@ func (b *Backend) scaledCSS() string {
 		10*s, 4*s, // scale-name
 		40*s, 40*s, 6*s, // color-swatch
 		32*s, 32*s, 4*s, // color-preset
-		9*s, 1*s, // accent-label
 		2*s,         // accent-dot-active border
 		10*s, 0.5*s, // toggle-label
 		22*s, 40*s, 11*s, // settings-row switch (height, width, border-radius)

@@ -101,14 +101,11 @@ func New(handler Handler, isVisible func() bool, dispatch func(func())) *Reader 
 // Run scans for gamepad devices and reads events for the process lifetime.
 func (r *Reader) Run() {
 	r.scan()
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-	for range ticker.C {
+	for range time.Tick(5 * time.Second) {
 		r.scan()
 	}
 }
 
-// Stop terminates the reader and all device goroutines.
 // GrabAll acquires exclusive access (EVIOCGRAB) on all tracked devices
 // so events are not delivered to other readers (e.g. the background game).
 // New devices discovered while grabbed are auto-grabbed in tryOpen.

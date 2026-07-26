@@ -72,7 +72,6 @@ func (b *Blocker) Block(pid int) error {
 	return nil
 }
 
-// Unblock removes a PID from the blocked set. Idempotent.
 // UnblockAll removes all PIDs from the blocked set.
 func (b *Blocker) UnblockAll() {
 	// Collect all keys first, then delete — safe against concurrent modification.
