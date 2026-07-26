@@ -210,7 +210,7 @@ func formatGHz(mhz int) string {
 }
 
 // unifiedMemory combines Linux memory with the reserved GPU carveout.
-func unifiedMemory(used, total, vramUsed, vramTotal int) (int, int) {
+func unifiedMemory(used, total, vramUsed, vramTotal int) (combinedUsed, combinedTotal int) {
 	if total <= 0 {
 		return 0, 0
 	}
@@ -238,7 +238,7 @@ const (
 
 // formatNPU renders power first because it distinguishes low-power background
 // clients from real computation better than the driver's raw column occupancy.
-func formatNPU(available bool, util int, powerW float64) (string, string) {
+func formatNPU(available bool, util int, powerW float64) (status, detail string) {
 	if !available {
 		return "UNAVAILABLE", "NO DATA"
 	}
@@ -248,7 +248,7 @@ func formatNPU(available bool, util int, powerW float64) (string, string) {
 	if powerW <= 0 {
 		return "LOW POWER", "POWER N/A"
 	}
-	status := "LOW POWER"
+	status = "LOW POWER"
 	if powerW >= npuActivePowerW {
 		status = "ACTIVE"
 	}

@@ -1043,12 +1043,12 @@ func (w *Window) buildBatteryHero() *gtk.Box {
 	return box
 }
 
-func batteryMetric(label string) (*gtk.Box, *gtk.Label, *gtk.Label) {
-	box := gtk.NewBox(gtk.OrientationVertical, 1)
-	caption := gtk.NewLabel(label)
+func batteryMetric(label string) (box *gtk.Box, caption, value *gtk.Label) {
+	box = gtk.NewBox(gtk.OrientationVertical, 1)
+	caption = gtk.NewLabel(label)
 	caption.SetHAlign(gtk.AlignStart)
 	caption.AddCSSClass("battery-metric-label")
-	value := gtk.NewLabel("—")
+	value = gtk.NewLabel("—")
 	value.SetHAlign(gtk.AlignStart)
 	value.AddCSSClass("battery-metric-value")
 	box.Append(caption)

@@ -425,11 +425,12 @@ func (w *Window) syncOverviewTelemetry() {
 	if w.overviewStatus != nil {
 		maxTemp := max(t.CPUTemp, t.GPUTemp)
 		status, class := "UNKNOWN", ""
-		if maxTemp >= thermalCriticalC {
+		switch {
+		case maxTemp >= thermalCriticalC:
 			status, class = "HOT", "danger"
-		} else if maxTemp >= thermalWarningC {
+		case maxTemp >= thermalWarningC:
 			status, class = "WARM", "warning"
-		} else if maxTemp > 0 {
+		case maxTemp > 0:
 			status = "NORMAL"
 		}
 		w.overviewStatus.SetLabel(status)

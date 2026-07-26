@@ -157,7 +157,6 @@ type Window struct {
 	gpuFanLabel         *gtk.Label       // "2800 RPM"
 	overviewCPUClock    *gtk.Label       // "3.8 GHz"
 	overviewGPUClock    *gtk.Label       // "1.7 GHz"
-	npuLabel            *gtk.Label       // IDLE / LOW POWER / ACTIVE
 	overviewMemoryBar   *gtk.ProgressBar // unified memory usage bar (0..1)
 	overviewMemoryLbl   *gtk.Label       // "18.4 / 128 GB"
 	overviewMemClock    *gtk.Label       // "425 MHz"
@@ -203,7 +202,6 @@ type Window struct {
 	applyTimer *time.Timer // debounce for continuous inputs (brightness, color wheel)
 
 	// View switching (main/theme/color views).
-	mainScroll         *gtk.ScrolledWindow // scrollable area in main drawer view (legacy, unused with tabs)
 	powerScroll        *gtk.ScrolledWindow // Power tab scroll
 	rgbScroll          *gtk.ScrolledWindow // RGB tab scroll
 	systemScroll       *gtk.ScrolledWindow // System tab scroll

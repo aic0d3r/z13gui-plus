@@ -434,15 +434,15 @@ func currentPolicyEnabled(state *api.State) bool {
 	return state != nil && state.PowerPolicy != nil && state.PowerPolicy.Enabled
 }
 
-func powerPolicySummary(state *api.State) (string, string) {
-	status := "MANUAL"
+func powerPolicySummary(state *api.State) (status, detail string) {
+	status = "MANUAL"
 	if currentPolicyEnabled(state) {
 		status = "AUTOMATIC"
 	}
 	if state == nil || state.PowerPolicy == nil {
 		return status, "No presets assigned to AC/battery"
 	}
-	detail := fmt.Sprintf("AC: %s · Battery: %s",
+	detail = fmt.Sprintf("AC: %s · Battery: %s",
 		assignmentSummary(state.PowerPolicy.ACPreset, state.Presets),
 		assignmentSummary(state.PowerPolicy.BatteryPreset, state.Presets))
 	if state.ActivePreset != "" {
