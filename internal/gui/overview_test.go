@@ -25,17 +25,19 @@ func TestFormatNPU(t *testing.T) {
 		available bool
 		util      int
 		power     float64
+		clock     int
 		want      string
 	}{
-		{"sensor unavailable", false, 0, 0, "NO DATA"},
-		{"idle", true, 0, 0, "0.0 W"},
-		{"power unavailable", true, 100, 0, "POWER N/A"},
-		{"low power", true, 100, 0.42, "0.4 W"},
-		{"active", true, 96, 1.85, "1.9 W"},
+		{"sensor unavailable", false, 0, 0, 0, "NO DATA"},
+		{"clock fallback", true, 0, 0, 1267, "1.3 GHz"},
+		{"power unavailable", true, 100, 0, 0, "100%"},
+		{"active fallback", true, 0, 0, 0, "ACTIVE"},
+		{"low power", true, 100, 0.42, 1267, "0.4 W · 100%"},
+		{"active", true, 96, 1.85, 1267, "1.9 W · 96%"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := formatNPU(tt.available, tt.util, tt.power); got != tt.want {
+			if got := formatNPU(tt.available, tt.util, tt.power, tt.clock); got != tt.want {
 				t.Fatalf("formatNPU() = %q; want %q", got, tt.want)
 			}
 		})

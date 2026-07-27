@@ -235,17 +235,20 @@ const (
 	thermalCriticalC = 95
 )
 
-// formatNPU renders power first because it distinguishes low-power background
-// clients from real computation better than the driver's raw column occupancy.
-func formatNPU(available bool, util int, powerW float64) string {
+// formatNPU shows power and utilization when sensors are available, with
+// activity and clock fallbacks for drivers that expose less telemetry.
+func formatNPU(available bool, util int, powerW float64, clockMHz int) string {
 	if !available {
 		return "NO DATA"
 	}
-	if util == 0 && powerW == 0 {
-		return "0.0 W"
+	if powerW > 0 {
+		return fmt.Sprintf("%.1f W · %d%%", powerW, util)
 	}
-	if powerW <= 0 {
-		return "POWER N/A"
+	if util > 0 {
+		return fmt.Sprintf("%d%%", util)
 	}
-	return fmt.Sprintf("%.1f W", powerW)
+	if clockMHz > 0 {
+		return formatGHz(clockMHz)
+	}
+	return "ACTIVE"
 }

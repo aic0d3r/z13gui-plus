@@ -258,6 +258,21 @@ Run with debug logging to see GTK and initialization output:
 z13gui --debug
 ```
 
+**CachyOS: NPU shows ACTIVE but no watts or utilization**
+
+Current CachyOS kernels include an amdxdna driver with NPU power and
+utilization sensors. An older `amdxdna-dkms` module can override it with a
+driver that supports inference but not those sensors. Check the loaded module:
+
+```sh
+modinfo -n amdxdna
+```
+
+If the path contains `updates/dkms`, follow the
+[z13ctl-plus NPU telemetry guidance](https://github.com/aic0d3r/z13ctl-plus/blob/main/docs/installation.md#npu-telemetry-on-cachyos)
+to test the native driver with a documented rollback. Do not remove DKMS on an
+older kernel unless that kernel already provides its own amdxdna module.
+
 **Gamescope: controller input not suppressed while drawer is open**
 
 Grant BPF capabilities so Z13GUI+ can block controller input at the kernel level:
