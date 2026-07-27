@@ -135,14 +135,18 @@ type Window struct {
 	stateActionQueue    []stateAction
 	stateRequestGen     uint64
 
-	presetPageAutomation   *gtk.Switch
-	acAssignmentStatus     *gtk.Label
-	batteryAssignStatus    *gtk.Label
-	presetDetailName       string
-	presetDetailTitle      *gtk.Label
-	presetDetailContent    *gtk.Box
-	presetDetailBackBtn    *gtk.Button
-	presetDetailFocusItems []focusItem
+	presetPageStatus        *gtk.Label
+	presetLibraryBtn        *gtk.Button
+	presetLibraryScroll     *gtk.ScrolledWindow
+	presetLibraryBackBtn    *gtk.Button
+	presetLibraryFocusItems []focusItem
+	acAssignmentStatus      *gtk.Label
+	batteryAssignStatus     *gtk.Label
+	presetDetailName        string
+	presetDetailTitle       *gtk.Label
+	presetDetailContent     *gtk.Box
+	presetDetailBackBtn     *gtk.Button
+	presetDetailFocusItems  []focusItem
 
 	// Premium hero widgets — battery card (Overview tab).
 	// Power tab telemetry gauges removed; live stats live on Overview tab only.
