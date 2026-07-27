@@ -96,6 +96,9 @@ func (w *Window) buildOverviewHero() *gtk.Box {
 	metric, value = overviewMetric("NPU")
 	w.overviewNPUPower = value
 	powerRow.Append(metric)
+	metric, value = overviewMetric("NPU LOAD")
+	w.overviewNPUUtil = value
+	powerRow.Append(metric)
 	card.Append(powerRow)
 
 	box.Append(card)
@@ -235,20 +238,26 @@ const (
 	thermalCriticalC = 95
 )
 
-// formatNPU shows power and utilization when sensors are available, with
-// activity and clock fallbacks for drivers that expose less telemetry.
-func formatNPU(available bool, util int, powerW float64, clockMHz int) string {
+// formatNPU keeps the power tile honest on drivers without power sensors.
+func formatNPU(available bool, powerW float64, clockMHz int) string {
 	if !available {
 		return "IDLE"
 	}
 	if powerW > 0 {
-		return fmt.Sprintf("%.1f W · %d%%", powerW, util)
-	}
-	if util > 0 {
-		return fmt.Sprintf("%d%%", util)
+		return fmt.Sprintf("%.1f W", powerW)
 	}
 	if clockMHz > 0 {
-		return formatGHz(clockMHz)
+		return "0.0 W"
 	}
 	return "ACTIVE"
+}
+
+func formatNPUUtil(available bool, util int, powerW float64, clockMHz int) string {
+	if !available {
+		return "0%"
+	}
+	if powerW == 0 && util == 0 && clockMHz == 0 {
+		return "—"
+	}
+	return fmt.Sprintf("%d%%", util)
 }

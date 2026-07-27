@@ -160,50 +160,51 @@ type Window struct {
 	battPill          *gtk.Label       // threshold preset chip
 
 	// Overview tab — full live telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
-	overviewScroll      *gtk.ScrolledWindow
-	cpuTempValue        *gtk.Label // CPU temperature (Overview)
-	gpuTempValue        *gtk.Label // GPU temperature (Overview)
-	cpuUtilValue        *gtk.Label // CPU utilisation %
-	gpuUtilValue        *gtk.Label // GPU utilisation %
-	overviewNPUPower    *gtk.Label // NPU power detail
-	overviewStatus      *gtk.Label // NORMAL / WARM / CRITICAL
-	overviewContext     *gtk.Label // battery, power source, and profile
-	overviewFreshness   *gtk.Label // hidden while live; age when polling is stale
-	overviewLastUpdate  time.Time
-	overviewAPUPower    *gtk.Label
-	overviewGPUPower    *gtk.Label
-	cpuFanLabel         *gtk.Label       // "3300 RPM"
-	gpuFanLabel         *gtk.Label       // "2800 RPM"
-	overviewCPUClock    *gtk.Label       // "3.8 GHz"
-	overviewGPUClock    *gtk.Label       // "1.7 GHz"
-	overviewMemoryBar   *gtk.ProgressBar // unified memory usage bar (0..1)
-	overviewMemoryLbl   *gtk.Label       // "18.4 / 128 GB"
-	overviewMemClock    *gtk.Label       // "425 MHz"
+	overviewScroll     *gtk.ScrolledWindow
+	cpuTempValue       *gtk.Label // CPU temperature (Overview)
+	gpuTempValue       *gtk.Label // GPU temperature (Overview)
+	cpuUtilValue       *gtk.Label // CPU utilisation %
+	gpuUtilValue       *gtk.Label // GPU utilisation %
+	overviewNPUPower   *gtk.Label // NPU power detail
+	overviewNPUUtil    *gtk.Label // NPU utilization
+	overviewStatus     *gtk.Label // NORMAL / WARM / CRITICAL
+	overviewContext    *gtk.Label // battery, power source, and profile
+	overviewFreshness  *gtk.Label // hidden while live; age when polling is stale
+	overviewLastUpdate time.Time
+	overviewAPUPower   *gtk.Label
+	overviewGPUPower   *gtk.Label
+	cpuFanLabel        *gtk.Label       // "3300 RPM"
+	gpuFanLabel        *gtk.Label       // "2800 RPM"
+	overviewCPUClock   *gtk.Label       // "3.8 GHz"
+	overviewGPUClock   *gtk.Label       // "1.7 GHz"
+	overviewMemoryBar  *gtk.ProgressBar // unified memory usage bar (0..1)
+	overviewMemoryLbl  *gtk.Label       // "18.4 / 128 GB"
+	overviewMemClock   *gtk.Label       // "425 MHz"
 
 	// Advanced tuning view.
-	customScroll       *gtk.ScrolledWindow
-	customBackBtn      *gtk.Button
-	tdpBasicScale      *gtk.Scale
-	tdpBasicLabel      *gtk.Label
-	tdpAdvancedCheck   *gtk.CheckButton
-	tdpAdvancedBox     *gtk.Box
-	tdpPL1Scale        *gtk.Scale
-	tdpPL2Scale        *gtk.Scale
-	tdpPL3Scale        *gtk.Scale
-	tdpPL1Label        *gtk.Label
-	tdpPL2Label        *gtk.Label
-	tdpPL3Label        *gtk.Label
-	fanCurve           *fanCurveEditor
-	saveTdpBtn         *gtk.Button
-	saveFanBtn         *gtk.Button
-	resetTdpBtn        *gtk.Button
-	resetFanBtn        *gtk.Button
-	resetAllBtn        *gtk.Button
-	uvBox              *gtk.Box // undervolt container, hidden when unavailable
-	uvCpuScale         *gtk.Scale
-	uvCpuLabel         *gtk.Label
-	saveUvBtn          *gtk.Button
-	resetUvBtn         *gtk.Button
+	customScroll     *gtk.ScrolledWindow
+	customBackBtn    *gtk.Button
+	tdpBasicScale    *gtk.Scale
+	tdpBasicLabel    *gtk.Label
+	tdpAdvancedCheck *gtk.CheckButton
+	tdpAdvancedBox   *gtk.Box
+	tdpPL1Scale      *gtk.Scale
+	tdpPL2Scale      *gtk.Scale
+	tdpPL3Scale      *gtk.Scale
+	tdpPL1Label      *gtk.Label
+	tdpPL2Label      *gtk.Label
+	tdpPL3Label      *gtk.Label
+	fanCurve         *fanCurveEditor
+	saveTdpBtn       *gtk.Button
+	saveFanBtn       *gtk.Button
+	resetTdpBtn      *gtk.Button
+	resetFanBtn      *gtk.Button
+	resetAllBtn      *gtk.Button
+	uvBox            *gtk.Box // undervolt container, hidden when unavailable
+	uvCpuScale       *gtk.Scale
+	uvCpuLabel       *gtk.Label
+	saveUvBtn        *gtk.Button
+	resetUvBtn       *gtk.Button
 	// tuning dirty-state UI: markers + conditional banners
 	tdpDirtyMark       *gtk.Label
 	fanDirtyMark       *gtk.Label

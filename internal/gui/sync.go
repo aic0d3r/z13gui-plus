@@ -481,7 +481,7 @@ func (w *Window) syncOverviewTelemetry() {
 		w.overviewGPUClock.SetLabel(formatGHz(t.GPUClockMHz))
 	}
 	if w.overviewNPUPower != nil {
-		w.overviewNPUPower.SetLabel(formatNPU(t.NPUAvailable, t.NPUUtil, t.NPUPowerW, t.NPUClockMHz))
+		w.overviewNPUPower.SetLabel(formatNPU(t.NPUAvailable, t.NPUPowerW, t.NPUClockMHz))
 		w.overviewNPUPower.RemoveCSSClass("npu-high")
 		w.overviewNPUPower.RemoveCSSClass("npu-dim")
 		if t.NPUAvailable && t.NPUPowerW < npuActivePowerW {
@@ -489,6 +489,9 @@ func (w *Window) syncOverviewTelemetry() {
 		} else if t.NPUPowerW >= npuActivePowerW {
 			w.overviewNPUPower.AddCSSClass("npu-high")
 		}
+	}
+	if w.overviewNPUUtil != nil {
+		w.overviewNPUUtil.SetLabel(formatNPUUtil(t.NPUAvailable, t.NPUUtil, t.NPUPowerW, t.NPUClockMHz))
 	}
 	if w.overviewMemClock != nil {
 		if t.MemClockAvailable {

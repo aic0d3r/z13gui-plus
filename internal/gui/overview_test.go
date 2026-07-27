@@ -26,19 +26,23 @@ func TestFormatNPU(t *testing.T) {
 		util      int
 		power     float64
 		clock     int
-		want      string
+		wantPower string
+		wantUtil  string
 	}{
-		{"idle", false, 0, 0, 0, "IDLE"},
-		{"clock fallback", true, 0, 0, 1267, "1.3 GHz"},
-		{"power unavailable", true, 100, 0, 0, "100%"},
-		{"active fallback", true, 0, 0, 0, "ACTIVE"},
-		{"low power", true, 100, 0.42, 1267, "0.4 W · 100%"},
-		{"active", true, 96, 1.85, 1267, "1.9 W · 96%"},
+		{"idle", false, 0, 0, 0, "IDLE", "0%"},
+		{"sensor idle", true, 0, 0, 1267, "0.0 W", "0%"},
+		{"util only", true, 100, 0, 0, "ACTIVE", "100%"},
+		{"sensorless active", true, 0, 0, 0, "ACTIVE", "—"},
+		{"low power", true, 100, 0.42, 1267, "0.4 W", "100%"},
+		{"active", true, 96, 1.85, 1267, "1.9 W", "96%"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := formatNPU(tt.available, tt.util, tt.power, tt.clock); got != tt.want {
-				t.Fatalf("formatNPU() = %q; want %q", got, tt.want)
+			if got := formatNPU(tt.available, tt.power, tt.clock); got != tt.wantPower {
+				t.Fatalf("formatNPU() = %q; want %q", got, tt.wantPower)
+			}
+			if got := formatNPUUtil(tt.available, tt.util, tt.power, tt.clock); got != tt.wantUtil {
+				t.Fatalf("formatNPUUtil() = %q; want %q", got, tt.wantUtil)
 			}
 		})
 	}
