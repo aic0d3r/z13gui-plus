@@ -239,7 +239,7 @@ const (
 // activity and clock fallbacks for drivers that expose less telemetry.
 func formatNPU(available bool, util int, powerW float64, clockMHz int) string {
 	if !available {
-		return "NO DATA"
+		return "IDLE"
 	}
 	if powerW > 0 {
 		return fmt.Sprintf("%.1f W · %d%%", powerW, util)

@@ -28,7 +28,7 @@ func TestFormatNPU(t *testing.T) {
 		clock     int
 		want      string
 	}{
-		{"sensor unavailable", false, 0, 0, 0, "NO DATA"},
+		{"idle", false, 0, 0, 0, "IDLE"},
 		{"clock fallback", true, 0, 0, 1267, "1.3 GHz"},
 		{"power unavailable", true, 100, 0, 0, "100%"},
 		{"active fallback", true, 0, 0, 0, "ACTIVE"},
