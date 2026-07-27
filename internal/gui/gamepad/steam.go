@@ -13,7 +13,7 @@ import (
 )
 
 // pidFilePath returns the path to the frozen-PID state file.
-// Used for crash recovery: if z13gui is killed, the systemd ExecStopPost
+// Used for crash recovery: if Z13GUI+ is killed, the systemd ExecStopPost
 // or signal handler reads this file to thaw the frozen Steam process.
 func pidFilePath() string {
 	runtime := os.Getenv("XDG_RUNTIME_DIR")

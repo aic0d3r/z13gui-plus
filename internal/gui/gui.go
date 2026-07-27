@@ -1,4 +1,4 @@
-// Package gui implements the GTK4 overlay drawer for z13gui.
+// Package gui implements the Z13GUI+ GTK4 overlay drawer.
 // It provides the main Window type that handles daemon state synchronization,
 // GTK widget construction, and theming. Display-mode-specific concerns
 // (layer-shell vs gamescope X11 overlay) are delegated to Backend implementations.

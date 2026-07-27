@@ -1,8 +1,10 @@
-# z13gui — Project Context for Claude
+# Z13GUI+ — Project Context for Claude
 
 ## What this project is
 
-`z13gui` is a GTK4 Wayland layer-shell overlay drawer for controlling the 2025 ASUS ROG
+Z13GUI+ is a compatibility-preserving distribution of
+[`dahui/z13gui`](https://github.com/dahui/z13gui), providing a GTK4 Wayland
+layer-shell overlay drawer for controlling the 2025 ASUS ROG
 Flow Z13 via the `z13ctl` daemon. It slides in from the right edge of the screen when the
 Armoury Crate button (KEY_PROG3) is pressed. The daemon broadcasts `gui-toggle` events over
 a subscribe socket; this GUI listens for them.
@@ -14,14 +16,16 @@ It has two display backends:
 - Module: `github.com/dahui/z13gui`
 - Binary: `z13gui`
 
-## Companion project: z13ctl
+## Companion project: z13ctl-plus
 
-The `z13ctl` daemon (module `github.com/dahui/z13ctl`) is a sibling repo.
-Its `api/` submodule (`github.com/dahui/z13ctl/api`) is published at tag `api/v1.1.6`
-on GitHub.
+The [`z13ctl-plus`](https://github.com/aic0d3r/z13ctl-plus) distribution provides
+the compatible `z13ctl` daemon (module `github.com/dahui/z13ctl`) as a sibling repo.
+Its canonical `api/` submodule (`github.com/dahui/z13ctl/api`) is published by the
+fork at tag `api/v1.3.0`.
 
 During local development, a `go.work` file in this repo (if present, gitignored) provides
-the local override. In production the `go.mod` imports the published tag.
+the local override. In production `go.mod` redirects the canonical API import to that
+tagged z13ctl-plus module.
 
 ## Package layout
 
@@ -161,7 +165,7 @@ contrib/
 
 ## Gamescope backend (`internal/gui/gamescope/gamescope.go`)
 
-The gamescope backend renders z13gui as an X11 overlay in Steam Gaming Mode.
+The gamescope backend renders Z13GUI+ as an X11 overlay in Steam Gaming Mode.
 
 - **Overlay type**: `STEAM_OVERLAY` atom (z-pos 3, interactive with input routing).
   NOT `GAMESCOPE_EXTERNAL_OVERLAY` (z-pos 2, display-only, no input).

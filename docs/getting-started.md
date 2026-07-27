@@ -46,7 +46,7 @@ swatch updates in real time.
 
 ## Gamepad navigation
 
-z13gui supports full gamepad control for use in Steam Gaming Mode:
+Z13GUI+ supports full gamepad control for use in Steam Gaming Mode:
 
 | Input | Action |
 |-------|--------|
@@ -64,7 +64,7 @@ the mouse moves. To disable gamepad input entirely, set `Z13GUI_NO_GAMEPAD=1`.
 
 ## Gamescope (Steam Gaming Mode)
 
-In Steam Gaming Mode, z13gui runs as a gamescope X11 overlay. The backend is
+In Steam Gaming Mode, Z13GUI+ runs as a gamescope X11 overlay. The backend is
 selected automatically when `GAMESCOPE_WAYLAND_DISPLAY` is set and its socket
 is present.
 

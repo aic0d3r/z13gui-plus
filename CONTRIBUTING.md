@@ -3,7 +3,7 @@
 Contributions are welcome. Please open an issue before starting work on a
 significant change.
 
-Full contributing guide: <https://dahui.github.io/z13gui/contributing/>
+Full contributing guide: <https://aic0d3r.github.io/z13gui-plus/contributing/>
 
 ## Short version
 

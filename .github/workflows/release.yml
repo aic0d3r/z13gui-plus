@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. v1.0.0)'
+        description: 'Release tag (e.g. v1.3.0)'
         required: true
       release:
         description: 'Run goreleaser (build + GitHub release)'
@@ -68,12 +68,12 @@ jobs:
         run: |
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
           VERSION="${TAG#v}"
-          URL="https://github.com/dahui/z13gui/releases/download/${TAG}/z13gui_${VERSION}_linux_amd64.tar.gz"
+          URL="https://github.com/aic0d3r/z13gui-plus/releases/download/${TAG}/z13gui-plus_${VERSION}_linux_amd64.tar.gz"
           SHA256=$(curl -fsSL "$URL" | sha256sum | cut -d' ' -f1)
 
           # Compute pkgrel: increment if same version already on AUR, else 1
           PKGREL=1
-          AUR_VER=$(curl -fsSL "https://aur.archlinux.org/rpc/v5/info?arg[]=z13gui-bin" \
+          AUR_VER=$(curl -fsSL "https://aur.archlinux.org/rpc/v5/info?arg[]=z13gui-plus-bin" \
             | jq -r '.results[0].Version // empty')
           if [ -n "$AUR_VER" ]; then
             AUR_PKGVER="${AUR_VER%-*}"
@@ -116,15 +116,15 @@ jobs:
         run: |
           for _ in 1 2 3; do
             rm -rf /tmp/aur-repo
-            git clone ssh://aur@aur.archlinux.org/z13gui-bin.git /tmp/aur-repo && break
+            git clone ssh://aur@aur.archlinux.org/z13gui-plus-bin.git /tmp/aur-repo && break
             sleep 5
           done
           test -d /tmp/aur-repo/.git
           cp contrib/aur/PKGBUILD contrib/aur/.SRCINFO /tmp/aur-repo/
-          cp contrib/aur/z13gui-bin.install /tmp/aur-repo/
+          cp contrib/aur/z13gui-plus-bin.install /tmp/aur-repo/
           cd /tmp/aur-repo
-          git config user.name "z13gui Release Bot"
-          git config user.email "noreply@github.com"
+          git config user.name "Z13GUI+ Release Bot"
+          git config user.email "funforfreeapps@gmail.com"
           git add -A
           git diff --cached --quiet && echo "No changes to push" && exit 0
           git commit -m "Update to ${{ github.event.inputs.tag || github.ref_name }}"

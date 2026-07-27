@@ -4,11 +4,11 @@
 
 - Linux kernel (x86_64)
 - Wayland compositor with layer-shell support, or gamescope (Steam Gaming Mode)
-- [z13ctl](https://github.com/dahui/z13ctl) installed and daemon running
+- [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) installed with the compatible `z13ctl` daemon running
 
 ### Runtime dependencies
 
-z13gui links dynamically against GTK 4 and gtk4-layer-shell. The AUR package
+Z13GUI+ links dynamically against GTK 4 and gtk4-layer-shell. The AUR package
 pulls these automatically; for other install methods, install them via your
 system package manager first.
 
@@ -25,10 +25,10 @@ system package manager first.
 
     Install the [runtime dependencies](#runtime-dependencies) for your distro,
     then download the latest `linux_amd64` archive from the
-    [Releases](https://github.com/dahui/z13gui/releases) page:
+    [Releases](https://github.com/aic0d3r/z13gui-plus/releases) page:
 
     ```sh
-    tar xzf z13gui_*_linux_amd64.tar.gz
+    tar xzf z13gui-plus_*_linux_amd64.tar.gz
     sudo install -Dm755 z13gui /usr/local/bin/z13gui
     ```
 
@@ -50,31 +50,31 @@ system package manager first.
 
 === "Arch Linux (AUR)"
 
-    Install the [z13gui-bin](https://aur.archlinux.org/packages/z13gui-bin)
+    Install the [z13gui-plus-bin](https://aur.archlinux.org/packages/z13gui-plus-bin)
     package with your preferred AUR helper:
 
     ```sh
-    yay -S z13gui-bin
+    yay -S z13gui-plus-bin
     ```
 
     The package installs the binary, systemd service, udev rules, and desktop
     entry. Services are enabled automatically for all users on next login.
 
     Alternatively, download the `.pkg.tar.zst` package directly from the
-    [Releases](https://github.com/dahui/z13gui/releases) page and install with
+    [Releases](https://github.com/aic0d3r/z13gui-plus/releases) page and install with
     pacman:
 
     ```sh
-    sudo pacman -U z13gui-*.pkg.tar.zst
+    sudo pacman -U z13gui-plus-*.pkg.tar.zst
     ```
 
 === "Debian / Ubuntu"
 
     Download the `.deb` package from the
-    [Releases](https://github.com/dahui/z13gui/releases) page, then install:
+    [Releases](https://github.com/aic0d3r/z13gui-plus/releases) page, then install:
 
     ```sh
-    sudo apt install ./z13gui_*.deb
+    sudo apt install ./z13gui-plus_*.deb
     ```
 
     The package installs the binary, systemd service, udev rules, and desktop
@@ -87,10 +87,10 @@ system package manager first.
 === "Fedora / RHEL"
 
     Download the `.rpm` package from the
-    [Releases](https://github.com/dahui/z13gui/releases) page, then install:
+    [Releases](https://github.com/aic0d3r/z13gui-plus/releases) page, then install:
 
     ```sh
-    sudo dnf install ./z13gui_*.rpm
+    sudo dnf install ./z13gui-plus_*.rpm
     ```
 
     The package installs the binary, systemd service, udev rules, and desktop
@@ -125,8 +125,8 @@ system package manager first.
     Then clone and build:
 
     ```sh
-    git clone https://github.com/dahui/z13gui
-    cd z13gui
+    git clone https://github.com/aic0d3r/z13gui-plus
+    cd z13gui-plus
     make build
     sudo make install
     make install-service
@@ -136,10 +136,10 @@ system package manager first.
 
 ## Gamepad input blocking (capabilities)
 
-In Steam Gaming Mode (gamescope), z13gui suppresses controller input while the
+In Steam Gaming Mode (gamescope), Z13GUI+ suppresses controller input while the
 drawer is open so button presses navigate the overlay instead of the game.
 
-z13gui supports two blocking methods and selects the best one automatically:
+Z13GUI+ supports two blocking methods and selects the best one automatically:
 
 | Method | Requires | Behaviour | Side effects |
 |--------|----------|-----------|--------------|
@@ -158,15 +158,15 @@ sudo setcap cap_bpf,cap_perfmon+ep /usr/local/bin/z13gui
 
     ### Short version
 
-    These two capabilities let z13gui load a tiny kernel filter that tells
+    These two capabilities let Z13GUI+ load a tiny kernel filter that tells
     the system "when Steam tries to read a PS or Nintendo controller, return
     a temporary 'try again later' error instead." That's all it does. It
     cannot access your files, network, or any other part of the system. The
-    filter is automatically removed when z13gui exits.
+    filter is automatically removed when Z13GUI+ exits.
 
     ### Technical details
 
-    **CAP_BPF** allows loading BPF programs into the kernel. z13gui uses
+    **CAP_BPF** allows loading BPF programs into the kernel. Z13GUI+ uses
     this to attach a single LSM (`lsm/file_permission`) hook that
     intercepts `read()` calls on hidraw character devices
     (`/dev/hidraw*`). The hook checks whether the calling PID is in a
@@ -175,7 +175,7 @@ sudo setcap cap_bpf,cap_perfmon+ep /usr/local/bin/z13gui
     it returns `0` (allow).
 
     **CAP_PERFMON** is required by the kernel to attach BPF LSM programs.
-    z13gui does not use performance monitoring — this capability is a
+    Z13GUI+ does not use performance monitoring — this capability is a
     kernel-imposed prerequisite for LSM attachment.
 
     **What the BPF program can do:**
@@ -187,13 +187,13 @@ sudo setcap cap_bpf,cap_perfmon+ep /usr/local/bin/z13gui
     **What the BPF program cannot do:**
 
     - Access files, network, or memory outside its own BPF maps
-    - Survive a process exit — all BPF resources are released when z13gui
+    - Survive a process exit — all BPF resources are released when Z13GUI+
       stops, crashes, or is killed
     - Affect any process not explicitly added to its PID map
     - Block any operation other than `read()` on hidraw devices
 
     **Compared to running as root:** file capabilities grant only the two
-    listed privileges to the z13gui binary. The process runs as your normal
+    listed privileges to the `z13gui` binary. The process runs as your normal
     user with no other elevated access. This is strictly safer than running
     with `sudo` or as root.
 
@@ -260,13 +260,13 @@ z13gui --debug
 
 **Gamescope: controller input not suppressed while drawer is open**
 
-Grant BPF capabilities so z13gui can block controller input at the kernel level:
+Grant BPF capabilities so Z13GUI+ can block controller input at the kernel level:
 
 ```sh
 sudo setcap cap_bpf,cap_perfmon+ep /usr/local/bin/z13gui
 ```
 
-Without capabilities, z13gui falls back to freezing Steam (SIGSTOP), which
+Without capabilities, Z13GUI+ falls back to freezing Steam (SIGSTOP), which
 also pauses running games.
 
 **Gamescope: drawer doesn't show**
@@ -279,4 +279,4 @@ ls "$XDG_RUNTIME_DIR/$GAMESCOPE_WAYLAND_DISPLAY"
 ```
 
 If the socket is missing (stale environment from a previous Gaming Mode session),
-z13gui automatically falls back to Wayland layer-shell mode.
+Z13GUI+ automatically falls back to Wayland layer-shell mode.

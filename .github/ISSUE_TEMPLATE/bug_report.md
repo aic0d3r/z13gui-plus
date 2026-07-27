@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a problem with z13gui
+about: Report a problem with Z13GUI+
 labels: bug
 ---
 
@@ -22,7 +22,7 @@ What actually happened. Include any error messages or unexpected output.
 - Linux distribution and version:
 - Kernel version (`uname -r`):
 - Wayland compositor (KDE Plasma, Hyprland, etc.):
-- z13gui version (`z13gui --version`):
+- Z13GUI+ version (`z13gui --version`):
 - z13ctl version (`z13ctl --version`):
 - ASUS ROG Flow Z13 model year:
 

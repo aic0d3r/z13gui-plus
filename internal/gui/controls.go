@@ -45,7 +45,7 @@ func (w *Window) buildContent() gtk.Widgetter {
 	titleRow.SetMarginStart(14)
 	titleRow.SetMarginEnd(14)
 
-	titleLabel := gtk.NewLabel("z13ctl")
+	titleLabel := gtk.NewLabel("Z13GUI+")
 	titleLabel.SetHAlign(gtk.AlignStart)
 	titleLabel.AddCSSClass("drawer-title")
 	titleRow.Append(titleLabel)

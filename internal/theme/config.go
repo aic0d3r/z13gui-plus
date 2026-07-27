@@ -55,7 +55,7 @@ func SaveAppConfig(cfg AppConfig) {
 		slog.Warn("failed to create config dir", "path", dir, "err", err)
 		return
 	}
-	content := "# z13gui app configuration\ntheme = \"" + cfg.Theme + "\"\n"
+	content := "# Z13GUI+ app configuration\ntheme = \"" + cfg.Theme + "\"\n"
 	if cfg.Accent != "" {
 		content += "accent = \"" + cfg.Accent + "\"\n"
 	}

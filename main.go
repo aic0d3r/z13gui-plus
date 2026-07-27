@@ -1,6 +1,6 @@
 package main
 
-// z13gui — GTK4 Wayland overlay drawer for z13ctl.
+// Z13GUI+ - GTK4 Wayland overlay drawer for z13ctl.
 // Slides in from the right edge on Armoury Crate button press (via z13ctl daemon).
 
 import (
@@ -60,7 +60,7 @@ func main() {
 
 	slog.Info("starting", "version", Version)
 
-	// Disable GTK4 accessibility bridge (AT-SPI). z13gui is a hardware overlay
+	// Disable GTK4 accessibility bridge (AT-SPI). Z13GUI+ is a hardware overlay
 	// controlled by a physical button — no accessibility consumers. Without this,
 	// GTK4 sends D-Bus events on every widget state change, which can timeout
 	// under systemd where the AT-SPI bus may not be available.

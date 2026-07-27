@@ -7,7 +7,8 @@ significant change so the approach can be discussed first.
 
 ## Repository structure
 
-Single Go module (`github.com/dahui/z13gui`).
+Z13GUI+ deliberately retains the canonical Go module `github.com/dahui/z13gui`
+for source compatibility.
 
 | Package | Purpose |
 |---------|---------|
@@ -24,8 +25,8 @@ Single Go module (`github.com/dahui/z13gui`).
 ## Development setup
 
 ```sh
-git clone https://github.com/dahui/z13gui
-cd z13gui
+git clone https://github.com/aic0d3r/z13gui-plus
+cd z13gui-plus
 ```
 
 **Build dependencies (Arch Linux):**

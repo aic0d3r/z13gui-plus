@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature or improvement
+about: Suggest a Z13GUI+ feature or improvement
 labels: enhancement
 ---
 
