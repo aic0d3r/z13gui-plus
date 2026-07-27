@@ -31,16 +31,15 @@ type Backend struct {
 	margin        int       // current right margin: 0=on-screen, hiddenMargin=1px visible
 	opacity       float64   // current window opacity, tracked for fade interpolation
 	animGen       uint64    // incremented to cancel in-flight animations
-	animating     bool      // true during show/hide slide animation
 	pointerInside bool      // true when pointer is over the drawer surface
 	showTime      time.Time // when Show() was last called; used to ignore early focus loss
 }
 
 // New creates a layer-shell backend. drawerWidth is the drawer panel width in pixels.
-func New(appWin *gtk.ApplicationWindow, gtkWin *gtk.Window, drawerWidth int) *Backend {
+func New(appWin *gtk.ApplicationWindow, drawerWidth int) *Backend {
 	return &Backend{
 		appWin:       appWin,
-		gtkWin:       gtkWin,
+		gtkWin:       &appWin.Window,
 		drawerWidth:  drawerWidth,
 		hiddenMargin: -(drawerWidth - 1),
 		margin:       -(drawerWidth - 1),
@@ -185,10 +184,10 @@ func (b *Backend) Show() {
 		// output). Fade in place at margin 0, fully on the primary instead.
 		b.setMargin(0)
 		b.setOpacity(0)
-		b.fadeOpacity(1, func() { b.animating = false })
+		b.fadeOpacity(1, nil)
 	} else {
 		b.setOpacity(1)
-		b.slideMargin(0, func() { b.animating = false })
+		b.slideMargin(0, nil)
 	}
 	b.appWin.Present()
 }
@@ -204,58 +203,48 @@ func (b *Backend) Hide() {
 	if b.hasRightNeighbor() {
 		// Fade out in place (margin 0, on the primary), then park the now-invisible
 		// surface off-screen. The drawer never crosses onto the right monitor.
-		b.fadeOpacity(0, func() {
-			b.animating = false
-			b.setMargin(b.hiddenMargin)
-		})
+		b.fadeOpacity(0, func() { b.setMargin(b.hiddenMargin) })
 	} else {
 		b.slideMargin(b.hiddenMargin, func() {
-			b.animating = false
 			b.setOpacity(0) // hide the 1px sliver on the primary's own right edge
 		})
 	}
 }
 
-// slideMargin animates b.margin from its current value to target over
-// animDuration using smoothstep easing. onDone is called on the main thread
-// when the animation completes (or nil to skip). Returns the animation
-// generation for use in post-completion callbacks.
-//
-// Uses AddTickCallback (GTK4's proper animation mechanism) instead of
-// glib.TimeoutAdd. Tick callbacks fire in the frame clock's UPDATE phase,
-// synchronized with the compositor's VSync, so margin changes and surface
-// commits happen in the same frame cycle.
-func (b *Backend) slideMargin(target int, onDone func()) uint64 {
+// animate drives a smoothstep transition from 0 to 1. AddTickCallback runs in
+// the frame clock's UPDATE phase, keeping surface commits synchronized to VSync.
+// Starting another animation cancels the in-flight callback via animGen.
+func (b *Backend) animate(kind string, apply func(float64), onDone func()) {
 	b.animGen++
 	gen := b.animGen
-	b.animating = true
-	start := b.margin
-	t0 := time.Now()
+	started := time.Now()
 
 	b.gtkWin.AddTickCallback(func(_ gtk.Widgetter, _ gdk.FrameClocker) bool {
 		if b.animGen != gen {
-			slog.Debug("anim cancelled", "gen", gen, "currentGen", b.animGen)
+			slog.Debug("anim cancelled", "kind", kind, "gen", gen, "currentGen", b.animGen)
 			return false
 		}
-		t := float64(time.Since(t0)) / float64(animDuration)
-		if t >= 1.0 {
-			b.margin = target
-			gtk4layershell.SetMargin(b.gtkWin, gtk4layershell.LayerShellEdgeRight, target)
+		t := float64(time.Since(started)) / float64(animDuration)
+		if t >= 1 {
+			apply(1)
 			b.invalidateSurface()
-			slog.Debug("anim complete", "gen", gen, "margin", target)
+			slog.Debug("anim complete", "kind", kind, "gen", gen)
 			if onDone != nil {
 				onDone()
 			}
 			return false
 		}
-		t = t * t * (3 - 2*t) // smoothstep
-		b.margin = start + int(math.Round(float64(target-start)*t))
-		gtk4layershell.SetMargin(b.gtkWin, gtk4layershell.LayerShellEdgeRight, b.margin)
+		apply(t * t * (3 - 2*t)) // smoothstep
 		b.invalidateSurface()
 		return true
 	})
+}
 
-	return gen
+func (b *Backend) slideMargin(target int, onDone func()) {
+	start := b.margin
+	b.animate("slide", func(t float64) {
+		b.setMargin(start + int(math.Round(float64(target-start)*t)))
+	}, onDone)
 }
 
 // setMargin sets the right margin and keeps b.margin in sync.
@@ -275,32 +264,10 @@ func (b *Backend) setOpacity(o float64) {
 // animation completes. Shares animGen with slideMargin so the two cancel each
 // other when a show interrupts a hide (or vice versa).
 func (b *Backend) fadeOpacity(target float64, onDone func()) {
-	b.animGen++
-	gen := b.animGen
-	b.animating = true
 	start := b.opacity
-	t0 := time.Now()
-
-	b.gtkWin.AddTickCallback(func(_ gtk.Widgetter, _ gdk.FrameClocker) bool {
-		if b.animGen != gen {
-			slog.Debug("fade cancelled", "gen", gen, "currentGen", b.animGen)
-			return false
-		}
-		t := float64(time.Since(t0)) / float64(animDuration)
-		if t >= 1.0 {
-			b.setOpacity(target)
-			b.invalidateSurface()
-			slog.Debug("fade complete", "gen", gen, "opacity", target)
-			if onDone != nil {
-				onDone()
-			}
-			return false
-		}
-		t = t * t * (3 - 2*t) // smoothstep
+	b.animate("fade", func(t float64) {
 		b.setOpacity(start + (target-start)*t)
-		b.invalidateSurface()
-		return true
-	})
+	}, onDone)
 }
 
 // hasRightNeighbor reports whether any monitor sits to the right of the drawer's

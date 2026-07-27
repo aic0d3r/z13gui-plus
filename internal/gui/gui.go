@@ -1,4 +1,4 @@
-// Package gui implements the GTK4 overlay drawer for z13gui.
+// Package gui implements the Z13GUI+ GTK4 overlay drawer.
 // It provides the main Window type that handles daemon state synchronization,
 // GTK widget construction, and theming. Display-mode-specific concerns
 // (layer-shell vs gamescope X11 overlay) are delegated to Backend implementations.
@@ -17,6 +17,7 @@ import (
 	"github.com/dahui/z13gui/internal/gui/gamescope"
 	"github.com/dahui/z13gui/internal/gui/layershell"
 	"github.com/dahui/z13gui/internal/theme"
+	"github.com/dahui/z13gui/internal/togglegate"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
@@ -31,40 +32,155 @@ var defaultThemeCSS string
 //go:embed theme-default.toml
 var defaultThemeTOML string
 
-const drawerWidth = 320 // drawer panel width in pixels
+const (
+	drawerWidth = 320 // drawer panel width in pixels
+
+	// daemonToggleDebounce suppresses hardware-duplicated gui-toggle events: some
+	// firmware revisions report a single Armoury Crate press twice within the same
+	// evdev instant. It is deliberately NOT an animation rate limiter — deliberate
+	// rapid presses must all register.
+	//
+	// Sizing: measured human tapping on a Z13 bottoms out around 129ms between
+	// presses, so anything at or above ~120ms starts discarding real input (a 250ms
+	// window swallowed 38% of presses in a 96-event sample). 50ms leaves ~2.5x
+	// headroom below the human floor while still catching same-instant duplicates.
+	daemonToggleDebounce = 50 * time.Millisecond
+)
 
 // Window is the overlay drawer. All methods must be called from the GTK main
 // thread except subscribeLoop, which runs in a background goroutine.
 type Window struct {
 	win       *gtk.ApplicationWindow
-	gtkWin    *gtk.Window // alias for backend calls
-	backend   Backend     // display backend (layer-shell or gamescope)
-	gamescope bool        // true when running under gamescope (X11 overlay mode)
-	state     *api.State  // latest daemon state; nil until first successful fetch
-	tab       string      // active device tab: "keyboard" or "lightbar"
-	visible   bool        // true when the drawer is on-screen or animating in
+	backend   Backend    // display backend (layer-shell or gamescope)
+	gamescope bool       // true when running under gamescope (X11 overlay mode)
+	state     *api.State // latest daemon state; nil until first successful fetch
+	tab       string     // active device tab: "keyboard" or "lightbar"
+	activeTab string     // active main tab: "overview", "power", "rgb", "system" (persisted)
+	visible   bool       // true when the drawer is on-screen or animating in
 
 	swatchProvider *gtk.CSSProvider // dynamic swatch background colors
 	themeProvider  *gtk.CSSProvider // current theme; replaced on applyTheme()
 
 	// Widget references for syncState.
-	tabKB           *gtk.CheckButton
-	tabLB           *gtk.CheckButton
-	modeButtons     map[string]*gtk.Button
-	color1          *colorInput
-	color2          *colorInput
-	color1Box       *gtk.Box // COLOR 1 label + row — visibility toggled by syncModeVis
-	color2Box       *gtk.Box // COLOR 2 label + row — visibility toggled by syncModeVis
-	speedBox        *gtk.Box // SPEED label + row — visibility toggled by syncModeVis
-	brightBox       *gtk.Box // BRIGHTNESS label + scale — hidden when mode is "off"
-	speedBtns       map[string]*gtk.Button
-	brightScale     *gtk.Scale
-	profileBtns     map[string]*gtk.Button
-	battScale       *gtk.Scale
-	overdriveSwitch *gtk.Switch
-	bootSoundSwitch *gtk.Switch
+	tabKB               *gtk.CheckButton
+	tabLB               *gtk.CheckButton
+	mainTabBtns         map[string]*gtk.Button // top-level Power/RGB/System tabs
+	tabStack            *gtk.Stack             // switches between Power/RGB/System tab content
+	modeButtons         map[string]*gtk.Button
+	color1              *colorInput
+	color2              *colorInput
+	color1Box           *gtk.Box // COLOR 1 label + row — visibility toggled by syncModeVis
+	color2Box           *gtk.Box // COLOR 2 label + row — visibility toggled by syncModeVis
+	speedBox            *gtk.Box // SPEED label + row — visibility toggled by syncModeVis
+	brightBox           *gtk.Box // BRIGHTNESS label + scale — hidden when mode is "off"
+	rgbControlsBox      *gtk.Box // mode-specific controls; insensitive while selected device is off
+	lightingSwitch      *gtk.Switch
+	lightingSummary     *gtk.Label
+	rgbEffectSummary    *gtk.Label
+	rgbEffectCard       *gtk.Box
+	speedBtns           map[string]*gtk.Button
+	brightScale         *gtk.Scale
+	profileBtns         map[string]*gtk.Button
+	profileSummary      *gtk.Label
+	tuningHeader        *gtk.ToggleButton
+	tuningSummary       *gtk.Label
+	tuningBtn           *gtk.Button
+	cpuMinScale         *gtk.Scale
+	cpuEPPBtns          map[string]*gtk.Button
+	cpuBoostSwitch      *gtk.Switch
+	battPresetBtns      map[int]*gtk.Button // battery presets: 100/80/60 %
+	batterySummary      *gtk.Label
+	fanPresetBtns       map[string]*gtk.Button // fan modes: auto/silent/balanced/turbo
+	fanSummary          *gtk.Label
+	fanSafetyLabel      *gtk.Label
+	refreshBtns         map[int]*gtk.Button // eDP-1 refresh rate: 60/180 Hz
+	pendingRefreshRate  int
+	refreshPendingUntil time.Time
+	overdriveSwitch     *gtk.Switch
+	bootSoundSwitch     *gtk.Switch
+	displaySummary      *gtk.Label
+	startupSummary      *gtk.Label
+	appearanceSummary   *gtk.Label
+	presetsBtn          *gtk.Button
+	presetSummary       *gtk.Label
+	presetDetail        *gtk.Label
+	presetsScroll       *gtk.ScrolledWindow
+	presetsBackBtn      *gtk.Button
+	presetsList         *gtk.Box
+	presetNameEntry     *gtk.Entry
+	automationSwitch    *gtk.Switch // inline toggle on the main POWER AUTOMATION card
+	presetSaveBtn       *gtk.Button
+	presetRestoreBtn    *gtk.Button
+	presetStatus        *gtk.Label
+	acAssignment        *gtk.Box
+	batteryAssignment   *gtk.Box
+	acAssignmentLabel   *gtk.Label
+	batteryAssignLabel  *gtk.Label
+	acChangeBtn         *gtk.Button
+	batteryChangeBtn    *gtk.Button
+	presetCurrent       *gtk.Label
+	presetFocusItems    []focusItem
+	chooserScroll       *gtk.ScrolledWindow
+	chooserList         *gtk.Box
+	chooserTitle        *gtk.Label
+	chooserDetail       *gtk.Label
+	chooserFocusItems   []focusItem
+	confirmTitle        *gtk.Label
+	confirmMessage      *gtk.Label
+	confirmBtn          *gtk.Button
+	confirmFocusItems   []focusItem
+	confirmReturnView   string
+	confirmAction       func()
+	stateActionBusy     bool
+	stateActionQueue    []stateAction
+	stateRequestGen     uint64
 
-	// Custom profile view.
+	presetPageAutomation   *gtk.Switch
+	acAssignmentStatus     *gtk.Label
+	batteryAssignStatus    *gtk.Label
+	presetDetailName       string
+	presetDetailTitle      *gtk.Label
+	presetDetailContent    *gtk.Box
+	presetDetailBackBtn    *gtk.Button
+	presetDetailFocusItems []focusItem
+
+	// Premium hero widgets — battery card (Overview tab).
+	// Power tab telemetry gauges removed; live stats live on Overview tab only.
+	battCapacityLabel *gtk.Label       // battery percentage
+	battStatusLabel   *gtk.Label       // charging / source status
+	battProgress      *gtk.ProgressBar // current charge percentage
+	battHealthLabel   *gtk.Label       // battery health percentage
+	battEnergyLabel   *gtk.Label       // current / usable full charge
+	battVoltageLabel  *gtk.Label       // current battery voltage
+	battDesignLabel   *gtk.Label       // design capacity
+	battDrawMetric    *gtk.Box         // system draw metric, visible only on battery
+	battDrawLabel     *gtk.Label       // whole-system draw while discharging
+	battTimeCaption   *gtk.Label       // REMAINING / TO FULL / AT LIMIT / STATUS
+	battTimeLabel     *gtk.Label       // direction-aware battery time or terminal state
+	battPill          *gtk.Label       // threshold preset chip
+
+	// Overview tab — full live telemetry (CPU/GPU temp+util, clocks, VRAM, mem).
+	overviewScroll      *gtk.ScrolledWindow
+	cpuTempValue        *gtk.Label // CPU temperature (Overview)
+	gpuTempValue        *gtk.Label // GPU temperature (Overview)
+	cpuUtilValue        *gtk.Label // CPU utilisation %
+	gpuUtilValue        *gtk.Label // GPU utilisation %
+	overviewNPUPower    *gtk.Label // NPU power detail
+	overviewStatus      *gtk.Label // NORMAL / WARM / CRITICAL
+	overviewContext     *gtk.Label // battery, power source, and profile
+	overviewFreshness   *gtk.Label // hidden while live; age when polling is stale
+	overviewLastUpdate  time.Time
+	overviewAPUPower    *gtk.Label
+	overviewGPUPower    *gtk.Label
+	cpuFanLabel         *gtk.Label       // "3300 RPM"
+	gpuFanLabel         *gtk.Label       // "2800 RPM"
+	overviewCPUClock    *gtk.Label       // "3.8 GHz"
+	overviewGPUClock    *gtk.Label       // "1.7 GHz"
+	overviewMemoryBar   *gtk.ProgressBar // unified memory usage bar (0..1)
+	overviewMemoryLbl   *gtk.Label       // "18.4 / 128 GB"
+	overviewMemClock    *gtk.Label       // "425 MHz"
+
+	// Advanced tuning view.
 	customScroll       *gtk.ScrolledWindow
 	customBackBtn      *gtk.Button
 	tdpBasicScale      *gtk.Scale
@@ -77,37 +193,44 @@ type Window struct {
 	tdpPL1Label        *gtk.Label
 	tdpPL2Label        *gtk.Label
 	tdpPL3Label        *gtk.Label
-	tdpWarningLabel    *gtk.Label
 	fanCurve           *fanCurveEditor
-	saveTdpBtn  *gtk.Button
-	saveFanBtn  *gtk.Button
-	saveBothBtn *gtk.Button
-	resetTdpBtn *gtk.Button
-	resetFanBtn *gtk.Button
-	uvBox       *gtk.Box    // undervolt container, hidden when unavailable
-	uvCpuScale  *gtk.Scale
-	uvCpuLabel  *gtk.Label
-	saveUvBtn   *gtk.Button
-	resetUvBtn  *gtk.Button
-	headerTelemetry    *gtk.Label // "45°C · 3200 RPM" in main header
+	saveTdpBtn         *gtk.Button
+	saveFanBtn         *gtk.Button
+	resetTdpBtn        *gtk.Button
+	resetFanBtn        *gtk.Button
+	resetAllBtn        *gtk.Button
+	uvBox              *gtk.Box // undervolt container, hidden when unavailable
+	uvCpuScale         *gtk.Scale
+	uvCpuLabel         *gtk.Label
+	saveUvBtn          *gtk.Button
+	resetUvBtn         *gtk.Button
+	// tuning dirty-state UI: markers + conditional banners
+	tdpDirtyMark       *gtk.Label
+	fanDirtyMark       *gtk.Label
+	uvDirtyMark        *gtk.Label
+	fanSafetyBanner    *gtk.Label // shown when a safety profile locks fan editing
+	tdpClampWarn       *gtk.Label // shown in basic mode when active PL1 exceeds the basic range
 	telemetryTempLabel *gtk.Label
 	telemetryFanLabel  *gtk.Label
 	telemetryGen       int
+	telemetryPollBusy  bool
 	customFocusItems   []focusItem
 
 	syncing    bool        // true while syncState is updating widgets; suppresses sendApply
 	applyTimer *time.Timer // debounce for continuous inputs (brightness, color wheel)
 
 	// View switching (main/theme/color views).
-	mainScroll         *gtk.ScrolledWindow // scrollable area in main drawer view
+	powerScroll        *gtk.ScrolledWindow // Power tab scroll
+	rgbScroll          *gtk.ScrolledWindow // RGB tab scroll
+	systemScroll       *gtk.ScrolledWindow // System tab scroll
 	themeScroll        *gtk.ScrolledWindow // scrollable area in theme picker view
+	colorScroll        *gtk.ScrolledWindow // scrollable area in color picker view
 	viewStack          *gtk.Stack          // switches between main/theme/color views
 	editingColor       *colorInput         // which color the color-picker view is editing
 	colorViewTitle     *gtk.Label          // "COLOR 1" or "COLOR 2" in color view header
 	colorHue           *gtk.Scale          // H: 0-360
 	colorSat           *gtk.Scale          // S: 0-100
 	colorLit           *gtk.Scale          // L: 0-100
-	colorPreview       *gtk.Box            // swatch preview in color view
 	colorHexLabel      *gtk.Label          // hex display in color view
 	colorSwatchProv    *gtk.CSSProvider    // color picker preview swatch CSS
 	paletteBtn         *gtk.Button         // theme button in bottom bar
@@ -142,22 +265,28 @@ type Window struct {
 // GTK Activate signal.
 func New(app *gtk.Application) *Window {
 	w := &Window{
-		tab:         "keyboard",
-		gamescope:   os.Getenv("GAMESCOPE_WAYLAND_DISPLAY") != "",
-		modeButtons: make(map[string]*gtk.Button),
-		speedBtns:   make(map[string]*gtk.Button),
-		profileBtns: make(map[string]*gtk.Button),
+		tab:            "keyboard",
+		activeTab:      "overview",
+		gamescope:      os.Getenv("GAMESCOPE_WAYLAND_DISPLAY") != "",
+		modeButtons:    make(map[string]*gtk.Button),
+		speedBtns:      make(map[string]*gtk.Button),
+		profileBtns:    make(map[string]*gtk.Button),
+		mainTabBtns:    make(map[string]*gtk.Button),
+		battPresetBtns: make(map[int]*gtk.Button),
+		fanPresetBtns:  make(map[string]*gtk.Button),
+		cpuEPPBtns:     make(map[string]*gtk.Button),
+		refreshBtns:    make(map[int]*gtk.Button),
 	}
 
 	w.win = gtk.NewApplicationWindow(app)
 	w.win.AddCSSClass("z13-drawer-window")
-	w.gtkWin = &w.win.Window
+	gtkWin := &w.win.Window
 
 	// Select display backend.
 	if w.gamescope {
-		w.backend = gamescope.New(w.win, w.gtkWin, drawerWidth)
+		w.backend = gamescope.New(w.win, drawerWidth)
 	} else {
-		w.backend = layershell.New(w.win, w.gtkWin, drawerWidth)
+		w.backend = layershell.New(w.win, drawerWidth)
 	}
 
 	w.backend.Configure(func() bool { return w.visible }, w.hide)
@@ -200,7 +329,7 @@ func New(app *gtk.Application) *Window {
 			w.hideGamepadFocus()
 		}
 	})
-	w.gtkWin.AddController(motion)
+	gtkWin.AddController(motion)
 
 	// Block arrow keys from reaching child widgets. GTK4 uses arrow keys
 	// to navigate radio groups (auto-activating them) and adjust scales.
@@ -214,7 +343,7 @@ func New(app *gtk.Application) *Window {
 		}
 		return false
 	})
-	w.gtkWin.AddController(keyBlock)
+	gtkWin.AddController(keyBlock)
 
 	slog.Info("drawer initialized")
 	return w
@@ -229,12 +358,17 @@ func (w *Window) Toggle() {
 	} else {
 		slog.Info("toggle", "action", "show")
 		w.show()
+		w.stateRequestGen++
+		gen := w.stateRequestGen
 		fetchStart := time.Now()
 		go func() {
 			ok, state, err := api.SendGetState()
 			slog.Debug("SendGetState returned", "ok", ok, "err", err, "elapsed", time.Since(fetchStart))
 			if ok && err == nil {
 				glib.IdleAdd(func() {
+					if gen != w.stateRequestGen || w.stateActionBusy {
+						return
+					}
 					slog.Debug("syncState dispatched", "totalElapsed", time.Since(fetchStart))
 					w.state = state
 					w.syncState()
@@ -283,6 +417,8 @@ func (w *Window) hide() {
 	w.hideGamepadFocus()
 	w.telemetryGen++ // stop any running telemetry poll
 	if w.viewStack != nil {
+		w.confirmAction = nil
+		w.confirmReturnView = ""
 		w.viewStack.SetVisibleChildName("main")
 		w.swapFocusList(w.mainFocusItems)
 	}
@@ -331,7 +467,7 @@ func (w *Window) handleGamepadAction(action gamepad.Action) {
 		case w.focusEditing:
 			w.exitEditMode(false)
 		case w.viewStack != nil && w.viewStack.VisibleChildName() != "main":
-			w.showMainView()
+			w.backCurrentView()
 		default:
 			w.hide()
 		}
@@ -353,6 +489,11 @@ func (w *Window) handleGamepadAction(action gamepad.Action) {
 // with exponential backoff.
 func (w *Window) subscribeLoop() {
 	backoff := time.Second
+	// Debounce state for duplicate gui-toggle bursts. Deliberately a local, not a
+	// Window field: every other piece of Window state is main-thread-owned, and
+	// keeping this out of the struct makes it unreachable from the main thread.
+	// Declared outside the reconnect loop so the window survives a reconnect.
+	var lastToggle time.Time
 	for {
 		ch, cancel, err := api.Subscribe([]string{"gui-toggle"})
 		if err != nil || ch == nil {
@@ -366,14 +507,22 @@ func (w *Window) subscribeLoop() {
 		slog.Info("daemon connected")
 		backoff = time.Second
 		for event := range ch {
-			if event == "gui-toggle" {
-				slog.Debug("gui-toggle received, dispatching")
-				glib.TimeoutAdd(0, func() bool {
-					w.Toggle()
-					return false
-				})
-				glib.MainContextDefault().Wakeup()
+			if event != "gui-toggle" {
+				continue
 			}
+			receivedAt := time.Now()
+			lastAccepted, ok := togglegate.Accept(lastToggle, receivedAt, daemonToggleDebounce)
+			if !ok {
+				slog.Debug("gui-toggle suppressed", "since", receivedAt.Sub(lastToggle))
+				continue
+			}
+			lastToggle = lastAccepted
+			slog.Debug("gui-toggle received, dispatching")
+			glib.TimeoutAdd(0, func() bool {
+				w.Toggle()
+				return false
+			})
+			glib.MainContextDefault().Wakeup()
 		}
 		cancel()
 	}
@@ -474,6 +623,10 @@ func (w *Window) applyTheme(id, accentID string) {
 	w.themeProvider.LoadFromString(theme.BuildThemeCSS(colors, defaultThemeCSS))
 	gtk.StyleContextAddProviderForDisplay(display, w.themeProvider, gtk.STYLE_PROVIDER_PRIORITY_USER)
 	theme.SaveAppConfig(theme.AppConfig{Theme: id, Accent: accentID})
+	w.isCustomTheme = false
+	if w.appearanceSummary != nil {
+		w.appearanceSummary.SetLabel(themeButtonLabel(id, accentID, false))
+	}
 	slog.Info("theme changed", "id", id, "accent", accentID)
 }
 
@@ -496,6 +649,9 @@ func (w *Window) applyCustomAccent(accentID string) {
 	w.themeProvider.LoadFromString(theme.BuildThemeCSS(colors, defaultThemeCSS))
 	gtk.StyleContextAddProviderForDisplay(display, w.themeProvider, gtk.STYLE_PROVIDER_PRIORITY_USER)
 	theme.SaveAppConfig(theme.AppConfig{Accent: accentID})
+	if w.appearanceSummary != nil {
+		w.appearanceSummary.SetLabel(themeButtonLabel("", accentID, true))
+	}
 }
 
 // fileExists returns true if a file exists at the given path.

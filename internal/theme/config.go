@@ -55,7 +55,7 @@ func SaveAppConfig(cfg AppConfig) {
 		slog.Warn("failed to create config dir", "path", dir, "err", err)
 		return
 	}
-	content := "# z13gui app configuration\ntheme = \"" + cfg.Theme + "\"\n"
+	content := "# Z13GUI+ app configuration\ntheme = \"" + cfg.Theme + "\"\n"
 	if cfg.Accent != "" {
 		content += "accent = \"" + cfg.Accent + "\"\n"
 	}
@@ -64,15 +64,12 @@ func SaveAppConfig(cfg AppConfig) {
 	}
 }
 
-// XDGConfigHome returns $XDG_CONFIG_HOME or falls back to ~/.config.
+// XDGConfigHome returns the current user's configuration directory.
 func XDGConfigHome() string {
-	if v := os.Getenv("XDG_CONFIG_HOME"); v != "" {
-		return v
-	}
-	home, err := os.UserHomeDir()
+	dir, err := os.UserConfigDir()
 	if err != nil {
-		slog.Warn("failed to get home directory", "err", err)
+		slog.Warn("failed to get config directory", "err", err)
 		return "/tmp/.config"
 	}
-	return filepath.Join(home, ".config")
+	return dir
 }

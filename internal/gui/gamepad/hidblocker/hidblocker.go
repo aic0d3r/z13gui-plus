@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 )
 
@@ -17,19 +16,16 @@ import (
 // The BPF program attaches to the kernel's file_permission hook and returns
 // -EAGAIN for read() calls from blocked PIDs on hidraw character devices.
 //
-// Thread-safe: Block/Unblock/UnblockAll can be called from any goroutine.
+// Thread-safe: Block and UnblockAll can be called from any goroutine.
 type Blocker struct {
 	objs blockerObjects
 	link link.Link
 }
 
-// ErrLSMNotAvailable is returned when BPF LSM is not enabled in the kernel.
-var ErrLSMNotAvailable = errors.New("BPF LSM not available: bpf not in /sys/kernel/security/lsm")
-
 // New loads the BPF program and attaches it to the file_permission LSM hook.
 func New() (*Blocker, error) {
 	if !lsmEnabled() {
-		return nil, ErrLSMNotAvailable
+		return nil, errors.New("BPF LSM not available: bpf not in /sys/kernel/security/lsm")
 	}
 
 	major, err := hidrawMajor()
@@ -70,17 +66,6 @@ func (b *Blocker) Block(pid int) error {
 		return fmt.Errorf("hidblocker: block PID %d: %w", pid, err)
 	}
 	slog.Debug("hidblocker: blocked PID", "pid", pid)
-	return nil
-}
-
-// Unblock removes a PID from the blocked set. Idempotent.
-func (b *Blocker) Unblock(pid int) error {
-	key := uint32(pid)
-	err := b.objs.BlockedPids.Delete(key)
-	if err != nil && !errors.Is(err, ebpf.ErrKeyNotExist) {
-		return fmt.Errorf("hidblocker: unblock PID %d: %w", pid, err)
-	}
-	slog.Debug("hidblocker: unblocked PID", "pid", pid)
 	return nil
 }
 

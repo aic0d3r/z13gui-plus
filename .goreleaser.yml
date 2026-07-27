@@ -1,10 +1,6 @@
 version: 2
 
-project_name: z13gui
-
-before:
-  hooks:
-    - go mod tidy
+project_name: z13gui-plus
 
 builds:
   - id: z13gui
@@ -33,28 +29,33 @@ checksum:
 
 nfpms:
   - id: z13gui-pkg
-    package_name: z13gui
+    package_name: z13gui-plus
     section: utils
     formats:
       - archlinux
       - deb
       - rpm
-    homepage: https://github.com/dahui/z13gui
-    maintainer: "Jeff Hagadorn <noreply@github.com>"
-    description: GTK4 overlay GUI companion for z13ctl
+    homepage: https://github.com/aic0d3r/z13gui-plus
+    maintainer: "aic0d3r <funforfreeapps@gmail.com>"
+    description: Z13GUI+ GTK4 overlay companion for z13ctl
     license: Apache-2.0
-    provides:
-      - z13gui
     dependencies:
       - gtk4
       - gtk4-layer-shell
+      - z13ctl
+    provides:
+      - z13gui
+    conflicts:
+      - z13gui
+    replaces:
+      - z13gui
     scripts:
       postinstall: contrib/nfpm/postinstall.sh
       preremove: contrib/nfpm/preremove.sh
       postremove: contrib/nfpm/postremove.sh
     contents:
       - src: LICENSE
-        dst: /usr/share/licenses/z13gui/LICENSE
+        dst: /usr/share/licenses/z13gui-plus/LICENSE
       - src: contrib/z13gui.service
         dst: /usr/lib/systemd/user/z13gui.service
       - src: contrib/z13gui.desktop
@@ -66,12 +67,16 @@ nfpms:
         dependencies:
           - libgtk-4-1
           - libgtk4-layer-shell0
+          - z13ctl
     archlinux:
-      packager: "Jeff Hagadorn <noreply@github.com>"
+      packager: "aic0d3r <funforfreeapps@gmail.com>"
     rpm:
       group: Applications/System
 
 release:
+  github:
+    owner: aic0d3r
+    name: z13gui-plus
   draft: false
   prerelease: auto
   # The annotated tag's message body becomes the top of the release notes,
@@ -80,3 +85,9 @@ release:
   # Lightweight tags (no -a/-m) leave this empty and fall back to the changelog.
   header: |
     {{ .TagBody }}
+
+    ---
+
+    **z13gui-plus** is a compatibility-preserving distribution of
+    [dahui/z13gui](https://github.com/dahui/z13gui). The installed command and
+    runtime interfaces remain `z13gui`.

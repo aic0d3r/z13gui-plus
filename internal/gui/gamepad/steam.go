@@ -13,7 +13,7 @@ import (
 )
 
 // pidFilePath returns the path to the frozen-PID state file.
-// Used for crash recovery: if z13gui is killed, the systemd ExecStopPost
+// Used for crash recovery: if Z13GUI+ is killed, the systemd ExecStopPost
 // or signal handler reads this file to thaw the frozen Steam process.
 func pidFilePath() string {
 	runtime := os.Getenv("XDG_RUNTIME_DIR")
@@ -89,7 +89,6 @@ func ThawFrozen() {
 type SteamInputBlocker interface {
 	BlockSteam() int
 	UnblockSteam(pid int)
-	Close()
 }
 
 // NewSteamInputBlocker creates a SteamInputBlocker. Tries BPF LSM first
@@ -138,10 +137,6 @@ func (b *bpfBlocker) UnblockSteam(pid int) {
 	slog.Info("steam: BPF unblocked", "pid", pid)
 }
 
-func (b *bpfBlocker) Close() {
-	b.hb.Close()
-}
-
 // --- SIGSTOP fallback ---
 
 type sigstopBlocker struct{}
@@ -169,8 +164,6 @@ func (s *sigstopBlocker) UnblockSteam(pid int) {
 		slog.Info("steam: thawed", "pid", pid)
 	}
 }
-
-func (s *sigstopBlocker) Close() {}
 
 // findChildren returns PIDs of all direct child processes of ppid.
 func findChildren(ppid int) []int {

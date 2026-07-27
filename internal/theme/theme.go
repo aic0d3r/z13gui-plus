@@ -1,3 +1,4 @@
+// Package theme provides color themes, configuration persistence, and CSS generation.
 package theme
 
 // Colors holds the 7 named color values that drive the entire GUI theme.
@@ -35,8 +36,8 @@ type Accent struct {
 // Builtin pairs a theme ID and display name with its color definition
 // and optional accent color variants.
 type Builtin struct {
-	ID      string   // config key, e.g. "catppuccin-mocha"
-	Name    string   // display name shown in the theme picker
+	ID      string // config key, e.g. "catppuccin-mocha"
+	Name    string // display name shown in the theme picker
 	Colors  Colors
 	Accents []Accent // optional accent variants; first = default (matches Colors.Accent)
 }

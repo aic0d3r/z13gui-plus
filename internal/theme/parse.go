@@ -1,16 +1,9 @@
 package theme
 
-import "strings"
-
-// ParseThemeTOML reads a theme.toml file and returns its color definitions.
-// Lines of the form key = "value" or key = value are parsed. Comment lines (#)
-// and blank lines are ignored. Unknown keys are silently ignored. Invalid hex
-// values fall back to the corresponding default. Missing keys keep their default
-// value. Any [accents] section is ignored; use ParseThemeTOMLFull to get accents.
-func ParseThemeTOML(data []byte) Colors {
-	c, _ := ParseThemeTOMLFull(data)
-	return c
-}
+import (
+	"strconv"
+	"strings"
+)
 
 // ParseThemeTOMLFull reads a theme.toml file and returns both its color
 // definitions and any accent color variants defined in an [accents] section.
@@ -90,19 +83,12 @@ func titleCase(s string) string {
 
 // IsHexColor returns true for valid CSS hex color strings: #rgb, #rrggbb, #rrggbbaa.
 func IsHexColor(s string) bool {
-	if s == "" || s[0] != '#' {
+	if len(s) != 4 && len(s) != 7 && len(s) != 9 {
 		return false
 	}
-	rest := s[1:]
-	switch len(rest) {
-	case 3, 6, 8:
-	default:
+	if s[0] != '#' {
 		return false
 	}
-	for _, c := range rest {
-		if (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F') {
-			return false
-		}
-	}
-	return true
+	_, err := strconv.ParseUint(s[1:], 16, 32)
+	return err == nil
 }

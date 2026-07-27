@@ -1,9 +1,9 @@
-site_name: z13gui
-site_url: https://dahui.github.io/z13gui
-site_description: GTK4 overlay drawer for z13ctl on Wayland.
+site_name: Z13GUI+
+site_url: https://aic0d3r.github.io/z13gui-plus
+site_description: Z13GUI+ GTK4 overlay drawer for z13ctl on Wayland.
 
-repo_url: https://github.com/dahui/z13gui
-repo_name: dahui/z13gui
+repo_url: https://github.com/aic0d3r/z13gui-plus
+repo_name: aic0d3r/z13gui-plus
 edit_uri: edit/main/docs/
 
 theme:
@@ -27,7 +27,6 @@ theme:
     - navigation.top
     - search.suggest
     - search.highlight
-    - content.tabs.link
     - content.code.copy
 
 markdown_extensions:
@@ -39,7 +38,6 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
   - tables
-  - attr_list
 
 nav:
   - Home: index.md

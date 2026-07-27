@@ -6,8 +6,7 @@
 // Device classification:
 //   - gamepad: full controllers (Xbox, PS, Switch, virtual Steam devices) →
 //     read events + EVIOCGRAB to suppress background game input
-//   - grab-only: related input devices (PS touchpad) → EVIOCGRAB only,
-//     events discarded (prevents touchpad acting as mouse in background)
+//   - grab-only: Steam virtual gamepads → EVIOCGRAB only, events discarded
 //   - ignored: accelerometers/gyro (INPUT_PROP_ACCELEROMETER), keyboards,
 //     mice, and other non-gamepad devices
 //
@@ -21,6 +20,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -49,9 +50,9 @@ type Handler func(Action)
 type deviceClass int
 
 const (
-	deviceIgnore  deviceClass = iota // not gamepad-related; skip
-	deviceGamepad                    // full gamepad: read events + EVIOCGRAB
-	deviceGrabOnly                   // related device (e.g. PS touchpad): EVIOCGRAB only
+	deviceIgnore   deviceClass = iota // not gamepad-related; skip
+	deviceGamepad                     // full gamepad: read events + EVIOCGRAB
+	deviceGrabOnly                    // Steam virtual gamepad: EVIOCGRAB only
 )
 
 // gamepadButtons are evdev button codes that identify a device as a gamepad.
@@ -78,11 +79,9 @@ type Reader struct {
 	isVisible func() bool
 	dispatch  func(func()) // wraps glib.IdleAdd; injected to avoid glib import
 
-	mu       sync.Mutex
-	devices  map[string]*evdev.InputDevice // gamepad devices: read events + grab
-	grabOnly map[string]*evdev.InputDevice // related devices: grab only (e.g. PS touchpad)
-	grabbed  bool                          // true while overlay is visible (exclusive grab)
-	stop     chan struct{}
+	mu      sync.Mutex
+	devices map[string]*evdev.InputDevice
+	grabbed bool // true while overlay is visible (exclusive grab)
 }
 
 // New creates a Reader. handler is called (via dispatch) for each action.
@@ -94,32 +93,14 @@ func New(handler Handler, isVisible func() bool, dispatch func(func())) *Reader 
 		isVisible: isVisible,
 		dispatch:  dispatch,
 		devices:   make(map[string]*evdev.InputDevice),
-		grabOnly:  make(map[string]*evdev.InputDevice),
-		stop:      make(chan struct{}),
 	}
 }
 
-// Run scans for gamepad devices and reads events. Blocks until Stop is called.
+// Run scans for gamepad devices and reads events for the process lifetime.
 func (r *Reader) Run() {
 	r.scan()
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-r.stop:
-			return
-		case <-ticker.C:
-			r.scan()
-		}
-	}
-}
-
-// Stop terminates the reader and all device goroutines.
-func (r *Reader) Stop() {
-	select {
-	case <-r.stop:
-	default:
-		close(r.stop)
+	for range time.Tick(5 * time.Second) {
+		r.scan()
 	}
 }
 
@@ -131,13 +112,6 @@ func (r *Reader) GrabAll() {
 	defer r.mu.Unlock()
 	r.grabbed = true
 	for path, dev := range r.devices {
-		if err := dev.Grab(); err != nil {
-			slog.Warn("gamepad: grab failed", "path", path, "err", err)
-		} else {
-			slog.Info("gamepad: grabbed", "path", path)
-		}
-	}
-	for path, dev := range r.grabOnly {
 		if err := dev.Grab(); err != nil {
 			slog.Warn("gamepad: grab failed", "path", path, "err", err)
 		} else {
@@ -159,13 +133,6 @@ func (r *Reader) UngrabAll() {
 			slog.Info("gamepad: ungrabbed", "path", path)
 		}
 	}
-	for path, dev := range r.grabOnly {
-		if err := dev.Ungrab(); err != nil {
-			slog.Warn("gamepad: ungrab failed", "path", path, "err", err)
-		} else {
-			slog.Info("gamepad: ungrabbed", "path", path)
-		}
-	}
 }
 
 // scan enumerates /dev/input/event* and starts readers for new devices.
@@ -177,10 +144,9 @@ func (r *Reader) scan() {
 	}
 	for _, p := range paths {
 		r.mu.Lock()
-		_, inDevices := r.devices[p.Path]
-		_, inGrabOnly := r.grabOnly[p.Path]
+		_, registered := r.devices[p.Path]
 		r.mu.Unlock()
-		if inDevices || inGrabOnly {
+		if registered {
 			continue
 		}
 		r.tryOpen(p.Path)
@@ -211,24 +177,18 @@ func (r *Reader) tryOpen(path string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	r.devices[path] = dev
+	if r.grabbed {
+		if err := dev.Grab(); err != nil {
+			slog.Warn("gamepad: grab failed", append(attrs, "err", err)...)
+		}
+	}
+
 	switch class {
 	case deviceGamepad:
-		r.devices[path] = dev
-		if r.grabbed {
-			if err := dev.Grab(); err != nil {
-				slog.Warn("gamepad: grab failed", append(attrs, "err", err)...)
-			}
-		}
 		go r.readLoop(path, dev)
 		slog.Info("gamepad: found", append(attrs, "class", "gamepad")...)
-
 	case deviceGrabOnly:
-		r.grabOnly[path] = dev
-		if r.grabbed {
-			if err := dev.Grab(); err != nil {
-				slog.Warn("gamepad: grab failed", append(attrs, "err", err)...)
-			}
-		}
 		go r.holdLoop(path, dev)
 		slog.Info("gamepad: found", append(attrs, "class", "grab-only")...)
 	}
@@ -236,45 +196,57 @@ func (r *Reader) tryOpen(path string) {
 
 // classifyDevice determines how to handle an evdev device.
 func classifyDevice(dev *evdev.InputDevice) deviceClass {
+	name, _ := dev.Name()
+	id, _ := dev.InputID()
+	return classifyCapabilities(
+		name,
+		dev.Properties(),
+		dev.CapableEvents(evdev.EV_KEY),
+		dev.CapableEvents(evdev.EV_ABS),
+		id,
+	)
+}
+
+func classifyCapabilities(name string, properties []evdev.EvProp, keys, abs []evdev.EvCode, id evdev.InputID) deviceClass {
 	// Skip accelerometers/gyro (PS motion sensors). High-frequency events,
 	// not routable to game input — grabbing is wasteful.
-	for _, p := range dev.Properties() {
-		if p == evdev.INPUT_PROP_ACCELEROMETER {
-			return deviceIgnore
-		}
+	if slices.Contains(properties, evdev.INPUT_PROP_ACCELEROMETER) {
+		return deviceIgnore
+	}
+
+	// Identify touchpad-like nodes before deciding whether a controller's main
+	// event node or its separate touchpad node is being inspected.
+	lowerName := strings.ToLower(name)
+	isTouchpad := strings.Contains(lowerName, "touchpad") || strings.Contains(lowerName, "trackpad")
+	isTouchpad = isTouchpad || slices.ContainsFunc(properties, func(p evdev.EvProp) bool {
+		return p == evdev.INPUT_PROP_BUTTONPAD || p == evdev.INPUT_PROP_SEMI_MT
+	})
+	if slices.Contains(properties, evdev.INPUT_PROP_POINTER) && slices.Contains(abs, evdev.ABS_MT_POSITION_X) {
+		isTouchpad = true
 	}
 
 	// Check for gamepad button capabilities (Xbox, PS, Switch, virtual).
-	keys := dev.CapableEvents(evdev.EV_KEY)
-	hasGamepadBtn := false
-	for _, k := range keys {
-		for _, gb := range gamepadButtons {
-			if k == gb {
-				hasGamepadBtn = true
-				break
-			}
-		}
-		if hasGamepadBtn {
-			break
-		}
-	}
+	hasGamepadBtn := slices.ContainsFunc(keys, func(k evdev.EvCode) bool {
+		return slices.Contains(gamepadButtons, k)
+	})
 	if hasGamepadBtn {
+		if isTouchpad && id.Vendor != 0x054C && id.Vendor != 0x28DE {
+			return deviceIgnore
+		}
 		// Steam virtual gamepad (VID 28de, PID 11ff) — grab to block game's
 		// evdev reader, but don't read events (we read the physical device).
-		id, err := dev.InputID()
-		if err == nil && id.Vendor == 0x28DE && id.Product == 0x11FF {
+		if id.Vendor == 0x28DE && id.Product == 0x11FF {
 			return deviceGrabOnly
 		}
 		return deviceGamepad
 	}
-
-	// Check for touchpad (PS controller touchpad): has multitouch but no
-	// gamepad buttons. Must be grabbed to prevent it acting as a mouse.
-	abs := dev.CapableEvents(evdev.EV_ABS)
-	for _, a := range abs {
-		if a == evdev.ABS_MT_POSITION_X {
+	if isTouchpad {
+		// Keep controller touchpads suppressed while the overlay is open, but
+		// never open/grab desktop or folio touchpads.
+		if id.Vendor == 0x054C || id.Vendor == 0x28DE {
 			return deviceGrabOnly
 		}
+		return deviceIgnore
 	}
 
 	return deviceIgnore
@@ -332,12 +304,6 @@ func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
 	}
 
 	for {
-		select {
-		case <-r.stop:
-			return
-		default:
-		}
-
 		ev, err := dev.ReadOne()
 		if err != nil {
 			return // device disconnected
@@ -398,18 +364,13 @@ func (r *Reader) holdLoop(path string, dev *evdev.InputDevice) {
 		if r.grabbed {
 			_ = dev.Ungrab()
 		}
-		delete(r.grabOnly, path)
+		delete(r.devices, path)
 		r.mu.Unlock()
 		_ = dev.Close()
 		slog.Info("gamepad: grab-only disconnected", "path", path)
 	}()
 
 	for {
-		select {
-		case <-r.stop:
-			return
-		default:
-		}
 		_, err := dev.ReadOne()
 		if err != nil {
 			return // device disconnected

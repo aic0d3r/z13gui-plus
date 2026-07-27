@@ -1,13 +1,13 @@
 # Theming
 
-z13gui supports custom color themes through a simple TOML configuration file.
+Z13GUI+ supports custom color themes through a simple TOML configuration file.
 You can also select from 15 built-in themes using the in-app theme picker.
 
 ---
 
 ## Theme priority
 
-z13gui resolves its theme using the following priority chain. The first match wins:
+Z13GUI+ resolves its theme using the following priority chain. The first match wins:
 
 1. `~/.config/z13gui/theme.toml` — custom color definitions (7 hex values)
 2. `~/.config/z13gui/theme.css` — full CSS override (power users)
@@ -100,10 +100,10 @@ Comments, inline comments, unknown keys, and missing keys are all handled
 gracefully. Invalid hex values are skipped; missing keys fall back to ROG Dark
 defaults.
 
-The `examples/themes/` directory in the repository contains a `.toml` file for
-every built-in theme — useful starting points for custom themes.
+The repository's [example themes](https://github.com/aic0d3r/z13gui-plus/tree/main/examples/themes)
+contain a `.toml` file for every built-in theme and are useful starting points.
 
-Changes to `theme.toml` take effect the next time z13gui starts.
+Changes to `theme.toml` take effect the next time Z13GUI+ starts.
 
 ### Accent variants
 
@@ -188,30 +188,3 @@ The stylesheet should define all 7 `@define-color` variables:
 
 You can then add any GTK4 CSS rules. `theme.toml` takes priority over
 `theme.css` — delete `theme.toml` to use a CSS override.
-
----
-
-## Example
-
-A complete custom dark-blue theme built from scratch:
-
-```toml
-# ~/.config/z13gui/theme.toml
-accent      = "#5294e2"
-background  = "#1b2838"
-surface     = "#253449"
-surface_alt = "#2e3f55"
-text        = "#d3dae3"
-text_dim    = "#7c8fa0"
-border      = "#3b5068"
-```
-
-- `accent` — a medium blue for active buttons and checked states
-- `background` — very dark navy for the drawer panel
-- `surface` — slightly lighter than background so buttons stand out
-- `surface_alt` — slightly lighter again for hover states
-- `text` — light gray-blue for readability against the dark background
-- `text_dim` — muted blue-gray for section labels
-- `border` — sits between surface and text brightness for subtle outlines
-
-To use this theme: save it to `~/.config/z13gui/theme.toml` and restart z13gui.

@@ -5,12 +5,6 @@ import (
 	"testing"
 )
 
-func TestLsmEnabled(t *testing.T) {
-	// Just verify it doesn't panic — result depends on kernel config.
-	result := lsmEnabled()
-	t.Logf("lsmEnabled: %v", result)
-}
-
 func TestHidrawMajor(t *testing.T) {
 	major, err := hidrawMajor()
 	if err != nil {
@@ -38,9 +32,6 @@ func TestNew(t *testing.T) {
 
 	if err := b.Block(99999); err != nil {
 		t.Fatalf("Block failed: %v", err)
-	}
-	if err := b.Unblock(99999); err != nil {
-		t.Fatalf("Unblock failed: %v", err)
 	}
 	b.UnblockAll()
 }

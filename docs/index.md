@@ -1,27 +1,36 @@
-# z13gui
+# Z13GUI+
 
 GTK4 overlay drawer for **z13ctl** on Wayland — graphical controls for the
 2025 ASUS ROG Flow Z13 on Linux.
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/dahui/z13gui/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/aic0d3r/z13gui-plus/blob/main/LICENSE)
+
+Z13GUI+ is a compatibility-preserving distribution of
+[dahui/z13gui](https://github.com/dahui/z13gui). Distribution packages and
+release artifacts use `z13gui-plus`, while the command, service, desktop and udev
+filenames, configuration/runtime paths, D-Bus ID, canonical Go module, daemon API,
+and hardware/socket protocols remain compatible as `z13gui`.
 
 ---
 
-## What z13gui does
+## What Z13GUI+ does
 
-- **Profile switching** — quiet, balanced, performance, and custom TDP profiles
+- **Power automation** — named presets with automatic AC/battery switching
+- **Profile switching** — quiet, balanced, and performance hardware profiles
+- **CPU power control** — minimum frequency, AMD EPP, and CPU boost controls independent of GPU clocks
 - **Custom TDP control** — configurable power limits (PL1/PL2/PL3) in the custom profile view, with basic and advanced modes
 - **Fan curve editor** — per-profile fan response curve editing (custom profile, advanced mode)
 - **Undervolt** — CPU Curve Optimizer offset (requires `ryzen_smu` kernel module; iGPU CO is not supported on Strix Halo)
-- **APU telemetry** — live temperature and fan RPM readouts in the custom profile view
+- **Live telemetry overview** — CPU/GPU temperatures and load, clocks, APU/GPU/NPU power, memory, battery context, and fan data where available
 - **Battery charge limit** — set the charge cap (40–100%) from the drawer
 - **RGB lighting** — mode, color, speed, and brightness for the keyboard
   backlight and edge lightbar
 - **System toggles** — panel overdrive and boot sound on/off
 - **Theme picker** — 15 built-in themes with full custom theme support
-- **Gamepad navigation** — full D-pad + button control for Steam Gaming Mode
+- **Redesigned Overview and Power UI** — separates live status from tuning and automation controls
+- **Gamescope controller handling** — full D-pad/button navigation with controller-input suppression while the drawer is open
 
-All hardware communication goes through the z13ctl daemon. z13gui never
+All hardware communication goes through the `z13ctl` daemon. Z13GUI+ never
 touches HID devices or sysfs directly.
 
 ---
@@ -42,7 +51,7 @@ environment:
 
 - Wayland compositor with layer-shell support, or gamescope (Steam Gaming Mode)
 - GTK 4 and gtk4-layer-shell libraries (see [Installation](installation.md#runtime-dependencies) for distro package names)
-- [z13ctl](https://github.com/dahui/z13ctl) daemon running
+- [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) (`z13ctl`) daemon running
 
 ---
 

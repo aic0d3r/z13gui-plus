@@ -19,15 +19,15 @@ import (
 
 // focusItem represents a single gamepad-navigable element.
 type focusItem struct {
-	widget     gtk.Widgetter // widget to highlight with .gamepad-focus
-	row        int           // visual row number
-	col        int           // column within row
-	section    string        // section name for shoulder-button jumping
-	isVisible  func() bool   // false if parent section is hidden; nil = always visible
-	onActivate func()        // A button: toggle/activate (non-editable items)
-	editable   bool          // true for sliders — A enters edit mode instead of activating
-	onLeft     func()        // D-pad left while editing: decrease value
-	onRight    func()        // D-pad right while editing: increase value
+	widget     gtk.Widgetter  // widget to highlight with .gamepad-focus
+	row        int            // visual row number
+	col        int            // column within row
+	section    string         // section name for shoulder-button jumping
+	isVisible  func() bool    // false if parent section is hidden; nil = always visible
+	onActivate func()         // A button: toggle/activate (non-editable items)
+	editable   bool           // true for sliders — A enters edit mode instead of activating
+	onLeft     func()         // D-pad left while editing: decrease value
+	onRight    func()         // D-pad right while editing: increase value
 	getValue   func() float64 // read current value (for cancel/restore)
 	setValue   func(float64)  // restore value on cancel
 }
@@ -37,7 +37,8 @@ func (fi *focusItem) visible() bool {
 	if fi.isVisible != nil && !fi.isVisible() {
 		return false
 	}
-	return gtk.BaseWidget(fi.widget).IsVisible()
+	widget := gtk.BaseWidget(fi.widget)
+	return widget.IsVisible() && widget.Sensitive()
 }
 
 // visibleRows returns sorted unique row numbers that have at least one visible item.
@@ -327,13 +328,28 @@ func (w *Window) ensureVisible(widget gtk.Widgetter) {
 	if w.viewStack != nil {
 		switch w.viewStack.VisibleChildName() {
 		case "main":
-			scroll = w.mainScroll
+			switch w.activeTab {
+			case "overview":
+				scroll = w.overviewScroll
+			case "rgb":
+				scroll = w.rgbScroll
+			case "system":
+				scroll = w.systemScroll
+			default:
+				scroll = w.powerScroll
+			}
 		case "theme":
 			scroll = w.themeScroll
 		case "custom":
 			scroll = w.customScroll
+		case "presets":
+			scroll = w.presetsScroll
+		case "chooser":
+			scroll = w.chooserScroll
+		case "color":
+			scroll = w.colorScroll
 		default:
-			return // color view has no scroll
+			return // confirmation view has no scroll
 		}
 	}
 	if scroll == nil {
@@ -359,20 +375,8 @@ func (w *Window) ensureVisible(widget gtk.Widgetter) {
 // scaleAdjust returns onLeft/onRight/getValue/setValue functions for a slider.
 func scaleAdjust(sc *gtk.Scale, step float64) (onLeft, onRight func(), getValue func() float64, setValue func(float64)) {
 	adj := sc.Adjustment()
-	onLeft = func() {
-		v := adj.Value() - step
-		if v < adj.Lower() {
-			v = adj.Lower()
-		}
-		adj.SetValue(v)
-	}
-	onRight = func() {
-		v := adj.Value() + step
-		if v > adj.Upper() {
-			v = adj.Upper()
-		}
-		adj.SetValue(v)
-	}
+	onLeft = func() { adj.SetValue(max(adj.Value()-step, adj.Lower())) }
+	onRight = func() { adj.SetValue(min(adj.Value()+step, adj.Upper())) }
 	getValue = func() float64 { return adj.Value() }
 	setValue = func(v float64) { adj.SetValue(v) }
 	return

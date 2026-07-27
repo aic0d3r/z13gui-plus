@@ -1,6 +1,6 @@
 package main
 
-// z13gui — GTK4 Wayland overlay drawer for z13ctl.
+// Z13GUI+ - GTK4 Wayland overlay drawer for z13ctl.
 // Slides in from the right edge on Armoury Crate button press (via z13ctl daemon).
 
 import (
@@ -60,7 +60,7 @@ func main() {
 
 	slog.Info("starting", "version", Version)
 
-	// Disable GTK4 accessibility bridge (AT-SPI). z13gui is a hardware overlay
+	// Disable GTK4 accessibility bridge (AT-SPI). Z13GUI+ is a hardware overlay
 	// controlled by a physical button — no accessibility consumers. Without this,
 	// GTK4 sends D-Bus events on every widget state change, which can timeout
 	// under systemd where the AT-SPI bus may not be available.
@@ -98,9 +98,22 @@ func main() {
 		os.Exit(0)
 	}()
 
+	// GApplication registers com.github.dahui.z13gui on the session bus, so a
+	// second launch of the binary does not start a second process: it forwards
+	// "activate" to the running instance and exits. Without this guard that fires
+	// gui.New again, building a second full drawer — its own layer surface,
+	// subscribe loop, gamepad reader and telemetry poller — overlapping the first.
+	// Launching from the desktop entry while the user service runs is enough to
+	// trigger it. On re-activation, toggle the existing drawer instead.
+	var win *gui.Window
 	app := gtk.NewApplication("com.github.dahui.z13gui", 0)
 	app.ConnectActivate(func() {
-		gui.New(app)
+		if win != nil {
+			slog.Info("re-activated, toggling existing drawer")
+			win.Toggle()
+			return
+		}
+		win = gui.New(app)
 	})
 	os.Exit(app.Run(gtkArgs))
 }

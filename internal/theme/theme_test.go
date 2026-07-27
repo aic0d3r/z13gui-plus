@@ -28,20 +28,19 @@ func TestBuiltinsAllColorsSet(t *testing.T) {
 	}
 }
 
-func TestBuiltinByID_Found(t *testing.T) {
-	c, ok := BuiltinByID("rog-dark")
-	if !ok {
-		t.Fatal("BuiltinByID(rog-dark) returned false")
-	}
-	if c.Accent != "#cc0000" {
-		t.Errorf("expected accent #cc0000, got %s", c.Accent)
-	}
-}
-
-func TestBuiltinByID_NotFound(t *testing.T) {
-	_, ok := BuiltinByID("nonexistent-theme")
-	if ok {
-		t.Error("BuiltinByID(nonexistent-theme) should return false")
+func TestBuiltinByID(t *testing.T) {
+	for _, tt := range []struct {
+		id         string
+		wantAccent string
+		wantOK     bool
+	}{
+		{"rog-dark", "#cc0000", true},
+		{"nonexistent-theme", "", false},
+	} {
+		colors, ok := BuiltinByID(tt.id)
+		if ok != tt.wantOK || colors.Accent != tt.wantAccent {
+			t.Errorf("BuiltinByID(%q) = (%+v, %v), want accent %q, ok %v", tt.id, colors, ok, tt.wantAccent, tt.wantOK)
+		}
 	}
 }
 
@@ -58,34 +57,20 @@ func TestBuiltinByID_AllThemes(t *testing.T) {
 	}
 }
 
-func TestBuiltinAccentHex_Found(t *testing.T) {
-	hex, ok := BuiltinAccentHex("catppuccin-mocha", "blue")
-	if !ok {
-		t.Fatal("BuiltinAccentHex(catppuccin-mocha, blue) returned false")
-	}
-	if hex != "#89b4fa" {
-		t.Errorf("expected #89b4fa, got %s", hex)
-	}
-}
-
-func TestBuiltinAccentHex_MissingAccent(t *testing.T) {
-	_, ok := BuiltinAccentHex("catppuccin-mocha", "nonexistent")
-	if ok {
-		t.Error("should return false for nonexistent accent")
-	}
-}
-
-func TestBuiltinAccentHex_MissingTheme(t *testing.T) {
-	_, ok := BuiltinAccentHex("nonexistent-theme", "blue")
-	if ok {
-		t.Error("should return false for nonexistent theme")
-	}
-}
-
-func TestBuiltinAccentHex_ThemeWithoutAccents(t *testing.T) {
-	_, ok := BuiltinAccentHex("rog-dark", "blue")
-	if ok {
-		t.Error("should return false for theme without accents")
+func TestBuiltinAccentHex(t *testing.T) {
+	for _, tt := range []struct {
+		theme, accent, want string
+		wantOK              bool
+	}{
+		{"catppuccin-mocha", "blue", "#89b4fa", true},
+		{"catppuccin-mocha", "nonexistent", "", false},
+		{"nonexistent-theme", "blue", "", false},
+		{"rog-dark", "blue", "", false},
+	} {
+		hex, ok := BuiltinAccentHex(tt.theme, tt.accent)
+		if hex != tt.want || ok != tt.wantOK {
+			t.Errorf("BuiltinAccentHex(%q, %q) = (%q, %v), want (%q, %v)", tt.theme, tt.accent, hex, ok, tt.want, tt.wantOK)
+		}
 	}
 }
 

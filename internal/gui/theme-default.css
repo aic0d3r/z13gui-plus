@@ -1,68 +1,113 @@
-/* z13gui default theme — ROG dark red.
+/* Z13GUI+ default theme — ROG Crimson Premium.
+   Premium console aesthetic: deep charcoal base, refined surface hierarchy,
+   subtle gradient atmosphere, glow rings on active states.
    To create a custom theme, copy this file to:
        $XDG_CONFIG_HOME/z13gui/theme.css   (usually ~/.config/z13gui/theme.css)
    and modify the @define-color values or any rule below.
 
    Available named colors:
-     @z13-accent      — active/highlight color (buttons, sliders, selections)
-     @z13-bg          — drawer background
-     @z13-surface     — raised surface color (buttons, rows)
-     @z13-surface-alt — alternate/hover surface
-     @z13-text        — primary text
-     @z13-text-dim    — secondary/label text
-     @z13-border      — window border and separator color
-     @z13-radius      — window corner radius (requires GTK 4.12+)
+     @z13-accent       — active/highlight color (buttons, sliders, selections)
+     @z13-accent-glow  — translucent accent for glow rings (rgba recommended)
+     @z13-bg           — drawer background (deep charcoal, not pure black)
+     @z13-surface      — base surface (buttons, inputs)
+     @z13-surface-alt  — elevated surface (cards, hover states)
+     @z13-surface-hi   — highest surface (hero cards)
+     @z13-text         — primary text
+     @z13-text-dim     — secondary/label text
+     @z13-text-faint   — tertiary text, captions
+     @z13-border       — window border, subtle separator
+     @z13-border-hi    — stronger border for active elements
+     @z13-success      — green (charging, healthy)
+     @z13-warning      — amber
+     @z13-danger       — red (high temp)
+     @z13-radius       — window corner radius (requires GTK 4.12+)
 
    All element-level rules are scoped to .drawer (or window.z13-drawer-window).
-
    This file is loaded at STYLE_PROVIDER_PRIORITY_USER so its rules take
    precedence over the GTK default theme. */
 
-@define-color z13-accent      #cc0000;
-@define-color z13-bg          #1a1a1a;
-@define-color z13-surface     #2a2a2a;
-@define-color z13-surface-alt #333333;
-@define-color z13-text        #e0e0e0;
-@define-color z13-text-dim    #888888;
-@define-color z13-border      #444444;
+@define-color z13-accent       #e2231a;
+@define-color z13-accent-glow  rgba(226, 35, 26, 0.35);
+@define-color z13-bg           #0e0e12;
+@define-color z13-surface      #181820;
+@define-color z13-surface-alt  #1f1f2a;
+@define-color z13-surface-hi   #262633;
+@define-color z13-text         #f5f5f7;
+@define-color z13-text-dim     #a8a8b3;
+@define-color z13-text-faint   #6b6b78;
+@define-color z13-border       rgba(255, 255, 255, 0.06);
+@define-color z13-border-hi    rgba(255, 255, 255, 0.12);
+@define-color z13-success      #4ade80;
+@define-color z13-warning      #fbbf24;
+@define-color z13-danger       #ef4444;
 
-/* Window — transparent background so border-radius from .drawer is visible. */
+/* Fonts — Cantarell for body (refined, native GNOME), MesloLGMDZ Nerd Font
+   Mono for tabular numerals (gauges, RPM, percentages). Tabular nums ensures
+   values don't shift width as digits change.
+   Note: GTK CSS does not support custom-property fonts via @define-color;
+   font-family is hardcoded per-rule below. */
+
+/* Keep every surface pixel opaque so showing the drawer does not require
+   translucency composition. */
 window.z13-drawer-window {
-    background: transparent;
-}
-
-/* Main drawer box */
-.drawer {
     background: @z13-bg;
-    color: @z13-text;
-    border-radius: 12px;
-    border: 1px solid @z13-border;
-    /* No box-shadow: shadow pixels outside clip region cause smearing in Wayland Vulkan */
 }
 
-/* Drawer title */
+/* Main drawer box — deep charcoal with subtle atmospheric gradient.
+   No box-shadow (smears in Wayland Vulkan). The radial-gradient layers add
+   depth without animation — they're static so no smearing. */
+.drawer {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(226, 35, 26, 0.08), transparent 50%),
+        radial-gradient(circle at 0% 100%, rgba(80, 80, 200, 0.04), transparent 60%),
+        @z13-bg;
+    color: @z13-text;
+    border-radius: 14px;
+    font-family: "Cantarell", sans-serif;
+}
+
+/* Drawer title — small caps, dim */
 .drawer-title {
-    color: @z13-text-dim;
-}
-
-/* Header telemetry readout */
-.header-telemetry {
-    color: @z13-text-dim;
-}
-
-/* Section group headings */
-.section-group {
-    color: @z13-text;
+    color: @z13-text-faint;
+    font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
 }
 
 /* Section labels */
 .section-label {
-    color: @z13-text-dim;
+    color: @z13-text-faint;
 }
 
 /* Slider value readouts */
 .scale-value {
     color: @z13-text;
+    font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
+    font-feature-settings: "tnum";
+}
+
+/* Live telemetry values */
+.telemetry-value {
+    color: @z13-text;
+}
+
+/* Temperature color bands (APU temp in tuning header) */
+.telemetry-value.temp-ok {
+    color: @z13-success;
+}
+.telemetry-value.temp-warn {
+    color: @z13-warning;
+}
+.telemetry-value.temp-hot {
+    color: @z13-danger;
+}
+
+/* "MODIFIED" marker for tuning sections with unsaved changes */
+.dirty-mark {
+    color: @z13-accent;
+}
+
+/* Slider descriptions — dimmer than value readouts */
+.scale-desc {
+    color: @z13-text-faint;
 }
 
 /* Slider name labels */
@@ -76,125 +121,322 @@ window.z13-drawer-window {
     min-height: 1px;
 }
 
-/* Button groups (profiles, modes, speeds) */
+/* Standalone action buttons (Open tuning, Manage automation) */
+.drawer .action-btn {
+    background: @z13-surface;
+    color: @z13-text;
+    border: 1px solid @z13-border;
+    font-weight: 700;
+    transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drawer .action-btn:hover {
+    background: @z13-surface-alt;
+    border-color: @z13-border-hi;
+}
+
+.drawer button.assignment-row,
+.drawer button.preset-row {
+    background: alpha(@z13-text, 0.025);
+    color: @z13-text;
+    border: 1px solid @z13-border;
+    transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drawer button.assignment-row:hover,
+.drawer button.preset-row:hover {
+    background: @z13-surface-alt;
+    border-color: @z13-border-hi;
+}
+
+.drawer button.assignment-row.current-assignment {
+    background: alpha(@z13-accent, 0.08);
+    border-color: alpha(@z13-accent, 0.55);
+}
+
+.drawer button.assignment-row:focus-visible,
+.drawer button.preset-row:focus-visible {
+    outline: 2px solid @z13-accent;
+    outline-offset: 2px;
+}
+
+/* Confirmation dialog message */
+.drawer .confirm-message {
+    background: alpha(@z13-text, 0.04);
+    border: 1px solid @z13-border;
+    color: @z13-text;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+/* Button groups — refined surface, glow ring on active.
+   The glow ring uses box-shadow INSET (safe inside the clip region, unlike
+   outset shadows which smear). Combined with a brighter surface for active. */
 .drawer .btn-group button {
     background: @z13-surface;
     color: @z13-text;
     border: 1px solid @z13-border;
+    transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .drawer .btn-group button:hover {
     background: @z13-surface-alt;
+    color: @z13-text;
+    border-color: @z13-border-hi;
 }
 
 .drawer .btn-group button.active {
-    background: @z13-accent;
+    background: linear-gradient(180deg, @z13-accent, shade(@z13-accent, 0.85));
     color: #ffffff;
+    border-color: @z13-accent;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+        inset 0 0 0 1px @z13-accent-glow;
 }
 
-/* Tab buttons (still CheckButton) */
+/* Main tab row — pill buttons with sliding active state */
+.drawer .main-tab-row button {
+    background: transparent;
+    color: @z13-text-faint;
+    border: 1px solid transparent;
+    transition: all 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drawer .main-tab-row button:hover {
+    color: @z13-text-dim;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.drawer .main-tab-row button.active {
+    background: alpha(@z13-surface-hi, 0.45);
+    color: @z13-text;
+    border-color: transparent;
+    box-shadow: inset 0 -2px 0 @z13-accent;
+}
+
+.drawer .main-tab-row button:focus-visible {
+    outline: 2px solid @z13-accent;
+    outline-offset: 2px;
+}
+
+/* Device tab buttons (Keyboard / Lightbar CheckButton) */
 .drawer checkbutton {
     background: @z13-surface;
-    color: @z13-text;
+    color: @z13-text-dim;
+    border: 1px solid @z13-border;
+    font-weight: 700;
 }
 
 .drawer checkbutton:hover {
     background: @z13-surface-alt;
+    color: @z13-text;
 }
 
 .drawer checkbutton:checked {
-    background: @z13-accent;
+    background: linear-gradient(180deg, @z13-accent, shade(@z13-accent, 0.85));
     color: #ffffff;
+    border-color: @z13-accent;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* Mode grid buttons — slightly taller, more important */
+.drawer .mode-grid.btn-group button {
+    min-height: 42px;
+}
+
+/* Premium card — used for hero widgets (battery, gauges) */
+.drawer .card {
+    background: linear-gradient(180deg, @z13-surface-hi, @z13-surface-alt);
+    border: 1px solid @z13-border;
+}
+
+/* Hero card title */
+.drawer .card-title {
+    color: alpha(@z13-text, 0.85);
+}
+
+/* Hero card secondary row */
+.drawer .card-sub {
+    color: @z13-text-dim;
+    font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
+}
+
+.drawer .overview-metric {
+    background: alpha(@z13-text, 0.04);
+}
+
+.drawer .overview-metric-value {
+    color: @z13-text;
+}
+
+.drawer .overview-metric-label {
+    color: alpha(@z13-text, 0.72);
+}
+
+.drawer .overview-system-card .scale-name,
+.drawer .battery-metric-label {
+    color: alpha(@z13-text, 0.72);
+}
+
+.drawer .battery-metric-value {
+    color: @z13-text;
+    font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
+}
+
+.drawer .battery-status {
+    color: alpha(@z13-text, 0.78);
+}
+
+.drawer .setting-description {
+    color: @z13-text-faint;
+}
+
+.drawer .card-sub.warning {
+    color: @z13-warning;
+}
+
+.drawer .secondary-metric {
+    opacity: 0.72;
+}
+
+.drawer .battery-summary-value {
+    color: @z13-text;
+}
+
+.drawer .overview-metric-value.warning,
+.drawer .overview-stale {
+    color: @z13-warning;
+}
+
+.drawer .overview-metric-value.danger {
+    color: @z13-danger;
+}
+
+.drawer .telemetry-stale .overview-metric-value,
+.drawer .telemetry-stale .overview-value,
+.drawer .telemetry-stale .battery-summary-value,
+.drawer .telemetry-stale .battery-metric-value,
+.drawer .telemetry-stale .battery-bar,
+.drawer .telemetry-stale .pill,
+.drawer .telemetry-stale .card-sub,
+.drawer .telemetry-stale .memory-bar {
+    opacity: 0.55;
+}
+
+/* Unified memory usage bar. */
+.drawer .memory-bar trough {
+    background: @z13-surface;
+    border-radius: 999px;
+}
+
+.drawer .memory-bar progress {
+    background: alpha(@z13-text, 0.55);
+    border-radius: 999px;
+}
+
+.drawer .memory-bar.warning progress {
+    background: @z13-warning;
+}
+
+.drawer .memory-bar.danger progress {
+    background: @z13-danger;
+}
+
+.drawer .battery-bar trough {
+    background: @z13-surface;
+    border-radius: 999px;
+}
+
+.drawer .battery-bar progress {
+    background: linear-gradient(180deg, @z13-accent, shade(@z13-accent, 0.85));
+    border-radius: 999px;
+}
+
+/* Status pill (charging state, profile name, etc.) */
+.drawer .pill {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid @z13-border-hi;
+    color: @z13-text-dim;
+}
+
+.drawer .pill.success {
+    background: rgba(74, 222, 128, 0.12);
+    border-color: rgba(74, 222, 128, 0.4);
+    color: @z13-success;
+}
+
+.drawer .pill.warning {
+    background: rgba(251, 191, 36, 0.12);
+    border-color: rgba(251, 191, 36, 0.4);
+    color: @z13-warning;
+}
+
+.drawer .pill.danger {
+    background: alpha(@z13-danger, 0.12);
+    border-color: alpha(@z13-danger, 0.4);
+    color: @z13-danger;
+}
+
+.drawer .pill.accent {
+    background: rgba(226, 35, 26, 0.15);
+    border-color: rgba(226, 35, 26, 0.5);
+    color: @z13-accent;
 }
 
 /* TDP warning label */
 .tdp-warning {
-    color: #ff4444;
+    color: @z13-danger;
 }
 
 /* Fan curve drawing area */
 .fan-curve-area {
-    background: @z13-surface;
-    border: 1px solid @z13-border;
+    background: linear-gradient(180deg, @z13-surface-alt, @z13-surface);
+    border: 1px solid @z13-border-hi;
 }
 
-
-/* Sliders */
+/* Sliders — fat touch targets, premium trough */
 .drawer scale trough {
     background: @z13-surface;
+    border: 1px solid @z13-border;
+    border-radius: 999px;
+    min-height: 6px;
 }
 
 .drawer scale trough highlight {
-    background: @z13-accent;
+    background: linear-gradient(90deg, shade(@z13-accent, 0.7), @z13-accent);
+    border-radius: 999px;
 }
 
+.drawer scale slider {
+    background: @z13-text;
+    border: 2px solid @z13-accent;
+    box-shadow: 0 0 0 3px @z13-accent-glow;
+}
 
 /* Current-color swatch */
 .drawer .color-swatch {
-    border: 1px solid @z13-border;
+    border: 1px solid @z13-border-hi;
 }
 
 /* Preset color buttons */
 .drawer .color-preset {
-    border: 1px solid @z13-border;
+    border: 1px solid @z13-border-hi;
+    transition: transform 120ms ease, border-color 120ms ease;
 }
 
 .drawer .color-preset:hover {
-    border: 1px solid @z13-text;
+    border: 2px solid @z13-text;
+    transform: scale(1.08);
 }
 
-/* Bottom bar — palette menu button */
-.bottom-bar menubutton > button {
-    background: @z13-surface;
+.drawer .color-preset.selected {
+    border: 3px solid @z13-text;
+}
+
+.drawer .color-hex {
     color: @z13-text;
-    border: 1px solid @z13-border;
-}
-
-.bottom-bar menubutton > button:hover {
-    background: @z13-surface-alt;
-}
-
-/* Popovers (theme picker, color chooser) — not inside .drawer */
-popover.z13-popover > contents {
-    background: @z13-surface;
-    color: @z13-text;
-    border: 1px solid @z13-border;
-    border-radius: 8px;
-}
-
-/* Checkbuttons inside popovers (theme radio list) */
-popover.z13-popover checkbutton {
-    color: @z13-text;
-    background: @z13-bg;
-}
-
-popover.z13-popover checkbutton:hover {
-    background: @z13-surface-alt;
-}
-
-popover.z13-popover checkbutton:checked {
-    background: @z13-accent;
-    color: #ffffff;
-}
-
-popover.z13-popover checkbutton indicator {
-    background: @z13-bg;
-    border: 1px solid @z13-border;
-    border-radius: 50%;
-}
-
-popover.z13-popover checkbutton:checked indicator {
-    background: @z13-accent;
-    border-color: @z13-accent;
-}
-
-/* Labels inside popovers */
-popover.z13-popover .section-label {
-    color: @z13-text-dim;
-}
-
-popover.z13-popover .accent-label {
-    color: @z13-text-dim;
+    font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
 }
 
 /* Active accent dot — theme-aware border (visible on both dark and light) */
@@ -202,29 +444,50 @@ popover.z13-popover .accent-label {
     border-color: @z13-text;
 }
 
-/* DropDown (profile selector) */
-.drawer dropdown > button {
-    background: @z13-surface;
-    color: @z13-text;
-    border: 1px solid @z13-border;
-}
-
-.drawer dropdown > button:hover {
-    background: @z13-surface-alt;
-}
-
 /* Slider value label */
 .drawer scale value {
     color: @z13-text;
+    font-family: "MesloLGMDZ Nerd Font Mono", "MesloLGM Nerd Font Mono", "DejaVu Sans Mono", monospace;
 }
 
-/* Toggle switches (panel overdrive, boot sound) */
-.bottom-bar switch {
+/* Toggle rows and switches */
+.drawer .settings-row {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid @z13-border;
+}
+
+.drawer .settings-row .toggle-label {
+    color: @z13-text-dim;
+}
+
+.drawer .settings-row.toggle-active {
+    background: alpha(@z13-accent, 0.08);
+    border-color: alpha(@z13-accent, 0.4);
+}
+
+.drawer .settings-row.toggle-active .toggle-label {
+    color: @z13-text;
+}
+
+.drawer .settings-row switch {
     background: @z13-surface;
+    border: 1px solid @z13-border;
 }
 
-.bottom-bar switch:checked {
-    background: @z13-accent;
+.drawer .settings-row switch slider {
+    background: @z13-text-dim;
+    border: 1px solid @z13-border-hi;
+}
+
+.drawer .settings-row switch:checked {
+    background: linear-gradient(90deg, shade(@z13-accent, 0.8), @z13-accent);
+    border-color: @z13-accent;
+    box-shadow: 0 0 8px @z13-accent-glow;
+}
+
+.drawer .settings-row switch:checked slider {
+    background: @z13-text;
+    border-color: @z13-accent;
 }
 
 /* Custom view action buttons (save, reset) */
@@ -232,20 +495,40 @@ popover.z13-popover .accent-label {
     background: @z13-surface;
     color: @z13-text;
     border: 1px solid @z13-border;
+    font-weight: 700;
+    transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .drawer .custom-actions button:hover {
     background: @z13-surface-alt;
+    border-color: @z13-border-hi;
 }
 
-/* Save button — accent styling */
-.drawer .save-btn {
-    background: @z13-accent;
+/* Primary/positive action — accent fill (Save, Apply, Create, Restore).
+   Generic so it works in .btn-group, .custom-actions, or standalone. */
+.drawer button.suggested-action {
+    min-height: 40px;
+    background: linear-gradient(180deg, @z13-accent, shade(@z13-accent, 0.85));
     color: #ffffff;
+    border-color: @z13-accent;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
-.drawer .save-btn:hover {
-    background: shade(@z13-accent, 1.2);
+.drawer button.suggested-action:hover {
+    background: linear-gradient(180deg, shade(@z13-accent, 1.1), @z13-accent);
+}
+
+/* Destructive action — danger tint (Delete, destructive confirms). */
+.drawer button.destructive-action {
+    min-height: 40px;
+    background: alpha(@z13-danger, 0.12);
+    color: @z13-danger;
+    border-color: alpha(@z13-danger, 0.4);
+}
+
+.drawer button.destructive-action:hover {
+    background: alpha(@z13-danger, 0.2);
+    border-color: alpha(@z13-danger, 0.6);
 }
 
 /* Advanced checkbox in custom view */
@@ -253,10 +536,11 @@ popover.z13-popover .accent-label {
     background: @z13-surface;
     color: @z13-text;
     border: 1px solid @z13-border;
+    font-weight: 700;
 }
 
 .drawer .advanced-check:checked {
-    background: @z13-accent;
+    background: linear-gradient(180deg, @z13-accent, shade(@z13-accent, 0.85));
     color: #ffffff;
 }
 

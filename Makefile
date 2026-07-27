@@ -12,11 +12,11 @@ build:
 
 ## test: run unit tests (pure Go; no GTK4 headers required)
 test:
-	go test ./internal/theme/...
+	go test ./internal/theme/... ./internal/togglegate/...
 
 ## cover: run tests with coverage report
 cover:
-	go test -coverprofile=coverage.out ./internal/theme/...
+	go test -coverprofile=coverage.out ./internal/theme/... ./internal/togglegate/...
 	go tool cover -func=coverage.out
 
 ## lint: run golangci-lint
@@ -58,7 +58,8 @@ setcap:
 install-service:
 	install -Dm644 contrib/z13gui.service $(HOME)/.config/systemd/user/z13gui.service
 	systemctl --user daemon-reload
-	systemctl --user enable --now z13gui
+	systemctl --user enable z13gui
+	systemctl --user restart z13gui
 	@echo "Service installed. Run 'systemctl --user status z13gui' to verify."
 
 ## uninstall-service: stop and remove the z13gui systemd user service

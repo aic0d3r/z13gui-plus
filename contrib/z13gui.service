@@ -1,11 +1,10 @@
 [Unit]
-Description=z13gui - GTK4 overlay drawer for z13ctl
-Documentation=https://github.com/dahui/z13gui
+Description=Z13GUI+ - GTK4 overlay drawer for z13ctl
+Documentation=https://github.com/aic0d3r/z13gui-plus
 After=graphical-session.target
 PartOf=graphical-session.target
 
 [Service]
-Type=simple
 ExecStart=z13gui
 Environment=GTK_A11Y=none
 EnvironmentFile=-%t/gamescope-environment

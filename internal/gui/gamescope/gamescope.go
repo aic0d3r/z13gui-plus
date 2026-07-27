@@ -61,11 +61,11 @@ import (
 )
 
 const (
-	referenceWidth = 1707.0      // 2560 / 1.5; matches KDE 150% at Z13 native resolution
-	minScale       = 1.0         // lower bound for UI scale
-	maxScale       = 3.0         // upper bound for UI scale
-	marginFraction = 20          // screen height / N for 5% top/bottom margins
-	fullOpacity    = 0xFFFFFFFF  // _NET_WM_WINDOW_OPACITY value for fully visible
+	referenceWidth = 1707.0     // 2560 / 1.5; matches KDE 150% at Z13 native resolution
+	minScale       = 1.0        // lower bound for UI scale
+	maxScale       = 3.0        // upper bound for UI scale
+	marginFraction = 20         // screen height / N for 5% top/bottom margins
+	fullOpacity    = 0xFFFFFFFF // _NET_WM_WINDOW_OPACITY value for fully visible
 )
 
 // Backend manages the gamescope X11 overlay window.
@@ -78,18 +78,16 @@ type Backend struct {
 	xid      C.ulong
 	ready    bool // true after realize extracts XID
 
-	outputWidth  int     // from realize; used in WrapContent for sizing
 	outputHeight int     // from realize; used in WrapContent for margins
-	scale        float64 // outputWidth / 1280, clamped [1.0, 3.0]
-	panel        *gtk.Box
+	scale        float64 // monitor width / referenceWidth, clamped [minScale, maxScale]
 	onDismiss    func()
 }
 
 // New creates a gamescope backend. drawerWidth is the drawer panel width in pixels.
-func New(appWin *gtk.ApplicationWindow, gtkWin *gtk.Window, drawerWidth int) *Backend {
+func New(appWin *gtk.ApplicationWindow, drawerWidth int) *Backend {
 	return &Backend{
 		appWin:      appWin,
-		gtkWin:      gtkWin,
+		gtkWin:      &appWin.Window,
 		drawerWidth: drawerWidth,
 	}
 }
@@ -116,16 +114,15 @@ func (b *Backend) Configure(_ func() bool, onDismiss func()) {
 			return
 		}
 		b.xdisplay = C.display_get_xdisplay(unsafe.Pointer(display.Native())) //nolint:govet // GObject pointer is C-heap-allocated and pinned; uintptr→unsafe.Pointer is safe
-		b.xid = C.surface_get_xid(unsafe.Pointer(surface.Native()))         //nolint:govet // GObject pointer is C-heap-allocated and pinned; uintptr→unsafe.Pointer is safe
+		b.xid = C.surface_get_xid(unsafe.Pointer(surface.Native()))           //nolint:govet // GObject pointer is C-heap-allocated and pinned; uintptr→unsafe.Pointer is safe
 		b.ready = true
 
-		// Store output dimensions for WrapContent (which runs after realize).
+		// Store output height for WrapContent (which runs after realize).
 		// Compute a UI scale so the drawer occupies the same physical
 		// screen fraction as KDE at 150% (~18.75% of screen width).
 		// Z13GUI_SCALE env var overrides auto-detection.
 		if monitor := display.MonitorAtSurface(surface); monitor != nil {
 			geo := monitor.Geometry()
-			b.outputWidth = geo.Width()
 			b.outputHeight = geo.Height()
 			if envScale := os.Getenv("Z13GUI_SCALE"); envScale != "" {
 				if v, err := strconv.ParseFloat(envScale, 64); err == nil && v > 0 {
@@ -144,7 +141,7 @@ func (b *Backend) Configure(_ func() bool, onDismiss func()) {
 			slog.Info("gamescope: sized to monitor", "w", geo.Width(), "h", geo.Height(), "scale", b.scale)
 		}
 
-		b.setAtom("STEAM_OVERLAY", true)
+		b.setCardinal("STEAM_OVERLAY", 1)
 		b.setCardinal("_NET_WM_WINDOW_OPACITY", 0) // start hidden
 		slog.Info("gamescope: overlay atom set", "xid", uint64(b.xid))
 	})
@@ -189,8 +186,7 @@ func (b *Backend) WrapContent(drawer gtk.Widgetter) gtk.Widgetter {
 	if scaledWidth < b.drawerWidth {
 		scaledWidth = b.drawerWidth
 	}
-	b.panel = gtk.NewBox(gtk.OrientationVertical, 0)
-	panel := b.panel
+	panel := gtk.NewBox(gtk.OrientationVertical, 0)
 	panel.SetSizeRequest(scaledWidth, -1)
 	panel.SetHExpand(false)
 
@@ -227,7 +223,7 @@ func (b *Backend) Show() {
 	slog.Debug("gamescope: Show enter", "ready", b.ready)
 	if b.ready {
 		b.setCardinal("_NET_WM_WINDOW_OPACITY", fullOpacity)
-		b.setAtom("STEAM_INPUT_FOCUS", true)
+		b.setCardinal("STEAM_INPUT_FOCUS", 1)
 		kbResult := C.grab_keyboard(b.xdisplay, b.xid)
 		slog.Debug("gamescope: overlay shown", "grabKB", int(kbResult))
 	} else {
@@ -241,7 +237,7 @@ func (b *Backend) Hide() {
 	slog.Debug("gamescope: Hide enter", "ready", b.ready)
 	if b.ready {
 		C.ungrab_keyboard(b.xdisplay)
-		b.setAtom("STEAM_INPUT_FOCUS", false)
+		b.setCardinal("STEAM_INPUT_FOCUS", 0)
 		b.setCardinal("_NET_WM_WINDOW_OPACITY", 0)
 		slog.Debug("gamescope: overlay hidden")
 	}
@@ -254,15 +250,6 @@ func (b *Backend) setCardinal(name string, value uint32) {
 	C.set_cardinal(b.xdisplay, b.xid, cname, C.uint32_t(value))
 }
 
-// setAtom sets or clears a boolean CARDINAL atom (0 or 1).
-func (b *Backend) setAtom(name string, on bool) {
-	v := uint32(0)
-	if on {
-		v = 1
-	}
-	b.setCardinal(name, v)
-}
-
 // scaledCSS returns CSS rules that override layout.css pixel values scaled by
 // the gamescope resolution factor. Loaded at PRIORITY_APPLICATION+1 so it
 // overrides the base layout.css and any GTK theme defaults that differ between
@@ -272,60 +259,59 @@ func (b *Backend) scaledCSS() string {
 	return fmt.Sprintf(`/* Gamescope resolution scaling (%.1fx) */
 .drawer { font-family: 'Inter', sans-serif; font-size: %.0fpx; }
 .drawer .btn-group button { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
+.drawer .action-btn { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
 .drawer checkbutton { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
 .drawer .mode-grid.btn-group button { min-height: %.0fpx; }
 .tab-btn { min-height: %.0fpx; }
 .drawer scale slider { min-width: %.0fpx; min-height: %.0fpx; }
 .drawer scale value { margin-bottom: %.0fpx; }
 .drawer-title { font-size: %.0fpx; letter-spacing: %.0fpx; }
-.header-telemetry { font-size: %.0fpx; letter-spacing: %.1fpx; }
-.section-group { font-size: %.0fpx; letter-spacing: %.0fpx; margin-top: %.0fpx; }
 .section-label { font-size: %.0fpx; letter-spacing: %.0fpx; margin-top: %.0fpx; margin-bottom: %.0fpx; }
 .scale-value { font-size: %.0fpx; margin-top: %.0fpx; margin-bottom: %.0fpx; }
 .scale-name { font-size: %.0fpx; margin-top: %.0fpx; }
 .color-swatch { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
 .color-preset { padding: 0; min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
-.bottom-bar button { min-width: %.0fpx; min-height: %.0fpx; padding: %.0fpx; border-radius: %.0fpx; }
-.accent-label { font-size: %.0fpx; letter-spacing: %.0fpx; }
 .accent-dot-active { border-width: %.0fpx; }
-.bottom-bar .toggle-label { font-size: %.0fpx; letter-spacing: %.1fpx; }
-.bottom-bar switch { min-height: %.0fpx; min-width: %.0fpx; border-radius: %.0fpx; }
-.bottom-bar switch slider { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
+.drawer .settings-row .toggle-label { font-size: %.0fpx; letter-spacing: %.1fpx; }
+.drawer .settings-row switch { min-height: %.0fpx; min-width: %.0fpx; border-radius: %.0fpx; }
+.drawer .settings-row switch slider { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
+.drawer .overview-system-card .scale-value, .drawer .battery-metric-value { font-size: 15px; }
 .view-back-btn { min-width: %.0fpx; min-height: %.0fpx; padding: %.0fpx; }
 .gamepad-focus { outline-width: %.0fpx; outline-offset: %.0fpx; }
 .gamepad-editing { outline-width: %.0fpx; outline-offset: %.0fpx; }
 .tdp-warning { font-size: %.0fpx; margin-top: %.0fpx; margin-bottom: %.0fpx; }
 .fan-curve-area { min-height: %.0fpx; border-radius: %.0fpx; }
 .custom-actions button { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
-.advanced-check { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }`,
+.advanced-check { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
+.telemetry-value { font-size: %.0fpx; }
+.color-preview { min-width: %.0fpx; min-height: %.0fpx; }`,
 		s,
-		14*s,                     // .drawer font-size
-		48*s, 4*s, 10*s, 6*s,    // btn-group button
-		48*s, 4*s, 10*s, 6*s,    // checkbutton
-		52*s,                     // mode-grid btn-group button
-		48*s,                     // tab-btn
-		24*s, 24*s,               // scale slider
-		6*s,                      // scale value margin
-		11*s, 3*s,                // drawer-title
-		10*s, 0.5*s,              // header-telemetry (font-size, letter-spacing)
-		13*s, 2*s, 2*s,           // section-group
-		11*s, 1*s, 6*s, 2*s,     // section-label
-		10*s, 2*s, 2*s,           // scale-value
-		10*s, 4*s,                // scale-name
-		28*s, 28*s, 4*s,          // color-swatch
-		28*s, 28*s, 4*s,          // color-preset
-		32*s, 32*s, 4*s, 6*s,    // bottom-bar button
-		9*s, 1*s,                 // accent-label
-		2*s,                      // accent-dot-active border
-		10*s, 0.5*s,              // toggle-label
-		20*s, 36*s, 10*s,         // bottom-bar switch (height, width, border-radius)
-		16*s, 16*s, 8*s,          // switch slider (width, height, border-radius)
-		32*s, 32*s, 4*s,          // view-back-btn
-		2*s, 2*s,                 // gamepad-focus (outline-width, outline-offset)
-		2*s, 2*s,                 // gamepad-editing (outline-width, outline-offset)
-		10*s, 4*s, 4*s,           // tdp-warning (font-size, margin-top, margin-bottom)
-		240*s, 6*s,               // fan-curve-area (min-height, border-radius)
-		36*s, 4*s, 8*s, 6*s,     // custom-actions button (min-height, padding-v, padding-h, border-radius)
-		36*s, 4*s, 10*s, 6*s,    // advanced-check (min-height, padding-v, padding-h, border-radius)
+		14*s,                 // .drawer font-size
+		48*s, 4*s, 10*s, 6*s, // btn-group button
+		48*s, 4*s, 10*s, 6*s, // action-btn
+		48*s, 4*s, 10*s, 6*s, // checkbutton
+		52*s,       // mode-grid btn-group button
+		48*s,       // tab-btn
+		24*s, 24*s, // scale slider
+		6*s,       // scale value margin
+		11*s, 3*s, // drawer-title
+		11*s, 1*s, 6*s, 2*s, // section-label
+		10*s, 2*s, 2*s, // scale-value
+		10*s, 4*s, // scale-name
+		40*s, 40*s, 6*s, // color-swatch
+		32*s, 32*s, 4*s, // color-preset
+		2*s,         // accent-dot-active border
+		10*s, 0.5*s, // toggle-label
+		22*s, 40*s, 11*s, // settings-row switch (height, width, border-radius)
+		18*s, 18*s, 9*s, // switch slider (width, height, border-radius)
+		40*s, 40*s, 4*s, // view-back-btn
+		2*s, 2*s, // gamepad-focus (outline-width, outline-offset)
+		2*s, 2*s, // gamepad-editing (outline-width, outline-offset)
+		10*s, 4*s, 4*s, // tdp-warning (font-size, margin-top, margin-bottom)
+		240*s, 6*s, // fan-curve-area (min-height, border-radius)
+		40*s, 4*s, 8*s, 6*s, // custom-actions button (min-height, padding-v, padding-h, border-radius)
+		40*s, 4*s, 10*s, 6*s, // advanced-check (min-height, padding-v, padding-h, border-radius)
+		13*s,       // telemetry-value font-size
+		64*s, 40*s, // color-preview (min-width, min-height)
 	)
 }

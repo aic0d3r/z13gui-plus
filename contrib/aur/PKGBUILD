@@ -1,16 +1,17 @@
-# Maintainer: Jeff Hagadorn <noreply@github.com>
-pkgname=z13gui-bin
+# Maintainer: aic0d3r <funforfreeapps@gmail.com>
+pkgname=z13gui-plus-bin
 pkgver=PKGVER_PLACEHOLDER
 pkgrel=PKGREL_PLACEHOLDER
-pkgdesc='GTK4 overlay GUI companion for z13ctl'
+pkgdesc='Z13GUI+ GTK4 overlay companion for z13ctl'
 arch=('x86_64')
-url='https://github.com/dahui/z13gui'
+url='https://github.com/aic0d3r/z13gui-plus'
 license=('Apache-2.0')
 provides=('z13gui')
 conflicts=('z13gui')
+replaces=('z13gui')
 depends=('glibc' 'gtk4' 'gtk4-layer-shell' 'z13ctl')
-install=z13gui-bin.install
-source=("https://github.com/dahui/z13gui/releases/download/v${pkgver}/z13gui_${pkgver}_linux_amd64.tar.gz")
+install=z13gui-plus-bin.install
+source=("https://github.com/aic0d3r/z13gui-plus/releases/download/v${pkgver}/z13gui-plus_${pkgver}_linux_amd64.tar.gz")
 sha256sums=('SHA256_PLACEHOLDER')
 
 package() {

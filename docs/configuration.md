@@ -2,7 +2,7 @@
 
 ## Config file
 
-z13gui stores its configuration in `~/.config/z13gui/config.toml`. This file
+Z13GUI+ stores its configuration in `~/.config/z13gui/config.toml`. This file
 is updated automatically when you change themes using the in-app theme picker.
 
 ```toml
@@ -15,22 +15,16 @@ accent = "sapphire"
 | `theme` | Built-in theme ID (see `z13gui --list-themes` or [Theming](theming.md)) |
 | `accent` | Accent color variant for themes that support it; `""` uses the theme default |
 
-If no config file exists, z13gui defaults to the `rog-dark` theme.
+If no config file exists, Z13GUI+ defaults to the `rog-dark` theme.
 
-You can edit this file by hand. Changes take effect the next time z13gui starts.
+You can edit this file by hand. Changes take effect the next time Z13GUI+ starts.
 
 ---
 
 ## Theme priority
 
-z13gui resolves its theme using the following priority chain (first match wins):
-
-1. `~/.config/z13gui/theme.toml` — custom color definitions
-2. `~/.config/z13gui/theme.css` — full CSS override
-3. `~/.config/z13gui/config.toml` `theme = "id"` — built-in theme selection
-4. Compiled-in default (ROG Dark)
-
-See [Theming](theming.md) for the full theming guide.
+See [Theme priority](theming.md#theme-priority) for the resolution order and
+custom-theme behavior.
 
 ---
 
@@ -41,7 +35,7 @@ See [Theming](theming.md) for the full theming guide.
 | `Z13GUI_SCALE` | Override CSS scale factor in gamescope mode (default: auto from output resolution) |
 | `Z13GUI_NO_GAMEPAD` | Set to `1` to disable gamepad input entirely |
 
-z13gui also sets `GTK_A11Y=none` internally to disable the GTK4 accessibility
+Z13GUI+ also sets `GTK_A11Y=none` internally to disable the GTK4 accessibility
 bridge. This prevents D-Bus timeouts when running under systemd where the
 AT-SPI bus may be unavailable.
 
