@@ -4,7 +4,7 @@ GTK4 overlay drawer for [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) on
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-![Z13GUI+](assets/screen3.png)
+![Z13GUI+](assets/z13gui-plus.avif)
 
 Z13GUI+ is a compatibility-preserving distribution of
 [dahui/z13gui](https://github.com/dahui/z13gui). It keeps the `z13gui` command,
