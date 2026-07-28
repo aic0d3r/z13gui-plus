@@ -50,6 +50,20 @@ func TestFanStatus(t *testing.T) {
 	}
 }
 
+func TestFanPWMAtTemp(t *testing.T) {
+	points := [8]api.FanCurvePoint{
+		{Temp: 40, PWM: 0}, {Temp: 50, PWM: 100},
+		{Temp: 60, PWM: 100}, {Temp: 70, PWM: 100},
+		{Temp: 80, PWM: 100}, {Temp: 90, PWM: 100},
+		{Temp: 100, PWM: 100}, {Temp: 110, PWM: 100},
+	}
+	for temp, want := range map[int]int{35: 0, 40: 0, 45: 50, 50: 100, 105: 100} {
+		if got := fanPWMAtTemp(points, temp); got != want {
+			t.Errorf("fanPWMAtTemp(%d) = %d, want %d", temp, got, want)
+		}
+	}
+}
+
 func TestTuningStatus(t *testing.T) {
 	if got := tuningStatus(&api.State{}); got != "CPU — · TDP FIRMWARE · UV STOCK" {
 		t.Fatalf("default tuningStatus() = %q", got)

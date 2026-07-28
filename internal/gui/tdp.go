@@ -48,6 +48,26 @@ func defaultFanCurve() [8]api.FanCurvePoint {
 	}
 }
 
+func fanPWMAtTemp(points [8]api.FanCurvePoint, temp int) int {
+	if temp <= points[0].Temp {
+		return points[0].PWM
+	}
+	pwm := float64(points[0].PWM)
+	for i := 1; i < len(points); i++ {
+		prev, next := points[i-1], points[i]
+		if temp <= next.Temp {
+			span := next.Temp - prev.Temp
+			if span > 0 {
+				fraction := float64(temp-prev.Temp) / float64(span)
+				pwm = float64(prev.PWM) + fraction*float64(next.PWM-prev.PWM)
+			}
+			break
+		}
+		pwm = float64(next.PWM)
+	}
+	return int(math.Round(pwm))
+}
+
 // curveString returns the curve in "temp:pwm,temp:pwm,..." format for the API.
 func (fc *fanCurveEditor) curveString() string {
 	var parts []string
@@ -234,6 +254,17 @@ func (fc *fanCurveEditor) draw(cr *cairo.Context, width, height int) {
 		cr.Arc(x, y, radius, 0, 2*math.Pi)
 		cr.Fill()
 	}
+
+	// Current operating point, interpolated along the configured curve.
+	if fc.w != nil && fc.w.state != nil {
+		temp := fc.w.state.Temperature
+		if temp >= 35 && temp <= 105 {
+			cr.SetSourceRGBA(1, 1, 1, 0.9)
+			cr.SetLineWidth(2)
+			cr.Arc(fc.tempToX(temp), fc.pwmToY(fanPWMAtTemp(fc.points, temp)), 7, 0, 2*math.Pi)
+			cr.Stroke()
+		}
+	}
 }
 
 // newFanCurveEditor creates the DrawingArea and sets up input handling.
@@ -357,25 +388,35 @@ func (w *Window) buildCustomView() *gtk.Box {
 	w.customBackBtn = back
 	view.Append(header)
 
+	telemetry := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	telemetry.AddCSSClass("card")
+	telemetry.AddCSSClass("tuning-telemetry")
+	telemetry.SetMarginTop(4)
+	telemetry.SetMarginBottom(4)
+	telemetry.SetMarginStart(12)
+	telemetry.SetMarginEnd(12)
+	w.telemetryTempLabel = gtk.NewLabel("APU --°C")
+	w.telemetryTempLabel.SetHAlign(gtk.AlignStart)
+	w.telemetryTempLabel.SetHExpand(true)
+	w.telemetryTempLabel.AddCSSClass("telemetry-value")
+	w.telemetryPowerLabel = gtk.NewLabel("POWER —")
+	w.telemetryPowerLabel.SetHAlign(gtk.AlignCenter)
+	w.telemetryPowerLabel.SetHExpand(true)
+	w.telemetryPowerLabel.AddCSSClass("telemetry-value")
+	w.telemetryFanLabel = gtk.NewLabel("FAN -- RPM")
+	w.telemetryFanLabel.SetHAlign(gtk.AlignEnd)
+	w.telemetryFanLabel.SetHExpand(true)
+	w.telemetryFanLabel.AddCSSClass("telemetry-value")
+	telemetry.Append(w.telemetryTempLabel)
+	telemetry.Append(w.telemetryPowerLabel)
+	telemetry.Append(w.telemetryFanLabel)
+	view.Append(telemetry)
+
 	content := gtk.NewBox(gtk.OrientationVertical, 8)
 	content.SetMarginTop(4)
 	content.SetMarginBottom(12)
 	content.SetMarginStart(12)
 	content.SetMarginEnd(12)
-
-	// --- TELEMETRY ---
-	content.Append(sectionLabel("TELEMETRY"))
-	telRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
-	w.telemetryTempLabel = gtk.NewLabel("APU: --°C")
-	w.telemetryTempLabel.SetHAlign(gtk.AlignStart)
-	w.telemetryTempLabel.AddCSSClass("telemetry-value")
-	w.telemetryFanLabel = gtk.NewLabel("Fan: -- RPM")
-	w.telemetryFanLabel.SetHAlign(gtk.AlignEnd)
-	w.telemetryFanLabel.SetHExpand(true)
-	w.telemetryFanLabel.AddCSSClass("telemetry-value")
-	telRow.Append(w.telemetryTempLabel)
-	telRow.Append(w.telemetryFanLabel)
-	content.Append(telRow)
 
 	// --- TDP ---
 	tdpHdr, tdpMark := sectionHeader("TDP")
@@ -466,6 +507,10 @@ func (w *Window) buildCustomView() *gtk.Box {
 	// --- FAN CURVE ---
 	fanHdr, fanMark := sectionHeader("FAN CURVE")
 	w.fanDirtyMark = fanMark
+	w.fanModeLabel = gtk.NewLabel("—")
+	w.fanModeLabel.SetVAlign(gtk.AlignCenter)
+	w.fanModeLabel.AddCSSClass("pill")
+	fanHdr.Append(w.fanModeLabel)
 	content.Append(fanHdr)
 
 	w.fanSafetyBanner = gtk.NewLabel("Fan control is locked while a safety profile is active.")
@@ -615,11 +660,7 @@ func (w *Window) syncCustomView() {
 		w.uvCpuLabel.SetLabel(uvLabel("CPU Curve Optimizer", cpuCO))
 	}
 
-	// Telemetry.
-	applyTempColor(w.telemetryTempLabel, w.state.Temperature)
-	if w.telemetryFanLabel != nil {
-		w.telemetryFanLabel.SetLabel(fmt.Sprintf("Fan: %d RPM", w.state.FanRPM))
-	}
+	w.syncTuningTelemetry(w.state)
 
 	// Refresh Save sensitivity, dirty markers, and conditional banners.
 	w.refreshTuningDirty()
@@ -731,10 +772,10 @@ func applyTempColor(label *gtk.Label, temp int) {
 		label.RemoveCSSClass(c)
 	}
 	if temp <= 0 {
-		label.SetLabel("APU: --°C")
+		label.SetLabel("APU --°C")
 		return
 	}
-	label.SetLabel(fmt.Sprintf("APU: %d°C", temp))
+	label.SetLabel(fmt.Sprintf("APU %d°C", temp))
 	switch {
 	case temp >= 85:
 		label.AddCSSClass("temp-hot")
@@ -742,6 +783,34 @@ func applyTempColor(label *gtk.Label, temp int) {
 		label.AddCSSClass("temp-warn")
 	default:
 		label.AddCSSClass("temp-ok")
+	}
+}
+
+func (w *Window) syncTuningTelemetry(state *api.State) {
+	if state == nil {
+		return
+	}
+	applyTempColor(w.telemetryTempLabel, state.Temperature)
+	if w.telemetryPowerLabel != nil {
+		value := "POWER —"
+		if state.Telemetry != nil && state.Telemetry.APUPowerAvailable {
+			value = fmt.Sprintf("POWER %.1f W", state.Telemetry.APUPowerW)
+		}
+		w.telemetryPowerLabel.SetLabel(value)
+	}
+	if w.telemetryFanLabel != nil {
+		w.telemetryFanLabel.SetLabel(fmt.Sprintf("FAN %d RPM", state.FanRPM))
+	}
+	if w.fanModeLabel != nil {
+		_, mode, _, _ := fanStatus(state)
+		if !state.FanCurveActive && !state.FanSafetyActive && state.Profile != "" {
+			mode = "AUTO · " + strings.ToUpper(state.Profile)
+		}
+		w.fanModeLabel.SetLabel(mode)
+		w.fanModeLabel.RemoveCSSClass("danger")
+		if state.FanSafetyActive {
+			w.fanModeLabel.AddCSSClass("danger")
+		}
 	}
 }
 
@@ -861,10 +930,7 @@ func (w *Window) startTelemetryPolling() {
 
 				if customActive {
 					w.syncFanPreset()
-					applyTempColor(w.telemetryTempLabel, state.Temperature)
-					if w.telemetryFanLabel != nil {
-						w.telemetryFanLabel.SetLabel(fmt.Sprintf("Fan: %d RPM", state.FanRPM))
-					}
+					w.syncTuningTelemetry(state)
 					if w.fanCurve != nil {
 						w.fanCurve.area.QueueDraw()
 					}

@@ -850,7 +850,7 @@ func (w *Window) buildBatteryPresets() *gtk.Box {
 }
 
 // fanPresets defines firmware Auto followed by the named custom curves.
-var fanPresets = []string{"auto", "silent", "balanced", "turbo"}
+var fanPresets = []string{"auto", "balanced", "turbo"}
 
 // buildFanPresetSection creates firmware Auto and custom fan-mode controls.
 func (w *Window) buildFanPresetSection() *gtk.Box {

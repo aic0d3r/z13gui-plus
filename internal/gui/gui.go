@@ -90,7 +90,7 @@ type Window struct {
 	cpuBoostSwitch      *gtk.Switch
 	battPresetBtns      map[int]*gtk.Button // battery presets: 100/80/60 %
 	batterySummary      *gtk.Label
-	fanPresetBtns       map[string]*gtk.Button // fan modes: auto/silent/balanced/turbo
+	fanPresetBtns       map[string]*gtk.Button // fan modes: auto/balanced/turbo
 	fanSummary          *gtk.Label
 	fanSafetyLabel      *gtk.Label
 	refreshBtns         map[int]*gtk.Button // eDP-1 refresh rate: 60/180 Hz
@@ -210,16 +210,18 @@ type Window struct {
 	saveUvBtn        *gtk.Button
 	resetUvBtn       *gtk.Button
 	// tuning dirty-state UI: markers + conditional banners
-	tdpDirtyMark       *gtk.Label
-	fanDirtyMark       *gtk.Label
-	uvDirtyMark        *gtk.Label
-	fanSafetyBanner    *gtk.Label // shown when a safety profile locks fan editing
-	tdpClampWarn       *gtk.Label // shown in basic mode when active PL1 exceeds the basic range
-	telemetryTempLabel *gtk.Label
-	telemetryFanLabel  *gtk.Label
-	telemetryGen       int
-	telemetryPollBusy  bool
-	customFocusItems   []focusItem
+	tdpDirtyMark        *gtk.Label
+	fanDirtyMark        *gtk.Label
+	uvDirtyMark         *gtk.Label
+	fanSafetyBanner     *gtk.Label // shown when a safety profile locks fan editing
+	tdpClampWarn        *gtk.Label // shown in basic mode when active PL1 exceeds the basic range
+	telemetryTempLabel  *gtk.Label
+	telemetryPowerLabel *gtk.Label
+	telemetryFanLabel   *gtk.Label
+	fanModeLabel        *gtk.Label
+	telemetryGen        int
+	telemetryPollBusy   bool
+	customFocusItems    []focusItem
 
 	syncing    bool        // true while syncState is updating widgets; suppresses sendApply
 	applyTimer *time.Timer // debounce for continuous inputs (brightness, color wheel)

@@ -447,6 +447,16 @@
     font-feature-settings: "tnum";
 }
 
+.drawer .tuning-telemetry {
+    min-height: 40px;
+    padding: 4px 10px;
+    border-radius: 8px;
+}
+
+.drawer .tuning-telemetry .telemetry-value {
+    font-size: 11px;
+}
+
 /* Slider descriptions — subordinate to value readouts. */
 .drawer .scale-desc {
     font-size: 10px;

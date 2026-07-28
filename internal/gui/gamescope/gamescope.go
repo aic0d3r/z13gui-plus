@@ -284,6 +284,7 @@ func (b *Backend) scaledCSS() string {
 .custom-actions button { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
 .advanced-check { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
 .telemetry-value { font-size: %.0fpx; }
+.tuning-telemetry { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
 .color-preview { min-width: %.0fpx; min-height: %.0fpx; }`,
 		s,
 		14*s,                 // .drawer font-size
@@ -311,7 +312,8 @@ func (b *Backend) scaledCSS() string {
 		240*s, 6*s, // fan-curve-area (min-height, border-radius)
 		40*s, 4*s, 8*s, 6*s, // custom-actions button (min-height, padding-v, padding-h, border-radius)
 		40*s, 4*s, 10*s, 6*s, // advanced-check (min-height, padding-v, padding-h, border-radius)
-		13*s,       // telemetry-value font-size
+		13*s,                 // telemetry-value font-size
+		40*s, 4*s, 10*s, 8*s, // tuning-telemetry
 		64*s, 40*s, // color-preview (min-width, min-height)
 	)
 }

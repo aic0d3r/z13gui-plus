@@ -774,8 +774,6 @@ func (w *Window) syncBootSound() {
 func fanPresetPoints(name string) string {
 	var pts [][2]int
 	switch name {
-	case "silent":
-		pts = [][2]int{{25, 0}, {40, 0}, {50, 13}, {60, 38}, {70, 76}, {80, 128}, {85, 178}, {90, 255}}
 	case "balanced":
 		pts = [][2]int{{30, 13}, {45, 25}, {55, 51}, {65, 89}, {75, 140}, {82, 191}, {88, 229}, {95, 255}}
 	case "turbo":
