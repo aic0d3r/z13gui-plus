@@ -26,6 +26,19 @@ unchanged.
   the live fan-curve operating point, and reset all tuning overrides together
 - **Faster fan control** — select Auto, Balanced, or Turbo without editing a curve
 
+## Interface
+
+<table>
+  <tr>
+    <td align="center"><strong>Power</strong><br><img src="assets/z13gui-plus-power.avif" alt="Z13GUI+ Power tab"></td>
+    <td align="center"><strong>Power Tuning</strong><br><img src="assets/z13gui-plus-power-tuning.avif" alt="Z13GUI+ Power Tuning view"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>RGB</strong><br><img src="assets/z13gui-plus-rgb.avif" alt="Z13GUI+ RGB tab"></td>
+    <td align="center"><strong>System</strong><br><img src="assets/z13gui-plus-system.avif" alt="Z13GUI+ System tab"></td>
+  </tr>
+</table>
+
 ## Install
 
 ```sh
