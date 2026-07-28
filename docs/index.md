@@ -13,7 +13,7 @@ and hardware/socket protocols remain compatible as `z13gui`.
 
 ---
 
-## What Plus adds
+## What Plus Adds
 
 - **Power automation** — save named configurations, assign separate plugged-in
   and battery presets, and apply them automatically when the power source changes
@@ -29,18 +29,6 @@ and hardware/socket protocols remain compatible as `z13gui`.
 - **Faster fan control** — select Auto, Balanced, or Turbo without editing a curve
 
 Hardware-control changes are sent through the compatible `z13ctl` daemon.
-
----
-
-## Display backends
-
-Two backends are supported, selected automatically based on the session
-environment:
-
-- **Layer-shell** (KDE Plasma, Hyprland, Sway) — Wayland layer-shell overlay
-  with margin-based slide animation and focus-loss dismiss
-- **Gamescope** (Steam Gaming Mode) — X11 overlay via the `STEAM_OVERLAY` atom
-  with opacity-based visibility and a click-to-dismiss backdrop
 
 ---
 
