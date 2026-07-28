@@ -13,25 +13,22 @@ and hardware/socket protocols remain compatible as `z13gui`.
 
 ---
 
-## What Z13GUI+ does
+## What Plus adds
 
-- **Power automation** — named presets with automatic AC/battery switching
-- **Profile switching** — quiet, balanced, and performance hardware profiles
-- **CPU power control** — minimum frequency, AMD EPP, and CPU boost controls independent of GPU clocks
-- **Custom TDP control** — configurable power limits (PL1/PL2/PL3) in the custom profile view, with basic and advanced modes
-- **Fan curve editor** — per-profile fan response curve editing (custom profile, advanced mode)
-- **Undervolt** — CPU Curve Optimizer offset (requires `ryzen_smu` kernel module; iGPU CO is not supported on Strix Halo)
-- **Live telemetry overview** — CPU/GPU temperatures and load, clocks, APU/GPU/NPU power, memory, battery context, and fan data where available
-- **Battery charge limit** — set the charge cap (40–100%) from the drawer
-- **RGB lighting** — mode, color, speed, and brightness for the keyboard
-  backlight and edge lightbar
-- **System toggles** — panel overdrive and boot sound on/off
-- **Theme picker** — 15 built-in themes with full custom theme support
-- **Redesigned Overview and Power UI** — separates live status from tuning and automation controls
-- **Gamescope controller handling** — full D-pad/button navigation with controller-input suppression while the drawer is open
+- **Power automation** — save named configurations, assign separate plugged-in
+  and battery presets, and apply them automatically when the power source changes
+- **Independent CPU policy** — control minimum CPU frequency, AMD EPP, and boost
+  without coupling them to GPU clocks
+- **Expanded telemetry** — monitor CPU, GPU, NPU, memory, battery, power, clocks,
+  temperatures, and both fans from a dedicated Overview
+- **Battery insight** — see health, energy capacity, system draw, charge state,
+  and direction-aware runtime estimates
+- **Direct display control** — switch the internal panel between 60 Hz and 180 Hz
+- **Safer tuning feedback** — identify unsaved overrides, high-TDP fan safety,
+  the live fan-curve operating point, and reset all tuning overrides together
+- **Faster fan control** — select Auto, Balanced, or Turbo without editing a curve
 
-All hardware communication goes through the `z13ctl` daemon. Z13GUI+ never
-touches HID devices or sysfs directly.
+Hardware-control changes are sent through the compatible `z13ctl` daemon.
 
 ---
 

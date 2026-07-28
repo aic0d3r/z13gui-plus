@@ -8,16 +8,23 @@ GTK4 overlay drawer for [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) on
 
 Z13GUI+ is a compatibility-preserving distribution of
 [dahui/z13gui](https://github.com/dahui/z13gui). It keeps the `z13gui` command,
-`z13gui.service`, desktop and udev filenames, configuration and runtime paths, D-Bus
-application ID, Go module, daemon API, and hardware/socket protocols unchanged.
+service, configuration paths, Go module, daemon API, and hardware protocols
+unchanged.
 
-The drawer is triggered by the Armoury Crate button (KEY_PROG3). It renders as a
-Wayland layer-shell overlay (KDE Plasma, Hyprland, Sway) or a gamescope X11 overlay
-in Steam Gaming Mode. All hardware communication goes through the `z13ctl` daemon.
+## What Plus Adds
 
-Building on the upstream project, this fork adds AC/battery power automation,
-expanded live telemetry, CPU minimum-frequency/EPP/boost controls, redesigned
-Overview and Power interfaces, and gamescope-aware controller handling.
+- **Power automation** — save named configurations and assign separate presets
+  for plugged-in and battery operation
+- **Independent CPU policy** — control minimum CPU frequency, AMD EPP, and boost
+  without coupling them to GPU clocks
+- **Expanded telemetry** — monitor CPU, GPU, NPU, memory, battery, power, clocks,
+  temperatures, and both fans from a dedicated Overview
+- **Battery insight** — see health, energy capacity, system draw, charge state,
+  and direction-aware runtime estimates
+- **Direct display control** — switch the internal panel between 60 Hz and 180 Hz
+- **Safer tuning feedback** — identify unsaved overrides, high-TDP fan safety,
+  the live fan-curve operating point, and reset all tuning overrides together
+- **Faster fan control** — select Auto, Balanced, or Turbo without editing a curve
 
 ## Install
 
@@ -41,12 +48,9 @@ systemd service setup, source builds, and uninstall instructions.
 
 ## Quick Start
 
-Press the **Armoury Crate button** on your Z13 to open the drawer. Press it again,
-click outside, or press Escape to close it.
-
-The drawer provides live system telemetry, profile and automated power-source
-switching, CPU and TDP tuning, fan curves, undervolting, battery charge limits, RGB
-lighting, panel controls, and boot sound. Changes are sent to the `z13ctl` daemon.
+Press the **Armoury Crate button** on your Z13 to open the drawer. The Overview
+shows live system state; Power contains automation, CPU policy, battery strategy,
+and advanced tuning. Hardware-control changes are sent to the `z13ctl` daemon.
 
 ## Documentation
 

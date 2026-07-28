@@ -13,13 +13,14 @@ Press it again, click anywhere outside the drawer, or press **Escape** to close 
 
 | Section | What it does |
 |---------|-------------|
-| **Profile** | Switch between quiet, balanced, performance, and custom TDP profiles. Selecting custom opens a dedicated view. |
+| **Overview** | Monitor CPU, GPU, NPU, memory, battery, power, clocks, temperatures, and fan speed. |
+| **Profile** | Switch between quiet, balanced, and performance hardware profiles. |
+| **Power Automation** | Assign named presets to plugged-in and battery operation. |
 | **CPU Power** | Set the CPU minimum frequency, AMD energy performance preference (EPP), and CPU boost without changing GPU clocks. |
-| **Custom TDP** | Configurable power limits with basic (single slider) and advanced (PL1 sustained / PL2 short boost / PL3 fast boost) modes |
-| **Fan Curve** | Edit the fan response curve per-profile (custom profile, advanced mode) |
-| **Undervolt** | CPU Curve Optimizer offset (custom profile, advanced mode; requires `ryzen_smu`). iGPU CO is not supported on Strix Halo. |
-| **Telemetry** | Live APU temperature and fan RPM readouts (custom profile view) |
+| **Power Tuning** | Open independent TDP, fan-curve, and undervolt overrides. |
+| **Fan Mode** | Select firmware Auto or the Balanced and Turbo curve presets. |
 | **Battery Limit** | Set the charge cap (40–100%). Changes persist across reboots. |
+| **Refresh Rate** | Switch the internal display between 60 Hz and 180 Hz. |
 | **Keyboard / Lightbar** | Tab between the two lighting zones |
 | **Mode** | Lighting effect: static, breathe, cycle, rainbow, strobe, or off |
 | **Color 1 / Color 2** | Pick from 8 presets or open the custom color picker |
