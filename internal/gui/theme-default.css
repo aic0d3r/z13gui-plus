@@ -154,6 +154,29 @@ window.z13-drawer-window {
     border-color: alpha(@z13-accent, 0.55);
 }
 
+.drawer .automation-summary-row {
+    background: alpha(@z13-text, 0.025);
+    border: 1px solid transparent;
+}
+
+.drawer .automation-summary-row.current-assignment {
+    background: alpha(@z13-accent, 0.08);
+    border-color: alpha(@z13-accent, 0.4);
+}
+
+.drawer button.assignment-row.assignment-missing,
+.drawer .automation-summary-row.assignment-missing {
+    border-color: alpha(@z13-warning, 0.55);
+}
+
+.drawer .automation-summary-row.assignment-missing .preset-summary {
+    color: @z13-warning;
+}
+
+.drawer .automation-source {
+    color: @z13-text-dim;
+}
+
 .drawer button.assignment-row:focus-visible,
 .drawer button.preset-row:focus-visible {
     outline: 2px solid @z13-accent;
@@ -469,23 +492,27 @@ window.z13-drawer-window {
     color: @z13-text;
 }
 
-.drawer .settings-row switch {
+.drawer .settings-row switch,
+.drawer switch.automation-switch {
     background: @z13-surface;
     border: 1px solid @z13-border;
 }
 
-.drawer .settings-row switch slider {
+.drawer .settings-row switch slider,
+.drawer switch.automation-switch slider {
     background: @z13-text-dim;
     border: 1px solid @z13-border-hi;
 }
 
-.drawer .settings-row switch:checked {
+.drawer .settings-row switch:checked,
+.drawer switch.automation-switch:checked {
     background: linear-gradient(90deg, shade(@z13-accent, 0.8), @z13-accent);
     border-color: @z13-accent;
     box-shadow: 0 0 8px @z13-accent-glow;
 }
 
-.drawer .settings-row switch:checked slider {
+.drawer .settings-row switch:checked slider,
+.drawer switch.automation-switch:checked slider {
     background: @z13-text;
     border-color: @z13-accent;
 }

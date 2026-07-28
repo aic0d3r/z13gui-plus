@@ -272,9 +272,12 @@ func (b *Backend) scaledCSS() string {
 .color-swatch { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
 .color-preset { padding: 0; min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
 .accent-dot-active { border-width: %.0fpx; }
+.drawer .automation-summary-row { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
+.drawer .automation-source { font-size: %.0fpx; letter-spacing: %.0fpx; }
+.drawer .automation-summary-row .preset-summary { font-size: %.0fpx; }
 .drawer .settings-row .toggle-label { font-size: %.0fpx; letter-spacing: %.1fpx; }
-.drawer .settings-row switch { min-height: %.0fpx; min-width: %.0fpx; border-radius: %.0fpx; }
-.drawer .settings-row switch slider { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
+.drawer .settings-row switch, .drawer switch.automation-switch { min-height: %.0fpx; min-width: %.0fpx; border-radius: %.0fpx; }
+.drawer .settings-row switch slider, .drawer switch.automation-switch slider { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
 .drawer .overview-system-card .scale-value, .drawer .battery-metric-value { font-size: 15px; }
 .view-back-btn { min-width: %.0fpx; min-height: %.0fpx; padding: %.0fpx; }
 .gamepad-focus { outline-width: %.0fpx; outline-offset: %.0fpx; }
@@ -301,7 +304,10 @@ func (b *Backend) scaledCSS() string {
 		10*s, 4*s, // scale-name
 		40*s, 40*s, 6*s, // color-swatch
 		32*s, 32*s, 4*s, // color-preset
-		2*s,         // accent-dot-active border
+		2*s,                 // accent-dot-active border
+		28*s, 2*s, 6*s, 6*s, // automation-summary-row
+		10*s, 1*s, // automation-source
+		11*s,        // automation preset summary
 		10*s, 0.5*s, // toggle-label
 		22*s, 40*s, 11*s, // settings-row switch (height, width, border-radius)
 		18*s, 18*s, 9*s, // switch slider (width, height, border-radius)

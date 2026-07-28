@@ -16,21 +16,70 @@ import (
 )
 
 func (w *Window) buildPresetEntrySection() *gtk.Box {
-	box, summary := statusCard("AC/BATTERY SWITCHING")
-	w.presetSummary = summary
-	box.Append(w.buildToggle("Automatic switching", "Apply the assigned preset when the power source changes", &w.automationSwitch, func(enabled bool) {
-		w.setPresetPolicy(enabled, "", "")
-	}))
-	w.presetDetail = gtk.NewLabel("—")
-	w.presetDetail.SetHAlign(gtk.AlignStart)
-	w.presetDetail.SetWrap(true)
-	w.presetDetail.AddCSSClass("card-sub")
-	box.Append(w.presetDetail)
-	w.presetsBtn = gtk.NewButtonWithLabel("Manage")
+	card := gtk.NewBox(gtk.OrientationVertical, 6)
+	card.AddCSSClass("card")
+	header := gtk.NewBox(gtk.OrientationHorizontal, 6)
+	title := gtk.NewLabel("POWER AUTOMATION")
+	title.SetHAlign(gtk.AlignStart)
+	title.SetHExpand(true)
+	title.AddCSSClass("card-title")
+	w.automationSwitch = w.newAutomationSwitch()
+	header.Append(title)
+	header.Append(w.automationSwitch)
+	card.Append(header)
+
+	w.presetAssignments = gtk.NewBox(gtk.OrientationVertical, 2)
+	w.presetACRow, w.presetACLabel, w.presetACStatus = automationSummaryRow("PLUGGED IN")
+	w.presetBatteryRow, w.presetBatteryLabel, w.presetBatteryStatus = automationSummaryRow("ON BATTERY")
+	w.presetAssignments.Append(w.presetACRow)
+	w.presetAssignments.Append(w.presetBatteryRow)
+	card.Append(w.presetAssignments)
+
+	w.presetsBtn = gtk.NewButtonWithLabel("Edit Assignments")
 	w.presetsBtn.AddCSSClass("action-btn")
 	w.presetsBtn.ConnectClicked(func() { w.showPresetsView() })
-	box.Append(w.presetsBtn)
-	return box
+	card.Append(w.presetsBtn)
+	return card
+}
+
+func (w *Window) newAutomationSwitch() *gtk.Switch {
+	sw := gtk.NewSwitch()
+	sw.AddCSSClass("automation-switch")
+	sw.SetVAlign(gtk.AlignCenter)
+	sw.SetTooltipText("Apply assigned presets when the power source changes")
+	sw.ConnectStateSet(func(enabled bool) bool {
+		if !w.syncing {
+			message := "Power automation paused"
+			if enabled {
+				message = "Power automation enabled"
+			}
+			w.setPresetPolicy(enabled, "", "", message)
+		}
+		return false
+	})
+	if w.gamescope {
+		addTouchActivate(sw, func() { sw.SetActive(!sw.Active()) })
+	}
+	return sw
+}
+
+func automationSummaryRow(source string) (row *gtk.Box, preset, status *gtk.Label) {
+	row = gtk.NewBox(gtk.OrientationHorizontal, 6)
+	row.AddCSSClass("automation-summary-row")
+	sourceLabel := gtk.NewLabel(source)
+	sourceLabel.SetHAlign(gtk.AlignStart)
+	sourceLabel.AddCSSClass("automation-source")
+	row.Append(sourceLabel)
+	preset = gtk.NewLabel("Not assigned")
+	preset.SetHAlign(gtk.AlignEnd)
+	preset.SetHExpand(true)
+	preset.AddCSSClass("preset-summary")
+	row.Append(preset)
+	status = gtk.NewLabel("ACTIVE")
+	status.AddCSSClass("pill")
+	status.SetVisible(false)
+	row.Append(status)
+	return row, preset, status
 }
 
 func viewHeader(title string, back func()) (*gtk.Box, *gtk.Button, *gtk.Label) {
@@ -52,12 +101,11 @@ func viewHeader(title string, back func()) (*gtk.Box, *gtk.Button, *gtk.Label) {
 
 func (w *Window) buildPresetsView() *gtk.Box {
 	view := gtk.NewBox(gtk.OrientationVertical, 0)
-	header, back, title := viewHeader("AC/Battery Switching", func() { w.showMainView() })
+	header, back, title := viewHeader("Power Automation", func() { w.showMainView() })
 	w.presetsBackBtn = back
 	title.SetHExpand(true)
-	w.presetPageStatus = gtk.NewLabel("DISABLED")
-	w.presetPageStatus.AddCSSClass("pill")
-	header.Append(w.presetPageStatus)
+	w.automationViewSw = w.newAutomationSwitch()
+	header.Append(w.automationViewSw)
 	view.Append(header)
 
 	content := gtk.NewBox(gtk.OrientationVertical, 8)
@@ -67,11 +115,17 @@ func (w *Window) buildPresetsView() *gtk.Box {
 	content.SetMarginEnd(12)
 
 	assignments := plainPowerCard("ASSIGNMENTS")
-	w.acAssignment, w.acAssignmentLabel, w.acAssignmentStatus, w.acChangeBtn = w.buildAssignmentCard("WHEN PLUGGED IN", "ac")
+	w.acAssignment, w.acAssignmentLabel, w.acAssignmentStatus, w.acChangeBtn = w.buildAssignmentCard("PLUGGED IN", "ac")
 	w.batteryAssignment, w.batteryAssignLabel, w.batteryAssignStatus, w.batteryChangeBtn = w.buildAssignmentCard("ON BATTERY", "battery")
 	assignments.Append(w.acChangeBtn)
 	assignments.Append(w.batteryChangeBtn)
 	content.Append(assignments)
+
+	w.presetAssignmentStatus = gtk.NewLabel("")
+	w.presetAssignmentStatus.SetHAlign(gtk.AlignStart)
+	w.presetAssignmentStatus.SetWrap(true)
+	w.presetAssignmentStatus.AddCSSClass("card-sub")
+	content.Append(w.presetAssignmentStatus)
 
 	w.presetLibraryBtn = gtk.NewButtonWithLabel("Preset Library")
 	w.presetLibraryBtn.AddCSSClass("action-btn")
@@ -86,6 +140,7 @@ func (w *Window) buildPresetsView() *gtk.Box {
 	view.Append(scroll)
 	w.presetFocusItems = []focusItem{
 		{widget: back, row: 0, col: 0, section: "automation-header", onActivate: func() { back.Activate() }},
+		{widget: w.automationViewSw, row: 0, col: 1, section: "automation-header", onActivate: func() { w.automationViewSw.SetActive(!w.automationViewSw.Active()) }},
 		{widget: w.acChangeBtn, row: 1, col: 0, section: "assignments", onActivate: func() { w.acChangeBtn.Activate() }},
 		{widget: w.batteryChangeBtn, row: 2, col: 0, section: "assignments", onActivate: func() { w.batteryChangeBtn.Activate() }},
 		{widget: w.presetLibraryBtn, row: 3, col: 0, section: "preset-library", onActivate: func() { w.presetLibraryBtn.Activate() }},
@@ -181,12 +236,12 @@ func (w *Window) buildAssignmentCard(title, target string) (row *gtk.Box, summar
 	summary.SetWrap(true)
 	summary.AddCSSClass("preset-summary")
 	text.Append(summary)
-	status = gtk.NewLabel("Active now")
-	status.SetHAlign(gtk.AlignStart)
-	status.AddCSSClass("card-sub")
-	status.SetVisible(false)
-	text.Append(status)
 	row.Append(text)
+	status = gtk.NewLabel("ACTIVE")
+	status.AddCSSClass("pill")
+	status.SetVAlign(gtk.AlignCenter)
+	status.SetVisible(false)
+	row.Append(status)
 	chevron := gtk.NewImageFromIconName("pan-end-symbolic")
 	chevron.SetVAlign(gtk.AlignCenter)
 	row.Append(chevron)
@@ -234,27 +289,60 @@ func (w *Window) syncPresets() {
 		return
 	}
 	enabled := currentPolicyEnabled(w.state)
-	status, detail := powerPolicySummary(w.state)
-	if w.presetSummary != nil {
-		w.presetSummary.SetLabel(status)
-		w.presetDetail.SetLabel(detail)
-		if w.automationSwitch != nil {
-			w.automationSwitch.SetActive(enabled)
-		}
+	ac, battery := powerPolicyAssignments(w.state)
+	if w.automationSwitch != nil {
+		w.automationSwitch.SetActive(enabled)
 	}
-	if w.presetPageStatus != nil {
-		w.presetPageStatus.SetLabel(status)
+	if w.automationViewSw != nil {
+		w.automationViewSw.SetActive(enabled)
+	}
+
+	acActive := enabled && w.state.PowerSource == "ac"
+	batteryActive := enabled && w.state.PowerSource == "battery"
+	if w.presetAssignments != nil {
+		w.presetACLabel.SetLabel(ac)
+		w.presetBatteryLabel.SetLabel(battery)
+		if ac == "Not assigned" {
+			w.presetACRow.AddCSSClass("assignment-missing")
+		} else {
+			w.presetACRow.RemoveCSSClass("assignment-missing")
+		}
+		if battery == "Not assigned" {
+			w.presetBatteryRow.AddCSSClass("assignment-missing")
+		} else {
+			w.presetBatteryRow.RemoveCSSClass("assignment-missing")
+		}
+		w.presetACStatus.SetVisible(acActive)
+		w.presetBatteryStatus.SetVisible(batteryActive)
+		if enabled {
+			w.presetAssignments.RemoveCSSClass("automation-off")
+		} else {
+			w.presetAssignments.AddCSSClass("automation-off")
+		}
+		if acActive {
+			w.presetACRow.AddCSSClass("current-assignment")
+		} else {
+			w.presetACRow.RemoveCSSClass("current-assignment")
+		}
+		if batteryActive {
+			w.presetBatteryRow.AddCSSClass("current-assignment")
+		} else {
+			w.presetBatteryRow.RemoveCSSClass("current-assignment")
+		}
 	}
 	if w.acAssignment != nil {
-		policy := w.state.PowerPolicy
-		ac, battery := "", ""
-		if policy != nil {
-			ac, battery = policy.ACPreset, policy.BatteryPreset
+		w.acAssignmentLabel.SetLabel(ac)
+		w.batteryAssignLabel.SetLabel(battery)
+		if ac == "Not assigned" {
+			w.acChangeBtn.AddCSSClass("assignment-missing")
+		} else {
+			w.acChangeBtn.RemoveCSSClass("assignment-missing")
 		}
-		w.acAssignmentLabel.SetLabel(assignmentSummary(ac, w.state.Presets))
-		w.batteryAssignLabel.SetLabel(assignmentSummary(battery, w.state.Presets))
-		acActive := enabled && w.state.PowerSource == "ac"
-		batteryActive := enabled && w.state.PowerSource == "battery"
+		if battery == "Not assigned" {
+			w.batteryChangeBtn.AddCSSClass("assignment-missing")
+		} else {
+			w.batteryChangeBtn.RemoveCSSClass("assignment-missing")
+		}
 		w.acAssignmentStatus.SetVisible(acActive)
 		w.batteryAssignStatus.SetVisible(batteryActive)
 		if acActive {
@@ -473,6 +561,10 @@ func (w *Window) showPresetChooser(target string) {
 	} else {
 		w.chooserDetail.SetLabel("Choosing a preset changes this automatic assignment.")
 	}
+	source := "Plugged In"
+	if target == "battery" {
+		source = "On Battery"
+	}
 	w.chooserFocusItems = w.chooserFocusItems[:1]
 	for i, name := range sortedPresetNames(w.state.Presets) {
 		button := gtk.NewButtonWithLabel(name + "\n" + compactPresetSummary(w.state.Presets[name]))
@@ -488,10 +580,14 @@ func (w *Window) showPresetChooser(target string) {
 			button.AddCSSClass("active")
 		}
 		button.ConnectClicked(func() {
+			message := fmt.Sprintf("%s assigned to %s", name, source)
+			if appliesNow {
+				message += " and applied"
+			}
 			if target == "ac" {
-				w.setPresetPolicy(currentPolicyEnabled(w.state), name, "")
+				w.setPresetPolicy(currentPolicyEnabled(w.state), name, "", message)
 			} else {
-				w.setPresetPolicy(currentPolicyEnabled(w.state), "", name)
+				w.setPresetPolicy(currentPolicyEnabled(w.state), "", name, message)
 			}
 			w.showPresetsView()
 		})
@@ -588,48 +684,18 @@ func currentPolicyEnabled(state *api.State) bool {
 	return state != nil && state.PowerPolicy != nil && state.PowerPolicy.Enabled
 }
 
-func powerPolicySummary(state *api.State) (status, detail string) {
-	status = "DISABLED"
-	if currentPolicyEnabled(state) {
-		status = "ENABLED"
-	}
+func powerPolicyAssignments(state *api.State) (ac, battery string) {
+	ac, battery = "Not assigned", "Not assigned"
 	if state == nil || state.PowerPolicy == nil {
-		return status, "Not assigned · Not assigned"
+		return ac, battery
 	}
-	ac := state.PowerPolicy.ACPreset
-	if ac == "" {
-		ac = "Not assigned"
+	if state.PowerPolicy.ACPreset != "" {
+		ac = state.PowerPolicy.ACPreset
 	}
-	battery := state.PowerPolicy.BatteryPreset
-	if battery == "" {
-		battery = "Not assigned"
+	if state.PowerPolicy.BatteryPreset != "" {
+		battery = state.PowerPolicy.BatteryPreset
 	}
-	return status, ac + " · " + battery
-}
-
-// ruleEffect renders one side of the automation rule: the preset's headline
-// profile when known (the useful behavior), falling back to its name.
-func ruleEffect(name string, presets map[string]api.Preset) string {
-	if name == "" {
-		return "Not assigned"
-	}
-	if p, ok := presets[name]; ok {
-		if prof := strings.TrimSpace(p.Profile); prof != "" {
-			return strings.Title(prof) //nolint:staticcheck // ASCII daemon value
-		}
-	}
-	return name
-}
-
-func assignmentSummary(name string, presets map[string]api.Preset) string {
-	if name == "" {
-		return "Not assigned"
-	}
-	effect := ruleEffect(name, presets)
-	if effect == name || effect == "Not assigned" {
-		return name
-	}
-	return fmt.Sprintf("%s → %s", name, effect)
+	return ac, battery
 }
 
 func presetUsage(name string, state *api.State) string {
@@ -774,26 +840,35 @@ func presetStateChanged(old, next *api.State) bool {
 	return *old.PowerPolicy != *next.PowerPolicy
 }
 
-func (w *Window) setPresetPolicy(enabled bool, ac, battery string) {
+func (w *Window) setPresetPolicy(enabled bool, ac, battery, success string) {
 	if w.state == nil {
 		return
 	}
-	w.runStateAction("set power automation", func() (bool, error) {
-		if ac == "" || battery == "" {
-			ok, latest, err := api.SendGetState()
-			if err != nil || !ok {
-				return ok, err
-			}
-			if latest.PowerPolicy != nil {
-				if ac == "" {
-					ac = latest.PowerPolicy.ACPreset
+	w.queueStateAction(stateAction{
+		name:         "set power automation",
+		reportStatus: true,
+		fn: func() (bool, error) {
+			if ac == "" || battery == "" {
+				ok, latest, err := api.SendGetState()
+				if err != nil || !ok {
+					return ok, err
 				}
-				if battery == "" {
-					battery = latest.PowerPolicy.BatteryPreset
+				if latest.PowerPolicy != nil {
+					if ac == "" {
+						ac = latest.PowerPolicy.ACPreset
+					}
+					if battery == "" {
+						battery = latest.PowerPolicy.BatteryPreset
+					}
 				}
 			}
-		}
-		return api.SendPowerPolicySet(enabled, ac, battery)
+			return api.SendPowerPolicySet(enabled, ac, battery)
+		},
+		onApplied: func() {
+			if success != "" {
+				w.showPresetFeedback(success)
+			}
+		},
 	})
 }
 
@@ -891,4 +966,17 @@ func (w *Window) setPresetStatus(message string) {
 	if w.presetStatus != nil {
 		w.presetStatus.SetLabel(message)
 	}
+	if w.presetAssignmentStatus != nil {
+		w.presetAssignmentStatus.SetLabel(message)
+	}
+}
+
+func (w *Window) showPresetFeedback(message string) {
+	w.setPresetStatus(message)
+	glib.TimeoutAdd(3000, func() bool {
+		if w.presetAssignmentStatus != nil && w.presetAssignmentStatus.Label() == message {
+			w.setPresetStatus("")
+		}
+		return false
+	})
 }

@@ -20,29 +20,18 @@ func TestPresetStateChanged(t *testing.T) {
 	}
 }
 
-func TestPowerPolicySummary(t *testing.T) {
-	status, detail := powerPolicySummary(nil)
-	if status != "DISABLED" || detail != "Not assigned · Not assigned" {
-		t.Fatalf("nil policy summary = %q, %q", status, detail)
+func TestPowerPolicyAssignments(t *testing.T) {
+	ac, battery := powerPolicyAssignments(nil)
+	if ac != "Not assigned" || battery != "Not assigned" {
+		t.Fatalf("nil policy assignments = %q, %q", ac, battery)
 	}
 
-	state := &api.State{
-		ActivePreset: "Plugged In",
-		PowerSource:  "ac",
-		PowerPolicy: &api.PowerPolicy{
-			Enabled: true, ACPreset: "Plugged In", BatteryPreset: "On Battery",
-		},
-		Presets: map[string]api.Preset{
-			"Plugged In": {Profile: "performance"},
-			"On Battery": {Profile: "quiet"},
-		},
-	}
-	status, detail = powerPolicySummary(state)
-	if status != "ENABLED" {
-		t.Fatalf("enabled policy status = %q", status)
-	}
-	if want := "Plugged In · On Battery"; detail != want {
-		t.Fatalf("enabled policy detail = %q, want %q", detail, want)
+	state := &api.State{PowerPolicy: &api.PowerPolicy{
+		Enabled: true, ACPreset: "Plugged In", BatteryPreset: "On Battery",
+	}}
+	ac, battery = powerPolicyAssignments(state)
+	if ac != "Plugged In" || battery != "On Battery" {
+		t.Fatalf("policy assignments = %q, %q", ac, battery)
 	}
 }
 

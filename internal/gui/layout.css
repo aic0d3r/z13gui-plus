@@ -32,6 +32,22 @@
     border-radius: 8px;
 }
 
+.drawer .automation-summary-row {
+    min-height: 28px;
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+
+.drawer .automation-source {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.drawer .automation-summary-row .preset-summary {
+    font-size: 11px;
+}
+
 .drawer .assignment-row .card-title,
 .drawer .preset-row .card-title {
     margin-bottom: 0;
@@ -103,7 +119,8 @@
     font-weight: 600;
 }
 
-.drawer .settings-row switch {
+.drawer .settings-row switch,
+.drawer switch.automation-switch {
     min-width: 40px;
     min-height: 22px;
 }

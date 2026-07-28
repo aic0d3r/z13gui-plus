@@ -1198,6 +1198,16 @@ func (w *Window) powerTabFocusItems() []focusItem {
 	}
 	row++
 
+	if w.automationSwitch != nil {
+		sw := w.automationSwitch
+		items = append(items, focusItem{
+			widget: sw, row: row, col: 0,
+			section:    "presets",
+			onActivate: func() { sw.SetActive(!sw.Active()) },
+		})
+		row++
+	}
+
 	if w.presetsBtn != nil {
 		btn := w.presetsBtn
 		items = append(items, focusItem{

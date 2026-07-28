@@ -102,13 +102,19 @@ type Window struct {
 	startupSummary      *gtk.Label
 	appearanceSummary   *gtk.Label
 	presetsBtn          *gtk.Button
-	presetSummary       *gtk.Label
-	presetDetail        *gtk.Label
+	presetAssignments   *gtk.Box
+	presetACRow         *gtk.Box
+	presetBatteryRow    *gtk.Box
+	presetACLabel       *gtk.Label
+	presetBatteryLabel  *gtk.Label
+	presetACStatus      *gtk.Label
+	presetBatteryStatus *gtk.Label
 	presetsScroll       *gtk.ScrolledWindow
 	presetsBackBtn      *gtk.Button
 	presetsList         *gtk.Box
 	presetNameEntry     *gtk.Entry
-	automationSwitch    *gtk.Switch // inline toggle on the main POWER AUTOMATION card
+	automationSwitch    *gtk.Switch
+	automationViewSw    *gtk.Switch
 	presetSaveBtn       *gtk.Button
 	presetRestoreBtn    *gtk.Button
 	presetStatus        *gtk.Label
@@ -135,7 +141,7 @@ type Window struct {
 	stateActionQueue    []stateAction
 	stateRequestGen     uint64
 
-	presetPageStatus        *gtk.Label
+	presetAssignmentStatus  *gtk.Label
 	presetLibraryBtn        *gtk.Button
 	presetLibraryScroll     *gtk.ScrolledWindow
 	presetLibraryBackBtn    *gtk.Button
