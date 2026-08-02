@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/dahui/z13gui/internal/gui/gamepad/hidblocker"
+	"github.com/aic0d3r/z13gui-plus/internal/gui/gamepad/hidblocker"
 )
 
 // pidFilePath returns the path to the frozen-PID state file.
@@ -20,7 +20,7 @@ func pidFilePath() string {
 	if runtime == "" {
 		runtime = fmt.Sprintf("/run/user/%d", os.Getuid())
 	}
-	return filepath.Join(runtime, "z13gui-frozen-pid")
+	return filepath.Join(runtime, "z13gui-plus", "frozen-pid")
 }
 
 // FindSteamPID locates the main Steam process by scanning /proc.
@@ -53,10 +53,14 @@ func FindSteamPID() int {
 // FreezeProc sends SIGSTOP to suspend a process and writes the PID to a
 // state file for crash recovery.
 func FreezeProc(pid int) error {
+	path := pidFilePath()
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
 	if err := syscall.Kill(pid, syscall.SIGSTOP); err != nil {
 		return err
 	}
-	_ = os.WriteFile(pidFilePath(), []byte(strconv.Itoa(pid)), 0o600)
+	_ = os.WriteFile(path, []byte(strconv.Itoa(pid)), 0o600)
 	return nil
 }
 

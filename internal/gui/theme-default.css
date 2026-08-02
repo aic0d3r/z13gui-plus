@@ -2,7 +2,7 @@
    Premium console aesthetic: deep charcoal base, refined surface hierarchy,
    subtle gradient atmosphere, glow rings on active states.
    To create a custom theme, copy this file to:
-       $XDG_CONFIG_HOME/z13gui/theme.css   (usually ~/.config/z13gui/theme.css)
+       $XDG_CONFIG_HOME/z13gui-plus/theme.css   (usually ~/.config/z13gui-plus/theme.css)
    and modify the @define-color values or any rule below.
 
    Available named colors:

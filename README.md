@@ -6,10 +6,16 @@ GTK4 overlay drawer for [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) on
 
 ![Z13GUI+](assets/z13gui-plus.avif)
 
-Z13GUI+ is a compatibility-preserving distribution of
-[dahui/z13gui](https://github.com/dahui/z13gui). It keeps the `z13gui` command,
-service, configuration paths, Go module, daemon API, and hardware protocols
-unchanged.
+Z13GUI+ is an independently named fork of
+[dahui/z13gui](https://github.com/dahui/z13gui) for
+[z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus). It preserves intentional
+API and UI compatibility, but v2.0.0 uses its own command, service,
+configuration, runtime, desktop, and application-ID namespaces. The installed
+command is `z13gui-plus`; no `z13gui` alias is provided.
+
+The `z13gui-plus` package can coexist with upstream. Packages do not provide,
+conflict with, or replace upstream, and installation leaves the GUI service
+disabled. Enable only the GUI that matches the controller daemon you selected.
 
 ## What Plus Adds
 
@@ -53,7 +59,7 @@ sudo dnf install ./z13gui-plus_*.rpm
 
 # Manual (from release tarball)
 tar xzf z13gui-plus_*_linux_amd64.tar.gz
-sudo install -Dm755 z13gui /usr/local/bin/z13gui
+sudo install -Dm755 z13gui-plus /usr/local/bin/z13gui-plus
 ```
 
 See the [Installation guide](https://aic0d3r.github.io/z13gui-plus/installation/) for
@@ -63,7 +69,26 @@ systemd service setup, source builds, and uninstall instructions.
 
 Press the **Armoury Crate button** on your Z13 to open the drawer. The Overview
 shows live system state; Power contains automation, CPU policy, battery strategy,
-and advanced tuning. Hardware-control changes are sent to the `z13ctl` daemon.
+and advanced tuning. Hardware-control changes are sent to the `z13ctl-plus`
+daemon.
+
+## Upgrading from v1
+
+After installing v2.0.0, copy the complete legacy configuration only if the new
+Plus configuration directory does not exist:
+
+```sh
+systemctl --user disable --now z13gui.service
+z13gui-plus --migrate-config
+systemctl --user enable --now z13gui-plus.service
+```
+
+Migration copies `$XDG_CONFIG_HOME/z13gui` to
+`$XDG_CONFIG_HOME/z13gui-plus`; it leaves the source untouched and does not
+change services or remove artifacts. Run the disable command only when the old
+service is known to be from this fork. Legacy names may belong to upstream, so
+remove old files only after verifying their provenance. See the
+[migration guide](https://aic0d3r.github.io/z13gui-plus/installation/#migrating-from-v1-to-v2).
 
 ## Documentation
 

@@ -120,11 +120,11 @@ func (b *Backend) Configure(_ func() bool, onDismiss func()) {
 		// Store output height for WrapContent (which runs after realize).
 		// Compute a UI scale so the drawer occupies the same physical
 		// screen fraction as KDE at 150% (~18.75% of screen width).
-		// Z13GUI_SCALE env var overrides auto-detection.
+		// Z13GUI_PLUS_SCALE env var overrides auto-detection.
 		if monitor := display.MonitorAtSurface(surface); monitor != nil {
 			geo := monitor.Geometry()
 			b.outputHeight = geo.Height()
-			if envScale := os.Getenv("Z13GUI_SCALE"); envScale != "" {
+			if envScale := os.Getenv("Z13GUI_PLUS_SCALE"); envScale != "" {
 				if v, err := strconv.ParseFloat(envScale, 64); err == nil && v > 0 {
 					b.scale = v
 				}

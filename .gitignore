@@ -1,3 +1,5 @@
+z13gui-plus
+# Legacy pre-v2 local build artifact.
 z13gui
 dist/
 *.test
@@ -9,6 +11,7 @@ profile.cov
 go.work
 go.work.sum
 .env
+.venv/
 release-notes.md
 .vscode/
 .claude/

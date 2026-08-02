@@ -1,6 +1,7 @@
 package theme
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -13,10 +14,10 @@ type AppConfig struct {
 	Accent string // accent ID within the theme; "" = use theme default
 }
 
-// LoadAppConfig reads ~/.config/z13gui/config.toml.
+// LoadAppConfig reads config.toml from the z13gui-plus config directory.
 // Returns a default config (theme "rog-dark") if the file doesn't exist or can't be parsed.
 func LoadAppConfig() AppConfig {
-	path := filepath.Join(XDGConfigHome(), "z13gui", "config.toml")
+	path := filepath.Join(ConfigDir(), "config.toml")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return AppConfig{Theme: "rog-dark"}
@@ -48,9 +49,9 @@ func LoadAppConfig() AppConfig {
 	return cfg
 }
 
-// SaveAppConfig writes the app config to ~/.config/z13gui/config.toml.
+// SaveAppConfig writes the app config to the z13gui-plus config directory.
 func SaveAppConfig(cfg AppConfig) {
-	dir := filepath.Join(XDGConfigHome(), "z13gui")
+	dir := ConfigDir()
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		slog.Warn("failed to create config dir", "path", dir, "err", err)
 		return
@@ -72,4 +73,44 @@ func XDGConfigHome() string {
 		return "/tmp/.config"
 	}
 	return dir
+}
+
+// ConfigDir returns the z13gui-plus configuration directory.
+func ConfigDir() string {
+	return filepath.Join(XDGConfigHome(), "z13gui-plus")
+}
+
+// LegacyConfigDir returns the configuration directory used before v2.
+func LegacyConfigDir() string {
+	return filepath.Join(XDGConfigHome(), "z13gui")
+}
+
+// MigrateLegacyConfig copies legacy configuration without overwriting Plus config.
+func MigrateLegacyConfig() error {
+	source := LegacyConfigDir()
+	destination := ConfigDir()
+
+	info, err := os.Stat(source)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("legacy config does not exist: %s", source)
+	}
+	if err != nil {
+		return fmt.Errorf("read legacy config: %w", err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("legacy config is not a directory: %s", source)
+	}
+	if mkdirAllErr := os.MkdirAll(filepath.Dir(destination), 0o700); mkdirAllErr != nil {
+		return fmt.Errorf("create config parent: %w", mkdirAllErr)
+	}
+	if mkdirErr := os.Mkdir(destination, 0o700); os.IsExist(mkdirErr) {
+		return fmt.Errorf("z13gui-plus config already exists: %s", destination)
+	} else if mkdirErr != nil {
+		return fmt.Errorf("create z13gui-plus config: %w", mkdirErr)
+	}
+	if copyErr := os.CopyFS(destination, os.DirFS(source)); copyErr != nil {
+		_ = os.RemoveAll(destination)
+		return fmt.Errorf("copy legacy config: %w", copyErr)
+	}
+	return nil
 }

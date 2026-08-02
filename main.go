@@ -1,7 +1,7 @@
 package main
 
-// Z13GUI+ - GTK4 Wayland overlay drawer for z13ctl.
-// Slides in from the right edge on Armoury Crate button press (via z13ctl daemon).
+// Z13GUI+ - GTK4 Wayland overlay drawer for z13ctl-plus.
+// Slides in from the right edge on Armoury Crate button press (via z13ctl-plus daemon).
 
 import (
 	"fmt"
@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/dahui/z13gui/internal/gui"
-	"github.com/dahui/z13gui/internal/gui/gamepad"
-	"github.com/dahui/z13gui/internal/theme"
+	"github.com/aic0d3r/z13gui-plus/internal/gui"
+	"github.com/aic0d3r/z13gui-plus/internal/gui/gamepad"
+	"github.com/aic0d3r/z13gui-plus/internal/theme"
 	"github.com/diamondburned/gotk4/pkg/gio/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 )
@@ -31,7 +31,7 @@ func main() {
 		case "--debug", "-d":
 			debug = true
 		case "--version":
-			fmt.Printf("z13gui %s\n", Version)
+			fmt.Printf("z13gui-plus %s\n", Version)
 			os.Exit(0)
 		case "--print-theme":
 			fmt.Print(gui.DefaultThemeTOML())
@@ -41,6 +41,13 @@ func main() {
 				fmt.Printf("%-20s %s\n", t.ID, t.Name)
 			}
 			os.Exit(0)
+		case "--migrate-config":
+			if err := theme.MigrateLegacyConfig(); err != nil {
+				fmt.Fprintf(os.Stderr, "z13gui-plus: migrate config: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("Migrated config from %s to %s\n", theme.LegacyConfigDir(), theme.ConfigDir())
+			return
 		case "--toggle":
 			gtkArgs = append(gtkArgs, arg)
 		default:
@@ -100,13 +107,13 @@ func main() {
 		os.Exit(0)
 	}()
 
-	// GApplication registers com.github.dahui.z13gui on the session bus, so a
+	// GApplication registers io.github.aic0d3r.z13gui_plus on the session bus, so a
 	// second launch forwards its command line to the running instance instead of
 	// starting another drawer. The launcher passes --toggle so the first launch
 	// opens immediately; the service starts without it and remains hidden.
 	var win *gui.Window
 	openOnFirstActivate := false
-	app := gtk.NewApplication("com.github.dahui.z13gui", gio.ApplicationHandlesCommandLine)
+	app := gtk.NewApplication("io.github.aic0d3r.z13gui_plus", gio.ApplicationHandlesCommandLine)
 	app.ConnectCommandLine(func(commandLine *gio.ApplicationCommandLine) int {
 		defer commandLine.Done()
 		openOnFirstActivate = false
@@ -115,7 +122,7 @@ func main() {
 			case "--toggle":
 				openOnFirstActivate = true
 			default:
-				commandLine.PrinterrLiteral(fmt.Sprintf("z13gui: unknown option %s\n", arg))
+				commandLine.PrinterrLiteral(fmt.Sprintf("z13gui-plus: unknown option %s\n", arg))
 				return 2
 			}
 		}

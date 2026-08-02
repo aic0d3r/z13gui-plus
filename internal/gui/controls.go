@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aic0d3r/z13gui-plus/internal/theme"
 	"github.com/dahui/z13ctl/api"
-	"github.com/dahui/z13gui/internal/theme"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 	"github.com/diamondburned/gotk4/pkg/pango"

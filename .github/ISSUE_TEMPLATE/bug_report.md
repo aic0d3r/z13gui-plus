@@ -22,10 +22,11 @@ What actually happened. Include any error messages or unexpected output.
 - Linux distribution and version:
 - Kernel version (`uname -r`):
 - Wayland compositor (KDE Plasma, Hyprland, etc.):
-- Z13GUI+ version (`z13gui --version`):
-- z13ctl version (`z13ctl --version`):
+- Z13GUI+ version (`z13gui-plus --version`):
+- z13ctl-plus version (`z13ctl-plus --version`):
 - ASUS ROG Flow Z13 model year:
 
 **Additional context**
-Any other information: relevant journal logs (`journalctl --user -u z13gui`),
-screenshots, or debug output (`z13gui -d`).
+Any other information: relevant journal logs
+(`journalctl --user -u z13gui-plus.service`), screenshots, or debug output
+(`z13gui-plus -d`).

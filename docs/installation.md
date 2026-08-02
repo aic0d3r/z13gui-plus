@@ -4,7 +4,7 @@
 
 - Linux kernel (x86_64)
 - Wayland compositor with layer-shell support, or gamescope (Steam Gaming Mode)
-- [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) installed with the compatible `z13ctl` daemon running
+- [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) installed with its Plus daemon running
 
 ### Runtime dependencies
 
@@ -29,18 +29,20 @@ system package manager first.
 
     ```sh
     tar xzf z13gui-plus_*_linux_amd64.tar.gz
-    sudo install -Dm755 z13gui /usr/local/bin/z13gui
-    sudo install -Dm644 contrib/z13gui.desktop \
-        /usr/local/share/applications/z13gui.desktop
+    sudo install -Dm755 z13gui-plus /usr/local/bin/z13gui-plus
+    sudo install -Dm644 contrib/io.github.aic0d3r.z13gui_plus.desktop \
+        /usr/local/share/applications/io.github.aic0d3r.z13gui_plus.desktop
+    sudo install -Dm644 contrib/99-z13gui-plus-gamepad.rules \
+        /etc/udev/rules.d/99-z13gui-plus-gamepad.rules
     ```
 
     Install the systemd user service:
 
     ```sh
-    install -Dm644 contrib/z13gui.service \
-        ~/.config/systemd/user/z13gui.service
+    install -Dm644 contrib/z13gui-plus.service \
+        ~/.config/systemd/user/z13gui-plus.service
     systemctl --user daemon-reload
-    systemctl --user enable --now z13gui
+    systemctl --user enable --now z13gui-plus.service
     ```
 
 === "Arch Linux (AUR)"
@@ -52,8 +54,14 @@ system package manager first.
     yay -S z13gui-plus-bin
     ```
 
-    The package installs the binary, systemd service, udev rules, and desktop
-    entry. Services are enabled automatically for all users on next login.
+    This package depends on `z13ctl-plus-bin`. It installs the binary, systemd
+    service, udev rules, and desktop entry, but leaves the GUI service disabled
+    and does not enable or manage the controller service. Enable the GUI after
+    selecting the Plus daemon:
+
+    ```sh
+    systemctl --user enable --now z13gui-plus.service
+    ```
 
     Alternatively, download the `.pkg.tar.zst` package directly from the
     [Releases](https://github.com/aic0d3r/z13gui-plus/releases) page and install with
@@ -72,11 +80,13 @@ system package manager first.
     sudo apt install ./z13gui-plus_*.deb
     ```
 
-    The package installs the binary, systemd service, udev rules, and desktop
-    entry. After installing, enable the service:
+    The package depends on `z13ctl-plus` and installs the binary, systemd
+    service, udev rules, and desktop entry. It leaves the GUI service disabled
+    and does not manage controller services. After selecting the Plus daemon,
+    enable the GUI:
 
     ```sh
-    systemctl --user enable --now z13gui
+    systemctl --user enable --now z13gui-plus.service
     ```
 
 === "Fedora / RHEL"
@@ -88,11 +98,13 @@ system package manager first.
     sudo dnf install ./z13gui-plus_*.rpm
     ```
 
-    The package installs the binary, systemd service, udev rules, and desktop
-    entry. After installing, enable the service:
+    The package depends on `z13ctl-plus` and installs the binary, systemd
+    service, udev rules, and desktop entry. It leaves the GUI service disabled
+    and does not manage controller services. After selecting the Plus daemon,
+    enable the GUI:
 
     ```sh
-    systemctl --user enable --now z13gui
+    systemctl --user enable --now z13gui-plus.service
     ```
 
 === "From source"
@@ -124,8 +136,31 @@ system package manager first.
     cd z13gui-plus
     make build
     sudo make install
+    sudo setcap cap_bpf,cap_perfmon+ep /usr/local/bin/z13gui-plus
     make install-service
     ```
+
+    `make build` creates `./z13gui-plus`; it does not create an unqualified
+    compatibility binary.
+
+### Package coexistence and service selection
+
+`z13gui-plus` is independently named and can be installed alongside upstream
+`z13gui`. Plus packages do not provide, conflict with, or replace upstream.
+Package installation never enables the GUI service and never starts, stops, or
+enables a controller service.
+
+Select the `z13ctl-plus` daemon separately, then explicitly enable only its
+matching GUI:
+
+```sh
+systemctl --user enable --now z13ctl-plus.socket
+systemctl --user enable --now z13gui-plus.service
+```
+
+Do not enable `z13gui-plus.service` for an upstream controller daemon. The
+canonical controller API import is replaced with the fork API source and targets
+only the Plus socket.
 
 ---
 
@@ -146,7 +181,7 @@ automatically during installation. If you installed from source or from the
 release binary, grant them manually:
 
 ```sh
-sudo setcap cap_bpf,cap_perfmon+ep /usr/local/bin/z13gui
+sudo setcap cap_bpf,cap_perfmon+ep /usr/local/bin/z13gui-plus
 ```
 
 ??? note "What are these capabilities and are they safe?"
@@ -188,7 +223,7 @@ sudo setcap cap_bpf,cap_perfmon+ep /usr/local/bin/z13gui
     - Block any operation other than `read()` on hidraw devices
 
     **Compared to running as root:** file capabilities grant only the two
-    listed privileges to the `z13gui` binary. The process runs as your normal
+    listed privileges to the `z13gui-plus` binary. The process runs as your normal
     user with no other elevated access. This is strictly safer than running
     with `sudo` or as root.
 
@@ -197,11 +232,43 @@ sudo setcap cap_bpf,cap_perfmon+ep /usr/local/bin/z13gui
 ## Verify the installation
 
 ```sh
-z13gui --version
+z13gui-plus --version
 ```
 
 Then press the Armoury Crate button on your Z13. The drawer should slide in
 from the right edge of the screen.
+
+---
+
+## Migrating from v1 to v2
+
+v1 of this fork used the shared legacy `z13gui` namespace. v2.0.0 is
+independently named. After installing v2, copy the entire legacy configuration
+directory with:
+
+```sh
+z13gui-plus --migrate-config
+```
+
+The command copies `$XDG_CONFIG_HOME/z13gui` (normally
+`~/.config/z13gui`) to `$XDG_CONFIG_HOME/z13gui-plus` (normally
+`~/.config/z13gui-plus`) only when the Plus destination does not exist. It
+leaves the source directory untouched. It does not change services or remove
+legacy files, launchers, rules, or binaries.
+
+If `z13gui.service` is known to be the v1 fork service, switch the GUI service
+explicitly after selecting the Plus controller daemon:
+
+```sh
+systemctl --user disable --now z13gui.service
+systemctl --user enable --now z13gui-plus.service
+```
+
+Legacy paths are provenance-ambiguous because they may belong to upstream or to
+v1 of this fork. The commands above do not remove anything. Optional cleanup
+must be manual: remove only legacy `z13gui` binaries, service files, desktop
+files, udev rules, or config that you have verified came from this fork. Never
+delete a shared-looking path merely because v2 no longer uses it.
 
 ---
 
@@ -216,16 +283,20 @@ make uninstall-service
 Or manually:
 
 ```sh
-systemctl --user disable --now z13gui
-rm -f ~/.config/systemd/user/z13gui.service
+systemctl --user disable --now z13gui-plus.service
+rm -f ~/.config/systemd/user/z13gui-plus.service
 systemctl --user daemon-reload
 ```
 
-Remove the binary:
+Remove manually installed Plus artifacts:
 
 ```sh
-sudo rm /usr/local/bin/z13gui
+sudo rm -f /usr/local/bin/z13gui-plus
+sudo rm -f /usr/local/share/applications/io.github.aic0d3r.z13gui_plus.desktop
+sudo rm -f /etc/udev/rules.d/99-z13gui-plus-gamepad.rules
 ```
+
+These commands do not remove or manage z13ctl-plus.
 
 ---
 
@@ -233,10 +304,10 @@ sudo rm /usr/local/bin/z13gui
 
 **Drawer doesn't appear**
 
-Make sure the z13ctl daemon is running:
+Make sure the z13ctl-plus daemon socket is enabled:
 
 ```sh
-systemctl --user status z13ctl.service
+systemctl --user status z13ctl-plus.socket z13ctl-plus.service
 ```
 
 **Service fails to start**
@@ -244,13 +315,13 @@ systemctl --user status z13ctl.service
 Check the journal:
 
 ```sh
-journalctl --user -u z13gui -n 50
+journalctl --user -u z13gui-plus.service -n 50
 ```
 
 Run with debug logging to see GTK and initialization output:
 
 ```sh
-z13gui --debug
+z13gui-plus --debug
 ```
 
 **CachyOS: NPU shows ACTIVE but no watts or utilization**
@@ -273,7 +344,7 @@ older kernel unless that kernel already provides its own amdxdna module.
 Grant BPF capabilities so Z13GUI+ can block controller input at the kernel level:
 
 ```sh
-sudo setcap cap_bpf,cap_perfmon+ep /usr/local/bin/z13gui
+sudo setcap cap_bpf,cap_perfmon+ep /usr/local/bin/z13gui-plus
 ```
 
 Without capabilities, Z13GUI+ falls back to freezing Steam (SIGSTOP), which

@@ -9,9 +9,9 @@ You can also select from 15 built-in themes using the in-app theme picker.
 
 Z13GUI+ resolves its theme using the following priority chain. The first match wins:
 
-1. `~/.config/z13gui/theme.toml` — custom color definitions (7 hex values)
-2. `~/.config/z13gui/theme.css` — full CSS override (power users)
-3. `~/.config/z13gui/config.toml` `theme = "id"` — built-in theme selection
+1. `~/.config/z13gui-plus/theme.toml` — custom color definitions (7 hex values)
+2. `~/.config/z13gui-plus/theme.css` — full CSS override (power users)
+3. `~/.config/z13gui-plus/config.toml` `theme = "id"` — built-in theme selection
 4. Compiled-in default (ROG Dark)
 
 If you create a `theme.toml`, it always takes priority over the built-in theme
@@ -42,7 +42,7 @@ picker selection. Delete or rename it to return to built-in themes.
 List all built-in themes from the command line:
 
 ```sh
-z13gui --list-themes
+z13gui-plus --list-themes
 ```
 
 ---
@@ -53,7 +53,8 @@ Click the palette button at the bottom-left of the drawer. For themes with
 accent variants (all four Catppuccin themes), a row of colored dots appears
 below the theme name in the picker.
 
-Your selection is saved automatically to `~/.config/z13gui/config.toml`.
+Your selection is saved automatically to
+`~/.config/z13gui-plus/config.toml`.
 
 ---
 
@@ -65,8 +66,8 @@ color string (`#rrggbb`).
 **Quick start:**
 
 ```sh
-mkdir -p ~/.config/z13gui
-z13gui --print-theme > ~/.config/z13gui/theme.toml
+mkdir -p ~/.config/z13gui-plus
+z13gui-plus --print-theme > ~/.config/z13gui-plus/theme.toml
 ```
 
 This writes the default ROG Dark colors. Open the file and change the values.
@@ -172,7 +173,8 @@ All four Catppuccin themes support the 14 official accent colors:
 ## Full CSS override
 
 For complete control, provide a full GTK4 CSS stylesheet at
-`~/.config/z13gui/theme.css`. This replaces the built-in theme CSS entirely.
+`~/.config/z13gui-plus/theme.css`. This replaces the built-in theme CSS
+entirely.
 
 The stylesheet should define all 7 `@define-color` variables:
 

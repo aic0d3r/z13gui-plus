@@ -3,8 +3,8 @@ version: 2
 project_name: z13gui-plus
 
 builds:
-  - id: z13gui
-    binary: z13gui
+  - id: z13gui-plus
+    binary: z13gui-plus
     env:
       - CGO_ENABLED=1
     ldflags:
@@ -15,20 +15,20 @@ builds:
       - amd64
 
 archives:
-  - id: z13gui
+  - id: z13gui-plus
     formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - LICENSE
-      - contrib/z13gui.service
-      - contrib/z13gui.desktop
-      - contrib/99-z13gui-gamepad.rules
+      - contrib/z13gui-plus.service
+      - contrib/io.github.aic0d3r.z13gui_plus.desktop
+      - contrib/99-z13gui-plus-gamepad.rules
 
 checksum:
   name_template: "checksums.txt"
 
 nfpms:
-  - id: z13gui-pkg
+  - id: z13gui-plus-pkg
     package_name: z13gui-plus
     section: utils
     formats:
@@ -37,18 +37,12 @@ nfpms:
       - rpm
     homepage: https://github.com/aic0d3r/z13gui-plus
     maintainer: "aic0d3r <funforfreeapps@gmail.com>"
-    description: Z13GUI+ GTK4 overlay companion for z13ctl
+    description: Z13GUI+ GTK4 overlay companion for z13ctl-plus
     license: Apache-2.0
     dependencies:
       - gtk4
       - gtk4-layer-shell
-      - z13ctl
-    provides:
-      - z13gui
-    conflicts:
-      - z13gui
-    replaces:
-      - z13gui
+      - z13ctl-plus
     scripts:
       postinstall: contrib/nfpm/postinstall.sh
       preremove: contrib/nfpm/preremove.sh
@@ -56,18 +50,18 @@ nfpms:
     contents:
       - src: LICENSE
         dst: /usr/share/licenses/z13gui-plus/LICENSE
-      - src: contrib/z13gui.service
-        dst: /usr/lib/systemd/user/z13gui.service
-      - src: contrib/z13gui.desktop
-        dst: /usr/share/applications/z13gui.desktop
-      - src: contrib/99-z13gui-gamepad.rules
-        dst: /usr/lib/udev/rules.d/99-z13gui-gamepad.rules
+      - src: contrib/z13gui-plus.service
+        dst: /usr/lib/systemd/user/z13gui-plus.service
+      - src: contrib/io.github.aic0d3r.z13gui_plus.desktop
+        dst: /usr/share/applications/io.github.aic0d3r.z13gui_plus.desktop
+      - src: contrib/99-z13gui-plus-gamepad.rules
+        dst: /usr/lib/udev/rules.d/99-z13gui-plus-gamepad.rules
     overrides:
       deb:
         dependencies:
           - libgtk-4-1
           - libgtk4-layer-shell0
-          - z13ctl
+          - z13ctl-plus
     archlinux:
       packager: "aic0d3r <funforfreeapps@gmail.com>"
     rpm:
@@ -88,6 +82,6 @@ release:
 
     ---
 
-    **z13gui-plus** is a compatibility-preserving distribution of
-    [dahui/z13gui](https://github.com/dahui/z13gui). The installed command and
-    runtime interfaces remain `z13gui`.
+    **z13gui-plus** is an independently named fork of
+    [dahui/z13gui](https://github.com/dahui/z13gui) that targets the
+    z13ctl-plus controller and runtime namespace.

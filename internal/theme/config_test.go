@@ -21,7 +21,7 @@ func TestLoadAppConfig(t *testing.T) {
 			tmp := t.TempDir()
 			t.Setenv("XDG_CONFIG_HOME", tmp)
 			if tt.data != "" {
-				dir := filepath.Join(tmp, "z13gui")
+				dir := filepath.Join(tmp, "z13gui-plus")
 				if err := os.MkdirAll(dir, 0o755); err != nil {
 					t.Fatal(err)
 				}
@@ -48,7 +48,7 @@ func TestSaveAppConfig(t *testing.T) {
 			if got := LoadAppConfig(); got != want {
 				t.Errorf("round trip = %+v, want %+v", got, want)
 			}
-			info, err := os.Stat(filepath.Join(tmp, "z13gui"))
+			info, err := os.Stat(filepath.Join(tmp, "z13gui-plus"))
 			if err != nil || !info.IsDir() {
 				t.Fatalf("config directory was not created: %v", err)
 			}
@@ -73,4 +73,55 @@ func TestXDGConfigHome(t *testing.T) {
 			t.Errorf("XDGConfigHome() = %q, want %q", got, want)
 		}
 	})
+}
+
+func TestMigrateLegacyConfigCopiesWithoutOverwrite(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	if err := os.MkdirAll(filepath.Join(LegacyConfigDir(), "themes"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(LegacyConfigDir(), "config.toml"), []byte("theme = \"nord\"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(LegacyConfigDir(), "themes", "custom.css"), []byte("window {}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := MigrateLegacyConfig(); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(ConfigDir(), "themes", "custom.css"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "window {}\n" {
+		t.Fatalf("migrated custom theme = %q", got)
+	}
+	if _, statErr := os.Stat(filepath.Join(LegacyConfigDir(), "config.toml")); statErr != nil {
+		t.Fatalf("legacy config was removed: %v", statErr)
+	}
+
+	if writeErr := os.WriteFile(filepath.Join(LegacyConfigDir(), "config.toml"), []byte("theme = \"rog-dark\"\n"), 0o600); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+	if migrateErr := MigrateLegacyConfig(); migrateErr == nil {
+		t.Fatal("MigrateLegacyConfig overwrote existing Plus config")
+	}
+	got, err = os.ReadFile(filepath.Join(ConfigDir(), "config.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "theme = \"nord\"\n" {
+		t.Fatalf("config changed after refused migration: %q", got)
+	}
+}
+
+func TestMigrateLegacyConfigRequiresSource(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	if err := MigrateLegacyConfig(); err == nil {
+		t.Fatal("MigrateLegacyConfig accepted a missing source")
+	}
+	if _, err := os.Stat(ConfigDir()); !os.IsNotExist(err) {
+		t.Fatalf("Plus config exists after failed migration: %v", err)
+	}
 }

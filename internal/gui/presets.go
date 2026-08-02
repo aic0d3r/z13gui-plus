@@ -908,7 +908,7 @@ func (w *Window) startStateAction(action stateAction) {
 	go func() {
 		handled, err := action.fn()
 		if err == nil && !handled {
-			err = fmt.Errorf("z13ctl daemon is not running")
+			err = fmt.Errorf("z13ctl-plus daemon is not running")
 		}
 		if err != nil {
 			slog.Warn(action.name+" failed", "err", err)

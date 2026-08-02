@@ -2,30 +2,64 @@
 
 ## What this project is
 
-Z13GUI+ is a compatibility-preserving distribution of
+Z13GUI+ is an independently named fork of
 [`dahui/z13gui`](https://github.com/dahui/z13gui), providing a GTK4 Wayland
-layer-shell overlay drawer for controlling the 2025 ASUS ROG
-Flow Z13 via the `z13ctl` daemon. It slides in from the right edge of the screen when the
-Armoury Crate button (KEY_PROG3) is pressed. The daemon broadcasts `gui-toggle` events over
-a subscribe socket; this GUI listens for them.
+layer-shell overlay drawer for controlling the 2025 ASUS ROG Flow Z13 through
+the `z13ctl-plus` daemon. It preserves intentional API and UI compatibility,
+not runtime-name compatibility. It slides in from the right edge of the screen
+when the Armoury Crate button (KEY_PROG3) is pressed. The daemon broadcasts
+`gui-toggle` events over a subscribe socket; this GUI listens for them.
 
 It has two display backends:
 - **Layer-shell** (KDE/Wayland): margin-based slide animation
 - **Gamescope** (Steam Gaming Mode): X11 overlay via `STEAM_OVERLAY` atom
 
-- Module: `github.com/dahui/z13gui`
-- Binary: `z13gui`
+- Module: `github.com/aic0d3r/z13gui-plus`
+- Binary: `z13gui-plus`
+
+## v2 namespace invariants
+
+- v2.0.0 is the independently named Plus release. The only installed command is
+  `z13gui-plus`; never add a `z13gui` alias.
+- The user unit is `z13gui-plus.service`.
+- The GApplication ID is `io.github.aic0d3r.z13gui_plus` and the desktop file is
+  `io.github.aic0d3r.z13gui_plus.desktop`.
+- The gamepad udev file is `99-z13gui-plus-gamepad.rules`.
+- Configuration lives at `$XDG_CONFIG_HOME/z13gui-plus`, normally
+  `~/.config/z13gui-plus`.
+- Owned runtime files live under `$XDG_RUNTIME_DIR/z13gui-plus`. Preserve the
+  existing per-call fallback conventions: embedded fonts use
+  `/tmp/z13gui-plus/fonts`, while frozen-PID recovery uses
+  `/run/user/$UID/z13gui-plus/frozen-pid` when `XDG_RUNTIME_DIR` is unset.
+- The only Z13GUI+-specific environment variables are `Z13GUI_PLUS_SCALE` and
+  `Z13GUI_PLUS_NO_GAMEPAD`. Never restore the unprefixed v1 forms.
+- The root module is `github.com/aic0d3r/z13gui-plus`.
+- The controller API import intentionally remains `github.com/dahui/z13ctl/api`.
+  The `go.mod` replacement selects `github.com/aic0d3r/z13ctl-plus/api` source,
+  whose client targets only the Plus socket. Removing that replacement selects
+  upstream source and the upstream socket.
+- Plus packages can coexist with upstream and must not provide, conflict with,
+  or replace it. `z13gui-plus-bin` depends on `z13ctl-plus-bin`; deb/rpm packages
+  depend on `z13ctl-plus`.
+- Package installation leaves `z13gui-plus.service` disabled and never manages
+  controller services. Users explicitly enable only the GUI matching their
+  selected daemon.
+- `z13gui-plus --migrate-config` is the only supported v1 migration. It copies
+  the entire legacy `$XDG_CONFIG_HOME/z13gui` directory only when the Plus
+  directory is absent, leaves the source untouched, and does not change
+  services or remove artifacts. Legacy paths are provenance-ambiguous; cleanup
+  must be explicit and limited to files known to come from this fork.
 
 ## Companion project: z13ctl-plus
 
-The [`z13ctl-plus`](https://github.com/aic0d3r/z13ctl-plus) distribution provides
-the compatible `z13ctl` daemon (module `github.com/dahui/z13ctl`) as a sibling repo.
-Its canonical `api/` submodule (`github.com/dahui/z13ctl/api`) is published by the
-fork at tag `api/v1.3.0`.
+The [`z13ctl-plus`](https://github.com/aic0d3r/z13ctl-plus) fork provides the
+`z13ctl-plus` daemon as a sibling repo. Its API submodule retains the canonical
+module path `github.com/dahui/z13ctl/api` for intentional protocol/source
+compatibility and is selected here through the fork replacement.
 
-During local development, a `go.work` file in this repo (if present, gitignored) provides
-the local override. In production `go.mod` redirects the canonical API import to that
-tagged z13ctl-plus module.
+During local development, a `go.work` file in this repo (if present, gitignored)
+provides the local override. In production `go.mod` redirects the canonical API
+import to the tagged `github.com/aic0d3r/z13ctl-plus/api` module.
 
 ## Package layout
 
@@ -70,8 +104,10 @@ internal/togglegate/
   togglegate.go                 Pure debounce helper for duplicate gui-toggle bursts
   togglegate_test.go            Unit tests (pure Go, no GTK4)
 contrib/
-  z13gui.service                systemd user service (EnvironmentFile for gamescope-session)
-  z13gui.desktop                Desktop entry
+  z13gui-plus.service           systemd user service (EnvironmentFile for gamescope-session)
+  io.github.aic0d3r.z13gui_plus.desktop
+                                Desktop entry
+  99-z13gui-plus-gamepad.rules  Gamepad access udev rules
 ```
 
 ## Key architectural decisions
@@ -102,16 +138,18 @@ contrib/
     would otherwise bleed onto that monitor because KWin doesn't clip layer-surface
     overflow to the assigned output. `Backend.margin`/`Backend.opacity` track current
     state; use `setMargin`/`setOpacity` to keep them in sync.
-- **Single instance / activate guard**: `gtk.NewApplication("com.github.dahui.z13gui", 0)`
+- **Single instance / activate guard**:
+  `gtk.NewApplication("io.github.aic0d3r.z13gui_plus", ...)`
   registers the app on the session bus, so launching the binary a second time does not
   start a second process — GApplication forwards `activate` to the running instance and
   the new process exits. `main.go` therefore holds the `*gui.Window` and only calls
   `gui.New` on first activation; re-activation calls `Toggle()` instead. Without that
   guard each re-activation builds an entire second drawer (its own layer surface,
   subscribe loop, gamepad reader, telemetry poller) overlapping the first, and both stay
-  live and interactive. One click on `contrib/z13gui.desktop` while the user service is
-  running is enough to trigger it. Diagnostic: two `drawer initialized` log lines under
-  a single PID means the guard is missing or broken.
+  live and interactive. One click on
+  `contrib/io.github.aic0d3r.z13gui_plus.desktop` while the user service is
+  running is enough to trigger it. Diagnostic: two `drawer initialized` log
+  lines under a single PID means the guard is missing or broken.
 - **State source of truth**: daemon is the source of truth. On show, `api.SendGetState()`
   is called and `syncState()` updates widgets. Widget signals are suppressed during sync
   via `Window.syncing bool`.
@@ -158,7 +196,8 @@ contrib/
   Do NOT add a `focusedSinceShow` guard — it causes first-show dismiss regression on KDE
   where the compositor drops focus during keyboard-mode transition and never re-grants it.
   Escape key also dismisses in both backends.
-- **GTK_A11Y=none**: set in `main.go` and `contrib/z13gui.service`. Disables GTK4
+- **GTK_A11Y=none**: set internally in `main.go` and
+  `contrib/z13gui-plus.service`. Disables GTK4
   AT-SPI accessibility bridge, which sends D-Bus events on every widget state change.
   Under systemd (especially gamescope sessions), the AT-SPI bus may be unavailable,
   causing D-Bus timeouts that block GTK initialization.
@@ -173,8 +212,9 @@ The gamescope backend renders Z13GUI+ as an X11 overlay in Steam Gaming Mode.
 - **Input**: keyboard-only X11 grab (`XGrabKeyboard`) + `STEAM_INPUT_FOCUS` atom.
   `XGrabPointer` was removed because its core X11 event mask interferes with XI2
   touch delivery. STEAM_INPUT_FOCUS handles pointer/touch routing natively.
-- **Scaling**: resolution-based CSS scaling (`outputWidth / 1707`). Reference 1707 = 2560/1.5
-  (matches KDE 150% at Z13 native resolution). `Z13GUI_SCALE` env var overrides.
+- **Scaling**: resolution-based CSS scaling (`outputWidth / 1707`). Reference
+  1707 = 2560/1.5 (matches KDE 150% at Z13 native resolution).
+  `Z13GUI_PLUS_SCALE` overrides.
   GDK_SCALE CANNOT be used — causes double scaling (GTK + gamescope scaler).
 - **Layout**: fullscreen window → horizontal box (backdrop + right-aligned panel).
   Panel has 5% top/bottom margins, scaled drawer width.
@@ -194,7 +234,8 @@ Both backends use these stack pages; no popovers are constructed. `hide()` reset
 
 ### Service environment
 
-`contrib/z13gui.service` uses `EnvironmentFile=-%t/gamescope-environment` (optional).
+`contrib/z13gui-plus.service` uses
+`EnvironmentFile=-%t/gamescope-environment` (optional).
 `main.go` validates the gamescope Wayland socket exists before selecting the backend
 to handle stale environment files after session switching.
 
@@ -259,7 +300,8 @@ type UndervoltState struct {
 
 ## Daemon socket
 
-Path: `$XDG_RUNTIME_DIR/z13ctl/z13ctl.sock`
+Path: `$XDG_RUNTIME_DIR/z13ctl-plus/z13ctl-plus.sock`, falling back to
+`/tmp/z13ctl-plus/z13ctl-plus.sock` when `XDG_RUNTIME_DIR` is unset.
 
 Daemon must be running for any `api.*` calls to succeed. If the daemon is not running,
 `api.Subscribe` returns `nil, nil, nil` and `SendGetState` returns `false, nil, nil`.
@@ -268,11 +310,11 @@ The subscribe loop handles this with backoff retry.
 ## Build
 
 ```sh
-make build      # CGO_ENABLED=1 go build -o z13gui .
+make build      # CGO_ENABLED=1 go build -o z13gui-plus .
 sudo make install  # installs the binary and application launcher under /usr/local
 make test       # unit tests for the pure-Go packages (no GTK4 headers needed)
 make lint       # golangci-lint run ./...
-make clean      # rm z13gui
+make clean      # rm z13gui-plus
 make snapshot   # goreleaser local build (no publish)
 make release    # goreleaser build + publish
 ```
@@ -335,7 +377,7 @@ Feature-complete for both KDE and gamescope modes:
 - Panel overdrive and boot sound toggles (footer switches)
 - 15 built-in themes with accent variants + custom theme.toml support
 - Gamescope view switching: theme picker view + HSL color picker view
-- Resolution-based CSS scaling for gamescope (Z13GUI_SCALE override)
+- Resolution-based CSS scaling for gamescope (`Z13GUI_PLUS_SCALE` override)
 - Split-level logging (app=Info, GTK=Error; `-d` enables all Debug)
 - goreleaser + GitHub Actions release pipeline
 - systemd user service with optional gamescope-environment loading

@@ -763,7 +763,7 @@ func (w *Window) syncBootSound() {
 
 // fanPresetPoints returns the named preset encoded as the wire-format curve
 // string ("temp:pwm,..." with 8 points). Empty string for unknown presets.
-// Mirrors internal/cli/fan.go FanCurvePreset() in z13ctl so the GUI does not
+// Mirrors internal/cli/fan.go FanCurvePreset() in z13ctl-plus so the GUI does not
 // need a new daemon command.
 func fanPresetPoints(name string) string {
 	var pts [][2]int

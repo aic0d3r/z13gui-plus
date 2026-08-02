@@ -1,6 +1,6 @@
 site_name: Z13GUI+
 site_url: https://aic0d3r.github.io/z13gui-plus
-site_description: Z13GUI+ GTK4 overlay drawer for z13ctl on Wayland.
+site_description: Independently named Z13GUI+ GTK4 overlay for z13ctl-plus on Wayland.
 
 repo_url: https://github.com/aic0d3r/z13gui-plus
 repo_name: aic0d3r/z13gui-plus

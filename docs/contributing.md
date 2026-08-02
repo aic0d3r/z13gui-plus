@@ -7,8 +7,11 @@ significant change so the approach can be discussed first.
 
 ## Repository structure
 
-Z13GUI+ deliberately retains the canonical Go module `github.com/dahui/z13gui`
-for source compatibility.
+The root module is `github.com/aic0d3r/z13gui-plus`. Z13GUI+ intentionally
+continues to import the controller API as `github.com/dahui/z13ctl/api`; the
+`go.mod` replacement selects `github.com/aic0d3r/z13ctl-plus/api`, whose client
+targets the Plus socket. Do not change the import to a fork-specific path or
+remove the replacement.
 
 | Package | Purpose |
 |---------|---------|
@@ -56,11 +59,11 @@ make vmlinux   # generate kernel BTF header
 make generate  # compile BPF and generate Go bindings
 ```
 
-To work against a local copy of the z13ctl API module, create a `go.work` file
-(it is gitignored):
+To work against a local copy of the z13ctl-plus API module, create a `go.work`
+file (it is gitignored; adjust the sibling directory name if needed):
 
 ```sh
-go work init . ../z13ctl/api
+go work init . ../z13ctl-plus/api
 ```
 
 ---
@@ -101,9 +104,11 @@ and should include tests for any changes to the pure-Go packages.
 ## Release workflow (maintainers only)
 
 ```sh
-git tag vX.Y.Z && git push origin vX.Y.Z
+git tag -a v2.0.0 -F release-notes.md
+git push origin v2.0.0
 ```
 
 GoReleaser handles binary builds, the `.pkg.tar.zst`, `.deb`, and `.rpm`
 packages, AUR publishing, and GitHub Release creation automatically when
-the tag is pushed.
+the tag is pushed. v2.0.0 is the independently named Plus namespace release;
+release notes must not claim shared runtime-name compatibility with upstream.

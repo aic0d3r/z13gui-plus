@@ -11,13 +11,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/aic0d3r/z13gui-plus/internal/gui/fonts"
+	"github.com/aic0d3r/z13gui-plus/internal/gui/gamepad"
+	"github.com/aic0d3r/z13gui-plus/internal/gui/gamescope"
+	"github.com/aic0d3r/z13gui-plus/internal/gui/layershell"
+	"github.com/aic0d3r/z13gui-plus/internal/theme"
+	"github.com/aic0d3r/z13gui-plus/internal/togglegate"
 	"github.com/dahui/z13ctl/api"
-	"github.com/dahui/z13gui/internal/gui/fonts"
-	"github.com/dahui/z13gui/internal/gui/gamepad"
-	"github.com/dahui/z13gui/internal/gui/gamescope"
-	"github.com/dahui/z13gui/internal/gui/layershell"
-	"github.com/dahui/z13gui/internal/theme"
-	"github.com/dahui/z13gui/internal/togglegate"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
@@ -326,8 +326,8 @@ func New(app *gtk.Application) *Window {
 
 	go w.subscribeLoop()
 
-	// Gamepad input (disabled with Z13GUI_NO_GAMEPAD=1).
-	if os.Getenv("Z13GUI_NO_GAMEPAD") == "" {
+	// Gamepad input (disabled with Z13GUI_PLUS_NO_GAMEPAD=1).
+	if os.Getenv("Z13GUI_PLUS_NO_GAMEPAD") == "" {
 		w.gamepadReader = gamepad.New(
 			w.handleGamepadAction,
 			func() bool { return w.visible },
@@ -544,8 +544,8 @@ func (w *Window) subscribeLoop() {
 
 // loadCSS loads the layout CSS (always) then the user theme or the default theme.
 // Priority chain (first match wins):
-//  1. ~/.config/z13gui/theme.toml — custom color config (overrides everything)
-//  2. ~/.config/z13gui/theme.css  — full CSS override (power users)
+//  1. ~/.config/z13gui-plus/theme.toml — custom color config (overrides everything)
+//  2. ~/.config/z13gui-plus/theme.css  — full CSS override (power users)
 //  3. config.toml theme = "id"    — built-in theme selection
 //  4. embedded "rog-dark"         — compiled-in default
 func (w *Window) loadCSS() {
@@ -556,9 +556,9 @@ func (w *Window) loadCSS() {
 	gtk.StyleContextAddProviderForDisplay(display, layout, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
 	w.themeProvider = gtk.NewCSSProvider()
-	base := theme.XDGConfigHome()
-	tomlPath := filepath.Join(base, "z13gui", "theme.toml")
-	cssPath := filepath.Join(base, "z13gui", "theme.css")
+	base := theme.ConfigDir()
+	tomlPath := filepath.Join(base, "theme.toml")
+	cssPath := filepath.Join(base, "theme.css")
 
 	var loaded bool
 	switch {

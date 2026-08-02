@@ -1,16 +1,16 @@
 [Unit]
-Description=Z13GUI+ - GTK4 overlay drawer for z13ctl
+Description=Z13GUI+ - GTK4 overlay drawer for z13ctl-plus
 Documentation=https://github.com/aic0d3r/z13gui-plus
 After=graphical-session.target
 PartOf=graphical-session.target
 
 [Service]
-ExecStart=z13gui
+ExecStart=z13gui-plus
 Environment=GTK_A11Y=none
 EnvironmentFile=-%t/gamescope-environment
 Restart=on-failure
 RestartSec=3
-ExecStopPost=/bin/sh -c 'kill -CONT $(cat /run/user/%U/z13gui-frozen-pid 2>/dev/null) 2>/dev/null; rm -f /run/user/%U/z13gui-frozen-pid'
+ExecStopPost=/bin/sh -c 'kill -CONT $(cat %t/z13gui-plus/frozen-pid 2>/dev/null) 2>/dev/null; rm -f %t/z13gui-plus/frozen-pid'
 
 [Install]
 WantedBy=graphical-session.target

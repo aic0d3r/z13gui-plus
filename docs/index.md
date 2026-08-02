@@ -1,15 +1,17 @@
 # Z13GUI+
 
-GTK4 overlay drawer for **z13ctl** on Wayland — graphical controls for the
+GTK4 overlay drawer for **z13ctl-plus** on Wayland — graphical controls for the
 2025 ASUS ROG Flow Z13 on Linux.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/aic0d3r/z13gui-plus/blob/main/LICENSE)
 
-Z13GUI+ is a compatibility-preserving distribution of
-[dahui/z13gui](https://github.com/dahui/z13gui). Distribution packages and
-release artifacts use `z13gui-plus`, while the command, service, desktop and udev
-filenames, configuration/runtime paths, D-Bus ID, canonical Go module, daemon API,
-and hardware/socket protocols remain compatible as `z13gui`.
+Z13GUI+ is an independently named fork of
+[dahui/z13gui](https://github.com/dahui/z13gui) targeting
+[z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus). It preserves intentional
+API and UI compatibility, not runtime-name compatibility. Starting with v2.0.0,
+the command, service, configuration/runtime paths, desktop and udev filenames,
+GApplication ID, and Go module all use the Plus namespace. The only installed
+command is `z13gui-plus`.
 
 ---
 
@@ -28,7 +30,7 @@ and hardware/socket protocols remain compatible as `z13gui`.
   the live fan-curve operating point, and reset all tuning overrides together
 - **Faster fan control** — select Auto, Balanced, or Turbo without editing a curve
 
-Hardware-control changes are sent through the compatible `z13ctl` daemon.
+Hardware-control changes are sent through the `z13ctl-plus` daemon.
 
 ---
 
@@ -36,7 +38,11 @@ Hardware-control changes are sent through the compatible `z13ctl` daemon.
 
 - Wayland compositor with layer-shell support, or gamescope (Steam Gaming Mode)
 - GTK 4 and gtk4-layer-shell libraries (see [Installation](installation.md#runtime-dependencies) for distro package names)
-- [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) (`z13ctl`) daemon running
+- [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) daemon running
+
+The Plus and upstream packages can coexist. Installation does not enable the
+GUI service or manage either controller service; explicitly enable only the GUI
+that matches your selected daemon.
 
 ---
 
