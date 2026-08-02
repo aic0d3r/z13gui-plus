@@ -729,36 +729,32 @@ func (w *Window) buildSpeedBox() *gtk.Box {
 	return box
 }
 
-// buildBrightnessBox creates the brightness scale (0–3).
+// buildBrightnessBox creates touch-friendly buttons for brightness levels 1–3.
 func (w *Window) buildBrightnessBox() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 4)
-	header := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	title := sectionLabel("BRIGHTNESS")
-	title.SetHExpand(true)
-	header.Append(title)
-	valueLabel := gtk.NewLabel(brightnessLabel(3))
-	valueLabel.AddCSSClass("scale-value")
-	header.Append(valueLabel)
-	box.Append(header)
+	box.Append(sectionLabel("BRIGHTNESS"))
 
-	sc := gtk.NewScaleWithRange(gtk.OrientationHorizontal, 0, 3, 1)
-	sc.SetDigits(0)
-	sc.SetDrawValue(false)
-	sc.SetValue(3)
-	sc.SetFocusable(false)
-	sc.ConnectValueChanged(func() {
-		valueLabel.SetLabel(brightnessLabel(int(sc.Value())))
-		w.queueApply()
-	})
-	w.brightScale = sc
-	box.Append(sc)
+	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	row.AddCSSClass("btn-group")
+	row.SetHomogeneous(true)
+	for level := 1; level <= 3; level++ {
+		btn := gtk.NewButtonWithLabel(brightnessLabel(level))
+		btn.ConnectClicked(func() {
+			setActiveButton(w.brightBtns, level)
+			w.sendApply()
+		})
+		w.brightBtns[level] = btn
+		row.Append(btn)
+	}
+	setActiveButton(w.brightBtns, defaultBrightness)
+	box.Append(row)
 	return box
 }
 
 func brightnessLabel(level int) string {
-	labels := [...]string{"DARK", "LOW", "MEDIUM", "HIGH"}
-	level = min(max(level, 0), len(labels)-1)
-	return fmt.Sprintf("%s · %d", labels[level], level)
+	labels := [...]string{"▂ LOW", "▂▄ MEDIUM", "▂▄▆ HIGH"}
+	level = min(max(level, 1), len(labels))
+	return labels[level-1]
 }
 
 // profiles lists the firmware performance profiles.
@@ -1361,15 +1357,15 @@ func (w *Window) rgbTabFocusItems() []focusItem {
 	}
 	row++
 
-	// Brightness slider.
-	brLeft, brRight, brGet, brSet := scaleAdjust(w.brightScale, 1)
-	items = append(items, focusItem{
-		widget: w.brightScale, row: row, col: 0,
-		section: "brightness", isVisible: func() bool { return controlsEnabled() && w.brightBox.IsVisible() },
-		editable: true,
-		onLeft:   brLeft, onRight: brRight,
-		getValue: brGet, setValue: brSet,
-	})
+	// Brightness buttons — horizontal row.
+	for col, level := range []int{1, 2, 3} {
+		btn := w.brightBtns[level]
+		items = append(items, focusItem{
+			widget: btn, row: row, col: col,
+			section: "brightness", isVisible: func() bool { return controlsEnabled() && w.brightBox.IsVisible() },
+			onActivate: func() { btn.Activate() },
+		})
+	}
 	return items
 }
 

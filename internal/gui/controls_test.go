@@ -118,12 +118,16 @@ func TestFormatBatteryDecimal(t *testing.T) {
 }
 
 func TestBrightnessLabel(t *testing.T) {
-	for level, want := range []string{"DARK · 0", "LOW · 1", "MEDIUM · 2", "HIGH · 3"} {
+	for level, want := range []string{"▂ LOW", "▂▄ MEDIUM", "▂▄▆ HIGH"} {
+		level++
 		if got := brightnessLabel(level); got != want {
 			t.Errorf("brightnessLabel(%d) = %q, want %q", level, got, want)
 		}
 	}
-	if got := brightnessLabel(99); got != "HIGH · 3" {
+	if got := brightnessLabel(0); got != "▂ LOW" {
+		t.Errorf("brightnessLabel clamps low value: %q", got)
+	}
+	if got := brightnessLabel(99); got != "▂▄▆ HIGH" {
 		t.Errorf("brightnessLabel clamps high value: %q", got)
 	}
 }

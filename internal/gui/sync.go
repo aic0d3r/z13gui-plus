@@ -37,7 +37,7 @@ var modeVisMap = map[string]modeVis{
 
 // activeButton returns the key of the button with the .active CSS class,
 // or the fallback value if none is found.
-func activeButton(btns map[string]*gtk.Button, fallback string) string {
+func activeButton[K comparable](btns map[K]*gtk.Button, fallback K) K {
 	for k, b := range btns {
 		if b.HasCSSClass("active") {
 			return k
@@ -194,8 +194,8 @@ func (w *Window) syncLightingSection() {
 	}
 	w.updateSwatches()
 	setActiveButton(w.speedBtns, ls.Speed)
-	if w.brightScale != nil {
-		w.brightScale.SetValue(float64(ls.Brightness))
+	if _, ok := w.brightBtns[ls.Brightness]; ok {
+		setActiveButton(w.brightBtns, ls.Brightness)
 	}
 	w.syncModeVis()
 }
@@ -707,10 +707,8 @@ func (w *Window) setLightingEnabled(enabled bool) {
 	if enabled {
 		setActiveButton(w.modeButtons, activeButton(w.modeButtons, defaultMode))
 		w.syncModeVis()
-		// Floor brightness at the minimum visible level; a synced brightness
-		// of 0 (e.g. device was off) would otherwise re-apply as fully dark.
-		if w.brightScale != nil && w.brightScale.Value() == 0 {
-			w.brightScale.SetValue(1)
+		if activeButton(w.brightBtns, 0) == 0 {
+			setActiveButton(w.brightBtns, 1)
 		}
 		w.sendApply()
 		return
@@ -735,11 +733,7 @@ func (w *Window) sendApply() {
 
 	mode := activeButton(w.modeButtons, defaultMode)
 	speed := activeButton(w.speedBtns, defaultSpeed)
-
-	brightness := defaultBrightness
-	if w.brightScale != nil {
-		brightness = int(w.brightScale.Value())
-	}
+	brightness := activeButton(w.brightBtns, defaultBrightness)
 
 	slog.Debug("sendApply: calling daemon", "device", w.tab, "mode", mode, "brightness", brightness)
 	start := time.Now()

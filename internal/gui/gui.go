@@ -72,14 +72,14 @@ type Window struct {
 	color1Box           *gtk.Box // COLOR 1 label + row — visibility toggled by syncModeVis
 	color2Box           *gtk.Box // COLOR 2 label + row — visibility toggled by syncModeVis
 	speedBox            *gtk.Box // SPEED label + row — visibility toggled by syncModeVis
-	brightBox           *gtk.Box // BRIGHTNESS label + scale — hidden when mode is "off"
+	brightBox           *gtk.Box // BRIGHTNESS label + level buttons — hidden when mode is "off"
 	rgbControlsBox      *gtk.Box // mode-specific controls; insensitive while selected device is off
 	lightingSwitch      *gtk.Switch
 	lightingSummary     *gtk.Label
 	rgbEffectSummary    *gtk.Label
 	rgbEffectCard       *gtk.Box
 	speedBtns           map[string]*gtk.Button
-	brightScale         *gtk.Scale
+	brightBtns          map[int]*gtk.Button
 	profileBtns         map[string]*gtk.Button
 	profileSummary      *gtk.Label
 	tuningHeader        *gtk.ToggleButton
@@ -230,7 +230,7 @@ type Window struct {
 	customFocusItems    []focusItem
 
 	syncing    bool        // true while syncState is updating widgets; suppresses sendApply
-	applyTimer *time.Timer // debounce for continuous inputs (brightness, color wheel)
+	applyTimer *time.Timer // debounce for continuous color inputs
 
 	// View switching (main/theme/color views).
 	powerScroll        *gtk.ScrolledWindow // Power tab scroll
@@ -283,6 +283,7 @@ func New(app *gtk.Application) *Window {
 		gamescope:      os.Getenv("GAMESCOPE_WAYLAND_DISPLAY") != "",
 		modeButtons:    make(map[string]*gtk.Button),
 		speedBtns:      make(map[string]*gtk.Button),
+		brightBtns:     make(map[int]*gtk.Button),
 		profileBtns:    make(map[string]*gtk.Button),
 		mainTabBtns:    make(map[string]*gtk.Button),
 		battPresetBtns: make(map[int]*gtk.Button),
