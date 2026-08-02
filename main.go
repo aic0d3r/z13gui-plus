@@ -108,6 +108,7 @@ func main() {
 	openOnFirstActivate := false
 	app := gtk.NewApplication("com.github.dahui.z13gui", gio.ApplicationHandlesCommandLine)
 	app.ConnectCommandLine(func(commandLine *gio.ApplicationCommandLine) int {
+		defer commandLine.Done()
 		openOnFirstActivate = false
 		for _, arg := range commandLine.Arguments()[1:] {
 			switch arg {
