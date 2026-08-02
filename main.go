@@ -14,6 +14,7 @@ import (
 	"github.com/dahui/z13gui/internal/gui"
 	"github.com/dahui/z13gui/internal/gui/gamepad"
 	"github.com/dahui/z13gui/internal/theme"
+	"github.com/diamondburned/gotk4/pkg/gio/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 )
 
@@ -21,9 +22,8 @@ import (
 var Version = "dev"
 
 func main() {
-	// Scan args for our flags before GTK sees them. We cannot use flag.Parse()
-	// because app.Run() passes remaining args to GLib's option parser, which
-	// would error on any flags it doesn't recognize.
+	// Handle process-local flags before GApplication forwards an invocation to
+	// the primary instance. --toggle stays in gtkArgs so the primary can see it.
 	debug := false
 	gtkArgs := []string{os.Args[0]}
 	for _, arg := range os.Args[1:] {
@@ -41,6 +41,8 @@ func main() {
 				fmt.Printf("%-20s %s\n", t.ID, t.Name)
 			}
 			os.Exit(0)
+		case "--toggle":
+			gtkArgs = append(gtkArgs, arg)
 		default:
 			gtkArgs = append(gtkArgs, arg)
 		}
@@ -99,14 +101,26 @@ func main() {
 	}()
 
 	// GApplication registers com.github.dahui.z13gui on the session bus, so a
-	// second launch of the binary does not start a second process: it forwards
-	// "activate" to the running instance and exits. Without this guard that fires
-	// gui.New again, building a second full drawer — its own layer surface,
-	// subscribe loop, gamepad reader and telemetry poller — overlapping the first.
-	// Launching from the desktop entry while the user service runs is enough to
-	// trigger it. On re-activation, toggle the existing drawer instead.
+	// second launch forwards its command line to the running instance instead of
+	// starting another drawer. The launcher passes --toggle so the first launch
+	// opens immediately; the service starts without it and remains hidden.
 	var win *gui.Window
-	app := gtk.NewApplication("com.github.dahui.z13gui", 0)
+	openOnFirstActivate := false
+	app := gtk.NewApplication("com.github.dahui.z13gui", gio.ApplicationHandlesCommandLine)
+	app.ConnectCommandLine(func(commandLine *gio.ApplicationCommandLine) int {
+		openOnFirstActivate = false
+		for _, arg := range commandLine.Arguments()[1:] {
+			switch arg {
+			case "--toggle":
+				openOnFirstActivate = true
+			default:
+				commandLine.PrinterrLiteral(fmt.Sprintf("z13gui: unknown option %s\n", arg))
+				return 2
+			}
+		}
+		app.Activate()
+		return 0
+	})
 	app.ConnectActivate(func() {
 		if win != nil {
 			slog.Info("re-activated, toggling existing drawer")
@@ -114,6 +128,10 @@ func main() {
 			return
 		}
 		win = gui.New(app)
+		if openOnFirstActivate {
+			slog.Info("launcher activation, opening drawer")
+			win.Toggle()
+		}
 	})
 	os.Exit(app.Run(gtkArgs))
 }

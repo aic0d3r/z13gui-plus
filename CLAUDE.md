@@ -269,7 +269,7 @@ The subscribe loop handles this with backoff retry.
 
 ```sh
 make build      # CGO_ENABLED=1 go build -o z13gui .
-sudo make install  # installs pre-built binary to /usr/local/bin/z13gui
+sudo make install  # installs the binary and application launcher under /usr/local
 make test       # unit tests for the pure-Go packages (no GTK4 headers needed)
 make lint       # golangci-lint run ./...
 make clean      # rm z13gui

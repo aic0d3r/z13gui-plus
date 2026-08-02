@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Z13GUI+
-Comment=Z13GUI+ GTK4 overlay drawer for z13ctl
-Exec=z13gui
+Comment=Control your ROG Flow Z13
+Exec=z13gui --toggle
+Icon=preferences-system
+Terminal=false
 Categories=Utility;System;
-Keywords=rog;asus;z13;lighting;
+Keywords=rog;asus;z13;lighting;armoury;armory;crate;drawer;profiles;performance;controls;

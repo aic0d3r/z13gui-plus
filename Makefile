@@ -45,10 +45,11 @@ snapshot:
 release:
 	goreleaser release --clean
 
-## install: install pre-built binary to PREFIX/bin (run make build first)
+## install: install pre-built binary and desktop entry (run make build first)
 install:
 	@test -f z13gui || { echo "error: z13gui binary not found. Run 'make build' first."; exit 1; }
 	install -Dm755 z13gui $(DESTDIR)$(PREFIX)/bin/z13gui
+	install -Dm644 contrib/z13gui.desktop $(DESTDIR)$(PREFIX)/share/applications/z13gui.desktop
 
 ## setcap: grant BPF capabilities to installed binary (enables hidraw blocker)
 setcap:

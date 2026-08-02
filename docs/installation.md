@@ -30,6 +30,8 @@ system package manager first.
     ```sh
     tar xzf z13gui-plus_*_linux_amd64.tar.gz
     sudo install -Dm755 z13gui /usr/local/bin/z13gui
+    sudo install -Dm644 contrib/z13gui.desktop \
+        /usr/local/share/applications/z13gui.desktop
     ```
 
     Install the systemd user service:
@@ -39,13 +41,6 @@ system package manager first.
         ~/.config/systemd/user/z13gui.service
     systemctl --user daemon-reload
     systemctl --user enable --now z13gui
-    ```
-
-    Optionally install the desktop entry:
-
-    ```sh
-    install -Dm644 contrib/z13gui.desktop \
-        ~/.local/share/applications/z13gui.desktop
     ```
 
 === "Arch Linux (AUR)"
