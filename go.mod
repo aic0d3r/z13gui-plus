@@ -4,13 +4,13 @@ go 1.25.0
 
 require (
 	github.com/cilium/ebpf v0.21.0
-	github.com/dahui/z13ctl/api v1.4.0
+	github.com/dahui/z13ctl/api v1.4.1
 	github.com/diamondburned/gotk4-layer-shell/pkg v0.0.0-20240109211357-6efa9f6dc438
 	github.com/diamondburned/gotk4/pkg v0.3.1
 	github.com/holoplot/go-evdev v0.0.0-20260504100651-66d1748fe847
 )
 
-replace github.com/dahui/z13ctl/api => github.com/aic0d3r/z13ctl-plus/api v1.4.0
+replace github.com/dahui/z13ctl/api => github.com/aic0d3r/z13ctl-plus/api v1.4.1
 
 require (
 	github.com/KarpelesLab/weak v0.1.1 // indirect
