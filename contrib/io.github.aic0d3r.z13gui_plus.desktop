@@ -5,5 +5,6 @@ Comment=Control your ROG Flow Z13
 Exec=z13gui-plus --toggle
 Icon=preferences-system
 Terminal=false
+StartupNotify=false
 Categories=Utility;System;
 Keywords=rog;asus;z13;lighting;armoury;armory;crate;drawer;profiles;performance;controls;
