@@ -160,27 +160,33 @@ func (w *Window) syncLightingSection() {
 	defer func() { w.syncing = prev }()
 
 	var ls api.LightingState
+	present := true
 	if w.state != nil {
 		if dev, ok := w.state.Devices[w.tab]; ok {
 			ls = dev
 		} else {
 			ls = w.state.Lighting
 		}
+		if w.state.DevicePresence != nil {
+			present = w.state.DevicePresence[w.tab]
+		}
 	}
+	enabled := ls.Enabled && present
 	mode := ls.Mode
 	if _, ok := w.modeButtons[mode]; !ok {
 		mode = defaultMode
 	}
 	setActiveButton(w.modeButtons, mode)
 	if w.lightingSwitch != nil {
-		w.lightingSwitch.SetActive(ls.Enabled)
+		w.lightingSwitch.SetActive(enabled)
+		w.lightingSwitch.SetSensitive(present)
 	}
-	setOnOffSummary(w.lightingSummary, ls.Enabled)
+	setOnOffSummary(w.lightingSummary, enabled)
 	if w.rgbControlsBox != nil {
-		w.rgbControlsBox.SetSensitive(ls.Enabled)
+		w.rgbControlsBox.SetSensitive(enabled)
 	}
 	if w.rgbEffectCard != nil {
-		if ls.Enabled {
+		if enabled {
 			w.rgbEffectCard.RemoveCSSClass("card-inactive")
 		} else {
 			w.rgbEffectCard.AddCSSClass("card-inactive")
