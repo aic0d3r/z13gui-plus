@@ -92,6 +92,7 @@ func (w *Window) syncState() {
 	w.syncRefreshRate()
 	w.syncOverdrive()
 	w.syncBootSound()
+	w.syncTablet()
 	w.syncPresets()
 	w.syncCustomView()
 	// Battery hero card — also updates on sync (initial show) so the card

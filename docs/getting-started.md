@@ -28,10 +28,17 @@ Press it again, click anywhere outside the drawer, or press **Escape** to close 
 | **Brightness** | Lighting brightness: 0–3 |
 | **Panel Overdrive** | Toggle faster pixel response (may cause slight ghosting) |
 | **Boot Sound** | Enable or disable the startup POST sound |
+| **Tablet kit chip** | When the optional tablet companion is detected, open its posture, health, touchscreen, touchpad, and scrolling controls. |
 
 Changes take effect immediately and are sent to the z13ctl-plus daemon. Saved
 device settings persist across reboots; CPU power controls reflect live kernel
 state.
+
+The tablet kit chip is absent until the optional companion reports its first
+heartbeat. Healthy operation stays unobtrusive; companion errors and stale
+heartbeats put the chip in a warning state. Enabling the GZ302EA folio touchpad
+always asks for confirmation because affected firmware can cause a jumping
+cursor.
 
 The theme picker button at the bottom-left of the drawer opens the theme view.
 See [Theming](theming.md) for details.

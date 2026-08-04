@@ -167,6 +167,16 @@
     text-transform: uppercase;
 }
 
+/* Optional tablet companion chip and its inline, gamescope-safe popover. */
+.drawer .tablet-chip {
+    min-height: 28px;
+    padding: 2px 8px;
+}
+
+.drawer .tablet-popover {
+    padding: 10px;
+}
+
 /* TDP warning text */
 .tdp-warning {
     font-size: 10px;

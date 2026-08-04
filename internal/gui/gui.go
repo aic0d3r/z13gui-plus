@@ -141,6 +141,29 @@ type Window struct {
 	stateActionQueue    []stateAction
 	stateRequestGen     uint64
 
+	// Optional tablet companion controls. They remain hidden until a heartbeat arrives.
+	tabletChip              *gtk.ToggleButton
+	tabletChipLabel         *gtk.Label
+	tabletPopover           *gtk.Box
+	tabletPostureLabel      *gtk.Label
+	tabletHealthLabel       *gtk.Label
+	tabletFolioLabel        *gtk.Label
+	tabletTouchscreenLabel  *gtk.Label
+	tabletTouchScrollLabel  *gtk.Label
+	tabletTouchpadStatusRow *gtk.Box
+	tabletTouchpadStatus    *gtk.Label
+	tabletDesktopSwitch     *gtk.Switch
+	tabletTouchpadRow       *gtk.Box
+	tabletTouchpadSwitch    *gtk.Switch
+	tabletTouchpadConfirm   *gtk.Box
+	tabletConfirmCancel     *gtk.Button
+	tabletConfirmEnable     *gtk.Button
+	tabletSensitivityScale  *gtk.Scale
+	tabletSpeedScale        *gtk.Scale
+	tabletResetBtn          *gtk.Button
+	tabletFeedback          *gtk.Label
+	tabletPendingSettings   *api.TabletSettings
+
 	presetAssignmentStatus  *gtk.Label
 	presetLibraryBtn        *gtk.Button
 	presetLibraryScroll     *gtk.ScrolledWindow
@@ -345,15 +368,14 @@ func New(app *gtk.Application) *Window {
 	})
 	gtkWin.AddController(motion)
 
-	// Block arrow keys from reaching child widgets. GTK4 uses arrow keys
-	// to navigate radio groups (auto-activating them) and adjust scales.
-	// The overlay uses mouse/touch/gamepad — not keyboard navigation.
+	// Block arrow keys from changing ordinary child widgets. The tablet scales
+	// intentionally retain native keyboard adjustment while focused.
 	keyBlock := gtk.NewEventControllerKey()
 	keyBlock.SetPropagationPhase(gtk.PhaseCapture)
 	keyBlock.ConnectKeyPressed(func(keyval, _ uint, _ gdk.ModifierType) bool {
 		switch keyval {
 		case gdk.KEY_Up, gdk.KEY_Down, gdk.KEY_Left, gdk.KEY_Right:
-			return true
+			return !w.tabletScaleFocused()
 		}
 		return false
 	})

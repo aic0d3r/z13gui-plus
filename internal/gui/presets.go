@@ -877,14 +877,14 @@ type stateAction struct {
 	fn           func() (bool, error)
 	reportStatus bool
 	onApplied    func()
-	onFailed     func()
+	onFailed     func(error)
 }
 
 func (w *Window) runStateAction(action string, fn func() (bool, error)) {
 	w.queueStateAction(stateAction{name: action, fn: fn, reportStatus: true})
 }
 
-func (w *Window) runStateActionQuiet(action string, fn func() (bool, error), onApplied, onFailed func()) {
+func (w *Window) runStateActionQuiet(action string, fn func() (bool, error), onApplied func(), onFailed func(error)) {
 	w.queueStateAction(stateAction{name: action, fn: fn, onApplied: onApplied, onFailed: onFailed})
 }
 
@@ -914,7 +914,7 @@ func (w *Window) startStateAction(action stateAction) {
 			slog.Warn(action.name+" failed", "err", err)
 			glib.IdleAdd(func() {
 				if action.onFailed != nil {
-					action.onFailed()
+					action.onFailed(err)
 				}
 				if action.reportStatus {
 					w.setPresetStatus(err.Error())

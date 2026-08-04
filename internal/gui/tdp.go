@@ -873,6 +873,9 @@ func (w *Window) startTelemetryPolling() {
 		if gen != w.telemetryGen || !w.visible {
 			return false
 		}
+		w.syncing = true
+		w.syncTablet()
+		w.syncing = false
 		customActive := w.viewStack != nil && w.viewStack.VisibleChildName() == "custom"
 		overviewActive := w.viewStack != nil && w.viewStack.VisibleChildName() == "main" &&
 			w.tabStack != nil && w.tabStack.VisibleChildName() == "overview"
@@ -908,6 +911,9 @@ func (w *Window) startTelemetryPolling() {
 				}
 				presetsChanged := presetStateChanged(w.state, state)
 				w.state = state
+				w.syncing = true
+				w.syncTablet()
+				w.syncing = false
 				if overviewActive {
 					if state.BatteryDetail != nil {
 						w.updateBatteryHero(state.BatteryDetail)

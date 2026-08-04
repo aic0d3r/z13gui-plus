@@ -47,8 +47,10 @@ func (w *Window) buildContent() gtk.Widgetter {
 
 	titleLabel := gtk.NewLabel("Z13GUI+")
 	titleLabel.SetHAlign(gtk.AlignStart)
+	titleLabel.SetHExpand(true)
 	titleLabel.AddCSSClass("drawer-title")
 	titleRow.Append(titleLabel)
+	titleRow.Append(w.buildTabletChip())
 
 	// Main tab row — Overview / Power / RGB / System. Active tab persists across drawer opens.
 	tabRow := w.buildMainTabRow()
@@ -66,6 +68,7 @@ func (w *Window) buildContent() gtk.Widgetter {
 
 	mainPage := gtk.NewBox(gtk.OrientationVertical, 0)
 	mainPage.Append(titleRow)
+	mainPage.Append(w.buildTabletPopover())
 	mainPage.Append(tabRow)
 	mainPage.Append(w.tabStack)
 
@@ -907,7 +910,7 @@ func (w *Window) buildRefreshRateSection() *gtk.Box {
 					setActiveButton(w.refreshBtns, w.pendingRefreshRate)
 					w.displaySummary.SetLabel(fmt.Sprintf("%d HZ", w.pendingRefreshRate))
 				}
-			}, func() {
+			}, func(_ error) {
 				if w.pendingRefreshRate == hz {
 					w.pendingRefreshRate = 0
 				}
@@ -1140,7 +1143,7 @@ func newCollapsibleHeader(label string, defaultOpen bool) *gtk.ToggleButton {
 // buildMainFocusList builds the 2D focus grid for the main drawer view.
 // Items are arranged by visual row/col matching the drawer layout.
 func (w *Window) buildMainFocusList() {
-	var items []focusItem
+	items := w.tabletFocusItems()
 
 	// Top-level tab row — always at row 0.
 	for col, name := range []string{"overview", "power", "rgb", "system"} {
