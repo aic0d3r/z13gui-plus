@@ -72,7 +72,8 @@ sudo apt install ./z13gui-plus_*.deb
 sudo dnf install ./z13gui-plus_*.rpm
 
 # Manual (from release tarball)
-tar xzf z13gui-plus_*_linux_amd64.tar.gz
+wget https://github.com/aic0d3r/z13gui-plus/releases/download/v2.1.0/z13gui-plus_2.1.0_linux_amd64.tar.gz
+tar xzf z13gui-plus_2.1.0_linux_amd64.tar.gz
 sudo install -Dm755 z13gui-plus /usr/local/bin/z13gui-plus
 ```
 
