@@ -32,6 +32,20 @@ disabled. Enable only the GUI that matches the controller daemon you selected.
   the live fan-curve operating point, and reset all tuning overrides together
 - **Faster fan control** — select Auto, Balanced, or Turbo without editing a curve
 
+## Related projects
+
+Z13GUI+ is part of a three-repo tablet stack for the Z13:
+
+- [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) — the daemon behind
+  this drawer: owns display state and persists tablet settings
+- [z13-tablet-kit](https://github.com/aic0d3r/z13-tablet-kit) — posture
+  detection (dock/folio/tablet) and touch input: touchscreen toggling, touch
+  scrolling, and two-finger context menus
+
+The tablet chip in this drawer is hidden until the kit's `z13-tablet-switch`
+reports a heartbeat. Toggles you change here are persisted by `z13ctl-plus`
+and applied live by the kit — no restarts required.
+
 ## Interface
 
 <table>
