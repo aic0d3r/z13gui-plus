@@ -50,12 +50,16 @@ It has two display backends:
   services or remove artifacts. Legacy paths are provenance-ambiguous; cleanup
   must be explicit and limited to files known to come from this fork.
 
-## Companion project: z13ctl-plus
+## Companion projects
 
-The [`z13ctl-plus`](https://github.com/aic0d3r/z13ctl-plus) fork provides the
-`z13ctl-plus` daemon as a sibling repo. Its API submodule retains the canonical
-module path `github.com/dahui/z13ctl/api` for intentional protocol/source
-compatibility and is selected here through the fork replacement.
+This repo is part of a three-repo tablet stack for the ASUS Z13:
+- [`z13ctl-plus`](https://github.com/aic0d3r/z13ctl-plus) — the daemon this drawer
+  talks to. Its API submodule retains the canonical path
+  `github.com/dahui/z13ctl/api`; selected here through the fork replacement.
+- [`z13-tablet-kit`](https://github.com/aic0d3r/z13-tablet-kit) — posture detection
+  (dock/folio/tablet) and touch input. The tablet chip in this drawer stays hidden
+  until the kit's `z13-tablet-switch` reports a heartbeat; toggles changed here are
+  persisted by `z13ctl-plus` and applied live by the kit.
 
 During local development, a `go.work` file in this repo (if present, gitignored)
 provides the local override. In production `go.mod` redirects the canonical API
@@ -379,5 +383,9 @@ Feature-complete for both KDE and gamescope modes:
 - Gamescope view switching: theme picker view + HSL color picker view
 - Resolution-based CSS scaling for gamescope (`Z13GUI_PLUS_SCALE` override)
 - Split-level logging (app=Info, GTK=Error; `-d` enables all Debug)
-- goreleaser + GitHub Actions release pipeline
+- Tablet integration: optional live posture/health chip (hidden until the kit's
+  heartbeat; stale after 75 s) with toggles for desktop touch policy,
+  two-finger-hold context menu, folio touchpad opt-in, and scroll sensitivity/speed
+  1–5 — persisted via `z13ctl-plus`, applied live by the kit.
+- goreleaser + GitHub Actions release pipeline (current release **v2.1.0**)
 - systemd user service with optional gamescope-environment loading
