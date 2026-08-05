@@ -142,27 +142,28 @@ type Window struct {
 	stateRequestGen     uint64
 
 	// Optional tablet companion controls. They remain hidden until a heartbeat arrives.
-	tabletChip              *gtk.ToggleButton
-	tabletChipLabel         *gtk.Label
-	tabletPopover           *gtk.Box
-	tabletPostureLabel      *gtk.Label
-	tabletHealthLabel       *gtk.Label
-	tabletFolioLabel        *gtk.Label
-	tabletTouchscreenLabel  *gtk.Label
-	tabletTouchScrollLabel  *gtk.Label
-	tabletTouchpadStatusRow *gtk.Box
-	tabletTouchpadStatus    *gtk.Label
-	tabletDesktopSwitch     *gtk.Switch
-	tabletTouchpadRow       *gtk.Box
-	tabletTouchpadSwitch    *gtk.Switch
-	tabletTouchpadConfirm   *gtk.Box
-	tabletConfirmCancel     *gtk.Button
-	tabletConfirmEnable     *gtk.Button
-	tabletSensitivityScale  *gtk.Scale
-	tabletSpeedScale        *gtk.Scale
-	tabletResetBtn          *gtk.Button
-	tabletFeedback          *gtk.Label
-	tabletPendingSettings   *api.TabletSettings
+	tabletChip                *gtk.ToggleButton
+	tabletChipLabel           *gtk.Label
+	tabletPopover             *gtk.Box
+	tabletPostureLabel        *gtk.Label
+	tabletHealthLabel         *gtk.Label
+	tabletFolioLabel          *gtk.Label
+	tabletTouchscreenLabel    *gtk.Label
+	tabletTouchScrollLabel    *gtk.Label
+	tabletTouchpadStatusRow   *gtk.Box
+	tabletTouchpadStatus      *gtk.Label
+	tabletDesktopSwitch       *gtk.Switch
+	tabletTwoFingerHoldSwitch *gtk.Switch
+	tabletTouchpadRow         *gtk.Box
+	tabletTouchpadSwitch      *gtk.Switch
+	tabletTouchpadConfirm     *gtk.Box
+	tabletConfirmCancel       *gtk.Button
+	tabletConfirmEnable       *gtk.Button
+	tabletSensitivityScale    *gtk.Scale
+	tabletSpeedScale          *gtk.Scale
+	tabletResetBtn            *gtk.Button
+	tabletFeedback            *gtk.Label
+	tabletPendingSettings     *api.TabletSettings
 
 	presetAssignmentStatus  *gtk.Label
 	presetLibraryBtn        *gtk.Button

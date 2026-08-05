@@ -38,7 +38,8 @@ The tablet kit chip is absent until the optional companion reports its first
 heartbeat. Healthy operation stays unobtrusive; companion errors and stale
 heartbeats put the chip in a warning state. Enabling the GZ302EA folio touchpad
 always asks for confirmation because affected firmware can cause a jumping
-cursor.
+cursor. The optional two-finger hold setting opens the context menu after
+holding two stationary fingers briefly; moving fingers scrolls and cancels it.
 
 The theme picker button at the bottom-left of the drawer opens the theme view.
 See [Theming](theming.md) for details.
