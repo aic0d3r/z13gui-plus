@@ -76,6 +76,10 @@ tar xzf z13gui-plus_*_linux_amd64.tar.gz
 sudo install -Dm755 z13gui-plus /usr/local/bin/z13gui-plus
 ```
 
+> **AUR lag:** the `z13gui-plus-bin` AUR package trails the GitHub releases (currently
+> 1.3.0 vs. **v2.1.0** — AUR updates are paused). It lacks the tablet integration. For
+> the latest, install the **release tarball** from GitHub instead of AUR.
+
 See the [Installation guide](https://aic0d3r.github.io/z13gui-plus/installation/) for
 systemd service setup, source builds, and uninstall instructions.
 
