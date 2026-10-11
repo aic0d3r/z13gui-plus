@@ -1,3 +1,8 @@
+---
+title: Contributing to Z13GUI+
+description: How to build, test, and contribute to Z13GUI+, the GTK4 control panel for the ASUS ROG Flow Z13 on Linux.
+---
+
 # Contributing
 
 Contributions are welcome. Please open an issue before starting work on a

@@ -1,4 +1,9 @@
-# Installation
+---
+title: Install Z13GUI+ on Arch, Fedora, Debian and Ubuntu
+description: Install the Z13GUI+ ROG Flow Z13 control panel from the AUR, deb, rpm, or release tarball, and enable gamepad input blocking.
+---
+
+# Install Z13GUI+
 
 ## Prerequisites
 

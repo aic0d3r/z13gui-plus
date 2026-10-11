@@ -1,3 +1,8 @@
+---
+title: Z13GUI+ Configuration and Environment Variables
+description: Z13GUI+ config file location, environment variables, and service settings for the ROG Flow Z13 Linux control panel.
+---
+
 # Configuration
 
 ## Config file

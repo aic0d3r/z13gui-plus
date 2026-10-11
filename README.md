@@ -1,10 +1,15 @@
-# Z13GUI+
+# Z13GUI+: ASUS ROG Flow Z13 Control Panel for Linux
 
-GTK4 overlay drawer for [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) on Wayland.
+An Armoury Crate–style control drawer for the 2025 ASUS ROG Flow Z13 (Ryzen AI Max /
+Strix Halo) on Linux. Control performance profiles, TDP, fan curves, undervolt, RGB
+lighting, battery charge limit, and refresh rate from a touch- and gamepad-friendly
+GTK4 overlay. Works on KDE Plasma and other Wayland desktops, and in Steam Gaming
+Mode (gamescope). Powered by the [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus)
+daemon.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-![Z13GUI+](assets/z13gui-plus.avif)
+![Z13GUI+ control drawer for the ASUS ROG Flow Z13 on Linux](assets/z13gui-plus.avif)
 
 Z13GUI+ is an independently named fork of
 [dahui/z13gui](https://github.com/dahui/z13gui) for
@@ -108,6 +113,10 @@ change services or remove artifacts. Run the disable command only when the old
 service is known to be from this fork. Legacy names may belong to upstream, so
 remove old files only after verifying their provenance. See the
 [migration guide](https://aic0d3r.github.io/z13gui-plus/installation/#migrating-from-v1-to-v2).
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
 
 ## Documentation
 

@@ -1,7 +1,15 @@
-# Z13GUI+
+---
+title: Z13GUI+: ASUS ROG Flow Z13 Control Panel for Linux
+description: Armoury Crate–style control panel for the 2025 ASUS ROG Flow Z13 on Linux: profiles, TDP, fan curves, undervolt, RGB, battery limit, refresh rate.
+---
 
-GTK4 overlay drawer for **z13ctl-plus** on Wayland — graphical controls for the
-2025 ASUS ROG Flow Z13 on Linux.
+# Z13GUI+: ASUS ROG Flow Z13 Control Panel for Linux
+
+An Armoury Crate–style control drawer for the 2025 ASUS ROG Flow Z13 (Ryzen AI Max /
+Strix Halo) on Linux. Control performance profiles, TDP, fan curves, undervolt, RGB
+lighting, battery charge limit, and refresh rate from a touch- and gamepad-friendly
+GTK4 overlay on KDE Plasma, other Wayland desktops, and Steam Gaming Mode. Powered by
+the **z13ctl-plus** daemon.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/aic0d3r/z13gui-plus/blob/main/LICENSE)
 

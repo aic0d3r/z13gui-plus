@@ -1,3 +1,8 @@
+---
+title: Z13GUI+ Themes and Custom Colors
+description: Pick one of 15 built-in Z13GUI+ themes or define your own colors and accents with a theme.toml or custom CSS.
+---
+
 # Theming
 
 Z13GUI+ supports custom color themes through a simple TOML configuration file.
