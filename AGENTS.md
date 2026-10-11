@@ -130,6 +130,9 @@ contrib/
   destroying/hiding the surface. This prevents the ghost-surface artifact that KDE Plasma
   shows when remapping a surface. The 1px margin keeps the surface in KWin's composited
   output for damage tracking; opacity 0 makes the sliver invisible to the user.
+  While hidden the surface input region is emptied (`setClickThrough`); KWin does not
+  clip the parked surface, so without it the invisible drawer swallows clicks on a
+  monitor to the right (issue #1). `Show()` restores full input.
 - **Width**: `SetSizeRequest(320, -1)`. Height is natural (content-driven, scrolled).
 - **Show/hide animation**: smoothstep easing via `AddTickCallback` (VSync-synced),
   with a shared `animGen` generation counter so a show cancels an in-flight hide

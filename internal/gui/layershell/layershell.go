@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/diamondburned/gotk4-layer-shell/pkg/gtk4layershell"
+	"github.com/diamondburned/gotk4/pkg/cairo"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
@@ -86,6 +87,7 @@ func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 	// damage tracking) but invisible to the user. Show() sets opacity to 1.
 	b.appWin.SetVisible(true)
 	b.setOpacity(0)
+	b.setClickThrough(true) // surface exists now: SetVisible realized the window
 
 	// After the surface is mapped, poll until the compositor configures the
 	// actual width (which may exceed drawerWidth due to CSS borders/styling).
@@ -176,6 +178,7 @@ func (b *Backend) WrapContent(drawer gtk.Widgetter) gtk.Widgetter {
 func (b *Backend) Show() {
 	slog.Debug("backend.Show", "startMargin", b.margin, "rightNeighbor", b.hasRightNeighbor())
 	b.showTime = time.Now()
+	b.setClickThrough(false)
 
 	gtk4layershell.SetKeyboardMode(b.gtkWin, gtk4layershell.LayerShellKeyboardModeOnDemand)
 	if b.hasRightNeighbor() {
@@ -203,10 +206,14 @@ func (b *Backend) Hide() {
 	if b.hasRightNeighbor() {
 		// Fade out in place (margin 0, on the primary), then park the now-invisible
 		// surface off-screen. The drawer never crosses onto the right monitor.
-		b.fadeOpacity(0, func() { b.setMargin(b.hiddenMargin) })
+		b.fadeOpacity(0, func() {
+			b.setMargin(b.hiddenMargin)
+			b.setClickThrough(true)
+		})
 	} else {
 		b.slideMargin(b.hiddenMargin, func() {
 			b.setOpacity(0) // hide the 1px sliver on the primary's own right edge
+			b.setClickThrough(true)
 		})
 	}
 }
@@ -251,6 +258,26 @@ func (b *Backend) slideMargin(target int, onDone func()) {
 func (b *Backend) setMargin(m int) {
 	b.margin = m
 	gtk4layershell.SetMargin(b.gtkWin, gtk4layershell.LayerShellEdgeRight, m)
+}
+
+// setClickThrough empties the surface input region while hidden. KWin does not
+// clip the parked surface to its monitor, so without this the invisible drawer
+// swallows clicks on a monitor to the right (issue #1). nil restores full input.
+func (b *Backend) setClickThrough(on bool) {
+	surface := b.appWin.Surface()
+	if surface == nil {
+		return
+	}
+	var region *cairo.Region
+	if on {
+		empty, err := cairo.RegionCreate()
+		if err != nil {
+			slog.Warn("input region", "err", err)
+			return
+		}
+		region = empty
+	}
+	gdk.BaseSurface(surface).SetInputRegion(region)
 }
 
 // setOpacity sets the window opacity and keeps b.opacity in sync.
