@@ -98,6 +98,8 @@ type SteamInputBlocker interface {
 // NewSteamInputBlocker creates a SteamInputBlocker. Tries BPF LSM first
 // (zero side effects), falls back to SIGSTOP (freezes Steam + games).
 func NewSteamInputBlocker() SteamInputBlocker {
+	// shortcut: file caps (cap_bpf,cap_perfmon) stay for the process lifetime because cgo
+	// blocks a process-wide capset; move the blocker into z13ctl-plus to drop setcap entirely.
 	hb, err := hidblocker.New()
 	if err != nil {
 		slog.Info("steam: BPF LSM unavailable, using SIGSTOP fallback", "err", err)

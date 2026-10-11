@@ -326,9 +326,11 @@ make release    # goreleaser build + publish
 Requires at build time: `gtk4-layer-shell` C library (`pkg-config gtk4-layer-shell-0`).
 
 `make test` enumerates the pure-Go packages explicitly (`internal/theme`,
-`internal/togglegate`) rather than using `./...`, because `internal/gui` needs CGO and
-GTK4 headers. **Add new pure-Go packages to the `test` and `cover` targets** — otherwise
-their tests never run; there is no CI test job (the only workflow is release).
+`internal/togglegate`, `internal/gui/gamepad`) rather than using `./...`, because
+`internal/gui` needs CGO and GTK4 headers. **Add new pure-Go packages to the `test` and
+`cover` targets** — otherwise they are skipped locally. The release workflow runs
+`go test ./...` (including `internal/gui`) before goreleaser, so a failing test blocks
+a release.
 
 ## Known GTK issues (do not re-introduce)
 

@@ -919,7 +919,9 @@ func (w *Window) startStateAction(action stateAction) {
 				if action.reportStatus {
 					w.setPresetStatus(err.Error())
 				}
-				w.syncState()
+				if len(w.stateActionQueue) == 0 {
+					w.syncState()
+				}
 				w.finishStateAction()
 			})
 			return
@@ -943,7 +945,11 @@ func (w *Window) startStateAction(action stateAction) {
 				w.setPresetStatus("")
 			}
 			w.state = state
-			w.syncState()
+			// Queued actions captured newer widget values; syncing now would show
+			// stale values and let the next tap send them. The last action syncs.
+			if len(w.stateActionQueue) == 0 {
+				w.syncState()
+			}
 			if action.onApplied != nil {
 				action.onApplied()
 			}

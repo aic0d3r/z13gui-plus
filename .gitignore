@@ -19,3 +19,7 @@ site/
 
 # BPF generated kernel BTF (machine-specific, only needed for go generate)
 internal/gui/gamepad/hidblocker/vmlinux.h
+
+# Local agent progress notes
+PROGRESS.md
+.progress-log/

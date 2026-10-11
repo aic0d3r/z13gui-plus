@@ -876,17 +876,18 @@ func (w *Window) startTelemetryPolling() {
 		w.syncing = true
 		w.syncTablet()
 		w.syncing = false
-		customActive := w.viewStack != nil && w.viewStack.VisibleChildName() == "custom"
-		overviewActive := w.viewStack != nil && w.viewStack.VisibleChildName() == "main" &&
-			w.tabStack != nil && w.tabStack.VisibleChildName() == "overview"
-		powerActive := w.viewStack != nil && ((w.viewStack.VisibleChildName() == "main" &&
-			w.tabStack != nil && w.tabStack.VisibleChildName() == "power") ||
-			w.viewStack.VisibleChildName() == "presets" || w.viewStack.VisibleChildName() == "chooser" ||
-			w.viewStack.VisibleChildName() == "confirm")
-		systemActive := w.viewStack != nil && w.viewStack.VisibleChildName() == "main" &&
-			w.tabStack != nil && w.tabStack.VisibleChildName() == "system"
-		rgbActive := w.viewStack != nil && w.viewStack.VisibleChildName() == "main" &&
-			w.tabStack != nil && w.tabStack.VisibleChildName() == "rgb"
+		view, tab := "", ""
+		if w.viewStack != nil {
+			view = w.viewStack.VisibleChildName()
+		}
+		if view == "main" && w.tabStack != nil {
+			tab = w.tabStack.VisibleChildName()
+		}
+		customActive := view == "custom"
+		overviewActive := tab == "overview"
+		powerActive := tab == "power" || view == "presets" || view == "chooser" || view == "confirm"
+		systemActive := tab == "system"
+		rgbActive := tab == "rgb"
 		if (!customActive && !overviewActive && !powerActive && !systemActive && !rgbActive) || w.stateActionBusy || w.telemetryPollBusy {
 			return true
 		}

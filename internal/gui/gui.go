@@ -441,13 +441,18 @@ func (w *Window) hide() {
 	if w.steamBlocker != nil && w.steamPID > 0 {
 		pid := w.steamPID
 		w.steamPID = 0
-		go func() {
-			time.Sleep(200 * time.Millisecond)
+		glib.TimeoutAdd(200, func() bool {
+			// Reopened within the delay: show() already re-blocked, keep it blocked.
+			if w.visible {
+				return false
+			}
+			// Synchronous on the main thread so a later show() cannot interleave.
 			w.steamBlocker.UnblockSteam(pid)
 			if w.gamepadReader != nil {
 				w.gamepadReader.UngrabAll()
 			}
-		}()
+			return false
+		})
 	} else if w.gamepadReader != nil {
 		go w.gamepadReader.UngrabAll()
 	}

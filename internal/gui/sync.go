@@ -4,7 +4,6 @@ package gui
 
 import (
 	"fmt"
-	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -646,6 +645,8 @@ func (w *Window) updateBatteryHero(b *api.BatteryState) {
 		w.battPill.RemoveCSSClass("success")
 		var label, cls string
 		switch {
+		case b.ThresholdPct <= 0:
+			label = "—"
 		case b.ThresholdPct >= 100:
 			label, cls = "STANDARD", "accent"
 		case b.ThresholdPct >= 80:
@@ -686,16 +687,19 @@ func (w *Window) queueApply() {
 	if w.applyTimer != nil {
 		w.applyTimer.Stop()
 	}
+	// Capture now: a state sync landing during the debounce must not replace
+	// the value the user just picked.
+	apply := w.lightingApplyFn()
 	w.applyTimer = time.AfterFunc(150*time.Millisecond, func() {
 		glib.IdleAdd(func() bool {
-			w.sendApply()
+			w.runStateActionQuiet("apply lighting", apply, nil, nil)
 			return false
 		})
 	})
 }
 
-// sendApply sends the current lighting state to the daemon. Guarded by
-// w.syncing to prevent sending defaults during widget initialization.
+// setLightingEnabled turns the selected device on (re-applying the current
+// effect) or off.
 func (w *Window) setLightingEnabled(enabled bool) {
 	if w.syncing {
 		return
@@ -720,15 +724,21 @@ func (w *Window) setLightingEnabled(enabled bool) {
 		w.sendApply()
 		return
 	}
-	if _, err := api.SendOff(w.tab); err != nil {
-		slog.Warn("off failed", "device", w.tab, "err", err)
-	}
+	device := w.tab
+	w.runStateActionQuiet("lighting off", func() (bool, error) { return api.SendOff(device) }, nil, nil)
 }
 
+// sendApply queues the current lighting state for the daemon. Guarded by
+// w.syncing to prevent sending defaults during widget initialization.
 func (w *Window) sendApply() {
 	if w.syncing {
 		return
 	}
+	w.runStateActionQuiet("apply lighting", w.lightingApplyFn(), nil, nil)
+}
+
+// lightingApplyFn snapshots the lighting widgets into a daemon call.
+func (w *Window) lightingApplyFn() func() (bool, error) {
 	color1 := defaultColor1
 	if w.color1 != nil {
 		color1 = w.color1.hex
@@ -737,17 +747,12 @@ func (w *Window) sendApply() {
 	if w.color2 != nil {
 		color2 = w.color2.hex
 	}
-
+	device := w.tab
 	mode := activeButton(w.modeButtons, defaultMode)
 	speed := activeButton(w.speedBtns, defaultSpeed)
 	brightness := activeButton(w.brightBtns, defaultBrightness)
-
-	slog.Debug("sendApply: calling daemon", "device", w.tab, "mode", mode, "brightness", brightness)
-	start := time.Now()
-	if _, err := api.SendApply(w.tab, color1, color2, mode, speed, brightness); err != nil {
-		slog.Warn("apply failed", "err", err, "elapsed", time.Since(start))
-	} else {
-		slog.Debug("sendApply: done", "elapsed", time.Since(start))
+	return func() (bool, error) {
+		return api.SendApply(device, color1, color2, mode, speed, brightness)
 	}
 }
 

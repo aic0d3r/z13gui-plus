@@ -48,8 +48,6 @@ func main() {
 			}
 			fmt.Printf("Migrated config from %s to %s\n", theme.LegacyConfigDir(), theme.ConfigDir())
 			return
-		case "--toggle":
-			gtkArgs = append(gtkArgs, arg)
 		default:
 			gtkArgs = append(gtkArgs, arg)
 		}
