@@ -1,0 +1,38 @@
+name: Pages
+
+on:
+  push:
+    branches: [gh-pages]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+
+# Only one Pages deployment at a time.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # Docs are built by the Release workflow and published to the gh-pages
+      # branch by `mkdocs gh-deploy`; Pages now deploys from "GitHub Actions",
+      # so that branch needs this explicit publisher to reach the site.
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

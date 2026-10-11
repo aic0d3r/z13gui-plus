@@ -21,6 +21,10 @@ on:
         description: 'Deploy documentation'
         type: boolean
         default: true
+      pages:
+        description: 'Publish docs to the site via the Pages workflow (turn off for throwaway doc builds)'
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -39,6 +43,8 @@ jobs:
           ref: ${{ github.event.inputs.tag || github.ref }}
       - name: Fix git ownership
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - uses: actions/setup-go@v5
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -155,5 +161,8 @@ jobs:
       - name: Install MkDocs Material
         run: pip install -r requirements.txt
 
+      # gh-deploy pushes the gh-pages branch; the Pages workflow publishes it
+      # (Pages source is "GitHub Actions"). Skip for throwaway doc builds.
       - name: Deploy to GitHub Pages
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.pages }}
         run: mkdocs gh-deploy --force
