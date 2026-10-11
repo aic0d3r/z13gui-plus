@@ -130,9 +130,14 @@ contrib/
   destroying/hiding the surface. This prevents the ghost-surface artifact that KDE Plasma
   shows when remapping a surface. The 1px margin keeps the surface in KWin's composited
   output for damage tracking; opacity 0 makes the sliver invisible to the user.
-  While hidden the surface input region is emptied (`setClickThrough`); KWin does not
-  clip the parked surface, so without it the invisible drawer swallows clicks on a
-  monitor to the right (issue #1). `Show()` restores full input.
+  While hidden the drawer is parked (`setParked`): layer drops to Background and the
+  input region is emptied. KWin does not clip the parked surface and did not honor the
+  empty input region alone, so without the Background layer the invisible drawer
+  swallows clicks on a monitor to the right (issue #1). Layer-shell v2+ changes the
+  layer in place (no remap/ghost); KWin advertises v5. `Show()` restores Overlay first.
+  `hasRightNeighbor()` uses the monitor pinned at realize: on Wayland
+  `MonitorAtSurface` is the last *entered* output, i.e. the right neighbor itself
+  while parked over it.
 - **Width**: `SetSizeRequest(320, -1)`. Height is natural (content-driven, scrolled).
 - **Show/hide animation**: smoothstep easing via `AddTickCallback` (VSync-synced),
   with a shared `animGen` generation counter so a show cancels an in-flight hide

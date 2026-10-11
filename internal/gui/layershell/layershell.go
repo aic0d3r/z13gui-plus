@@ -24,8 +24,9 @@ const (
 
 // Backend manages the layer-shell overlay drawer on Wayland compositors.
 type Backend struct {
-	appWin *gtk.ApplicationWindow
-	gtkWin *gtk.Window
+	appWin  *gtk.ApplicationWindow
+	gtkWin  *gtk.Window
+	monitor *gdk.Monitor // output pinned at realize; KWin keeps the surface there across hotplug
 
 	drawerWidth   int
 	hiddenMargin  int
@@ -54,7 +55,7 @@ func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 	b.appWin.SetDecorated(false)
 
 	gtk4layershell.InitForWindow(b.gtkWin)
-	gtk4layershell.SetLayer(b.gtkWin, gtk4layershell.LayerShellLayerOverlay)
+	b.setParked(true) // starts hidden: Background layer until the first Show
 	gtk4layershell.SetAnchor(b.gtkWin, gtk4layershell.LayerShellEdgeRight, true)
 	gtk4layershell.SetAnchor(b.gtkWin, gtk4layershell.LayerShellEdgeTop, true)
 	gtk4layershell.SetAnchor(b.gtkWin, gtk4layershell.LayerShellEdgeBottom, true)
@@ -75,6 +76,7 @@ func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 			return
 		}
 		gtk4layershell.SetMonitor(b.gtkWin, monitor)
+		b.monitor = monitor
 		geo := monitor.Geometry()
 		margin := geo.Height() / marginFraction
 		gtk4layershell.SetMargin(b.gtkWin, gtk4layershell.LayerShellEdgeTop, margin)
@@ -178,7 +180,7 @@ func (b *Backend) WrapContent(drawer gtk.Widgetter) gtk.Widgetter {
 func (b *Backend) Show() {
 	slog.Debug("backend.Show", "startMargin", b.margin, "rightNeighbor", b.hasRightNeighbor())
 	b.showTime = time.Now()
-	b.setClickThrough(false)
+	b.setParked(false) // back to Overlay before the first animation frame
 
 	gtk4layershell.SetKeyboardMode(b.gtkWin, gtk4layershell.LayerShellKeyboardModeOnDemand)
 	if b.hasRightNeighbor() {
@@ -208,12 +210,12 @@ func (b *Backend) Hide() {
 		// surface off-screen. The drawer never crosses onto the right monitor.
 		b.fadeOpacity(0, func() {
 			b.setMargin(b.hiddenMargin)
-			b.setClickThrough(true)
+			b.setParked(true)
 		})
 	} else {
 		b.slideMargin(b.hiddenMargin, func() {
 			b.setOpacity(0) // hide the 1px sliver on the primary's own right edge
-			b.setClickThrough(true)
+			b.setParked(true)
 		})
 	}
 }
@@ -260,9 +262,22 @@ func (b *Backend) setMargin(m int) {
 	gtk4layershell.SetMargin(b.gtkWin, gtk4layershell.LayerShellEdgeRight, m)
 }
 
-// setClickThrough empties the surface input region while hidden. KWin does not
-// clip the parked surface to its monitor, so without this the invisible drawer
-// swallows clicks on a monitor to the right (issue #1). nil restores full input.
+// setParked moves the hidden drawer out of everyone's way. KWin does not clip the
+// parked surface to its monitor and, in practice, did not honor the empty input
+// region alone (issue #1), so the surface also drops to the Background layer,
+// below all normal windows on every output. Layer-shell v2+ changes the layer
+// in place (no remap, so no KDE ghost surface); KWin advertises v5.
+func (b *Backend) setParked(on bool) {
+	layer := gtk4layershell.LayerShellLayerOverlay
+	if on {
+		layer = gtk4layershell.LayerShellLayerBackground
+	}
+	gtk4layershell.SetLayer(b.gtkWin, layer)
+	b.setClickThrough(on)
+}
+
+// setClickThrough empties the surface input region while hidden (honored by
+// wlroots compositors). nil restores full input.
 func (b *Backend) setClickThrough(on bool) {
 	surface := b.appWin.Surface()
 	if surface == nil {
@@ -301,16 +316,21 @@ func (b *Backend) fadeOpacity(target float64, onDone func()) {
 // monitor (vertically overlapping its band). When true, hiding by sliding the
 // surface rightward off the primary would bleed onto that monitor, so a fade is
 // used instead. Recomputed per Show/Hide so monitor hotplug is handled.
+// Uses the pinned monitor: on Wayland MonitorAtSurface is the last *entered*
+// output, which is the right neighbor itself while the drawer is parked over it.
 func (b *Backend) hasRightNeighbor() bool {
-	surface := b.appWin.Surface()
-	if surface == nil {
-		return false
-	}
 	display := gdk.DisplayGetDefault()
 	if display == nil {
 		return false
 	}
-	self := display.MonitorAtSurface(surface)
+	self := b.monitor
+	if self == nil || !self.IsValid() {
+		surface := b.appWin.Surface()
+		if surface == nil {
+			return false
+		}
+		self = display.MonitorAtSurface(surface)
+	}
 	if self == nil {
 		return false
 	}

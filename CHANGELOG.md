@@ -3,6 +3,15 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## Unreleased
+
+- KDE Plasma: the hidden drawer now really stops blocking clicks on a monitor to
+  the right of the Z13 screen (the v2.1.2 fix was not enough on KWin). While hidden
+  the drawer drops below all windows.
+  [#1](https://github.com/aic0d3r/z13gui-plus/issues/1) (thanks @Sarpar12)
+- With a monitor to the right, the drawer no longer alternates between fading and
+  sliding across that monitor on every other open.
+
 ## v2.1.2 (2026-10-11)
 
 - KDE Plasma: the hidden drawer no longer blocks mouse clicks on a monitor placed
