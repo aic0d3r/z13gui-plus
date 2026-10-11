@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   pages: write
+  id-token: write
 
 # Only one Pages deployment at a time.
 concurrency:
