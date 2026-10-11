@@ -1,8 +1,3 @@
----
-title: Z13GUI+: ASUS ROG Flow Z13 Control Panel for Linux
-description: Armoury Crate–style control panel for the 2025 ASUS ROG Flow Z13 on Linux: profiles, TDP, fan curves, undervolt, RGB, battery limit, refresh rate.
----
-
 # Z13GUI+: ASUS ROG Flow Z13 Control Panel for Linux
 
 An Armoury Crate–style control drawer for the 2025 ASUS ROG Flow Z13 (Ryzen AI Max /

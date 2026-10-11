@@ -1,8 +1,3 @@
----
-title: Quick Start: Using the Z13GUI+ Drawer
-description: Open the Z13GUI+ drawer with the Armoury Crate button and control profiles, power, fans, RGB lighting, and display settings on the ROG Flow Z13.
----
-
 # Quick Start
 
 ## Opening the drawer
