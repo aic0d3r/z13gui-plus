@@ -3,6 +3,13 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## v2.2.1 (2026-10-12)
+
+- System tab: new ABOUT card showing the installed versions of Z13GUI+,
+  Z13CTL+, and z13-tablet-kit.
+- Switches no longer freeze halfway when the periodic state refresh lands
+  while you are toggling them.
+
 ## v2.2.0 (2026-10-12)
 
 - Tablet Kit panel: new "Keep my display scale" toggle. When on, z13ctl-plus

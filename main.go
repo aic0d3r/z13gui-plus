@@ -133,6 +133,7 @@ func main() {
 			win.Toggle()
 			return
 		}
+		gui.Version = Version
 		win = gui.New(app)
 		if openOnFirstActivate {
 			slog.Info("launcher activation, opening drawer")

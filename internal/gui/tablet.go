@@ -379,10 +379,10 @@ func (w *Window) syncTablet() {
 	if w.tabletPendingSettings != nil {
 		settings = *w.tabletPendingSettings
 	}
-	w.tabletDesktopSwitch.SetActive(settings.DisableTouchscreenInDesktop)
-	w.tabletTwoFingerHoldSwitch.SetActive(settings.TwoFingerHoldContextMenu)
-	w.tabletKeepScaleSwitch.SetActive(settings.KeepDisplayScale)
-	w.tabletTouchpadSwitch.SetActive(settings.TouchpadEnabled)
+	syncSwitch(w.tabletDesktopSwitch, settings.DisableTouchscreenInDesktop)
+	syncSwitch(w.tabletTwoFingerHoldSwitch, settings.TwoFingerHoldContextMenu)
+	syncSwitch(w.tabletKeepScaleSwitch, settings.KeepDisplayScale)
+	syncSwitch(w.tabletTouchpadSwitch, settings.TouchpadEnabled)
 	w.tabletSensitivityScale.SetValue(float64(settings.ScrollSensitivity))
 	w.tabletSpeedScale.SetValue(float64(settings.ScrollSpeed))
 }

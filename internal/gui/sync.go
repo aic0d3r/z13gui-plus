@@ -127,7 +127,7 @@ func (w *Window) syncCPUPower() {
 	w.cpuMinScale.SetValue(float64(state.MinFrequencyKHz) / 1000)
 	setActiveButton(w.cpuEPPBtns, state.EPP)
 	if w.cpuBoostSwitch != nil {
-		w.cpuBoostSwitch.SetActive(state.Boost)
+		syncSwitch(w.cpuBoostSwitch, state.Boost)
 	}
 }
 
@@ -178,7 +178,7 @@ func (w *Window) syncLightingSection() {
 	}
 	setActiveButton(w.modeButtons, mode)
 	if w.lightingSwitch != nil {
-		w.lightingSwitch.SetActive(enabled)
+		syncSwitch(w.lightingSwitch, enabled)
 		w.lightingSwitch.SetSensitive(present)
 	}
 	setOnOffSummary(w.lightingSummary, enabled)
@@ -761,7 +761,7 @@ func (w *Window) syncOverdrive() {
 	if w.state == nil || w.overdriveSwitch == nil {
 		return
 	}
-	w.overdriveSwitch.SetActive(w.state.PanelOverdrive != 0)
+	syncSwitch(w.overdriveSwitch, w.state.PanelOverdrive != 0)
 }
 
 // syncBootSound sets the boot sound switch to match the daemon state.
@@ -769,7 +769,7 @@ func (w *Window) syncBootSound() {
 	if w.state == nil || w.bootSoundSwitch == nil {
 		return
 	}
-	w.bootSoundSwitch.SetActive(w.state.BootSound != 0)
+	syncSwitch(w.bootSoundSwitch, w.state.BootSound != 0)
 	setOnOffSummary(w.startupSummary, w.state.BootSound != 0)
 }
 

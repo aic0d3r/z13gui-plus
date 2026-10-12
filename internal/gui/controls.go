@@ -246,6 +246,7 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	}))
 	inner.Append(startup)
 	inner.Append(w.buildAppearanceSection())
+	inner.Append(w.buildVersionSection())
 
 	scroll := gtk.NewScrolledWindow()
 	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
@@ -1491,4 +1492,14 @@ func (w *Window) buildColorFocusList() {
 	}
 
 	w.colorFocusItems = items
+}
+
+// syncSwitch sets a switch from daemon state without disturbing a click in
+// progress. gtk_switch_set_active always cancels the 100ms toggle animation,
+// but only resets the handle when the value changes, so a periodic
+// SetActive(sameValue) landing mid-animation freezes the handle halfway.
+func syncSwitch(sw *gtk.Switch, active bool) {
+	if sw.Active() != active {
+		sw.SetActive(active)
+	}
 }

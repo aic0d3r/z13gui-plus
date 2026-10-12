@@ -291,10 +291,10 @@ func (w *Window) syncPresets() {
 	enabled := currentPolicyEnabled(w.state)
 	ac, battery := powerPolicyAssignments(w.state)
 	if w.automationSwitch != nil {
-		w.automationSwitch.SetActive(enabled)
+		syncSwitch(w.automationSwitch, enabled)
 	}
 	if w.automationViewSw != nil {
-		w.automationViewSw.SetActive(enabled)
+		syncSwitch(w.automationViewSw, enabled)
 	}
 
 	acActive := enabled && w.state.PowerSource == "ac"
