@@ -109,6 +109,9 @@ sudo install -Dm755 z13gui-plus /usr/local/bin/z13gui-plus
 systemctl --user enable --now z13gui-plus.service
 ```
 
+On KDE Plasma, **Meta+Z** also toggles the drawer (rebind it under System Settings →
+Shortcuts → Z13GUI+).
+
 See the [Installation guide](https://aic0d3r.github.io/z13gui-plus/installation/) for
 runtime dependencies, gamepad input blocking, source builds, and uninstall
 instructions. Packages leave the GUI service disabled; enable only the GUI that

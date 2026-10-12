@@ -54,6 +54,10 @@ nfpms:
         dst: /usr/lib/systemd/user/z13gui-plus.service
       - src: contrib/io.github.aic0d3r.z13gui_plus.desktop
         dst: /usr/share/applications/io.github.aic0d3r.z13gui_plus.desktop
+      # KDE registers the X-KDE-Shortcuts default (Meta+Z) for launchers linked here.
+      - src: /usr/share/applications/io.github.aic0d3r.z13gui_plus.desktop
+        dst: /usr/share/kglobalaccel/io.github.aic0d3r.z13gui_plus.desktop
+        type: symlink
       - src: contrib/99-z13gui-plus-gamepad.rules
         dst: /usr/lib/udev/rules.d/99-z13gui-plus-gamepad.rules
     overrides:

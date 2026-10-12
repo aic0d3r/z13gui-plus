@@ -45,11 +45,13 @@ snapshot:
 release:
 	goreleaser release --clean
 
-## install: install pre-built binary and desktop entry (run make build first)
+## install: install pre-built binary, desktop entry and KDE Meta+Z shortcut (run make build first)
 install:
 	@test -f z13gui-plus || { echo "error: z13gui-plus binary not found. Run 'make build' first."; exit 1; }
 	install -Dm755 z13gui-plus $(DESTDIR)$(PREFIX)/bin/z13gui-plus
 	install -Dm644 contrib/io.github.aic0d3r.z13gui_plus.desktop $(DESTDIR)$(PREFIX)/share/applications/io.github.aic0d3r.z13gui_plus.desktop
+	install -d $(DESTDIR)$(PREFIX)/share/kglobalaccel
+	ln -sf ../applications/io.github.aic0d3r.z13gui_plus.desktop $(DESTDIR)$(PREFIX)/share/kglobalaccel/io.github.aic0d3r.z13gui_plus.desktop
 
 ## setcap: grant BPF capabilities to installed binary (enables hidraw blocker)
 setcap:
@@ -73,6 +75,8 @@ uninstall-service:
 ## install-desktop: install desktop entry for the current user
 install-desktop:
 	install -Dm644 contrib/io.github.aic0d3r.z13gui_plus.desktop $(HOME)/.local/share/applications/io.github.aic0d3r.z13gui_plus.desktop
+	install -d $(HOME)/.local/share/kglobalaccel
+	ln -sf $(HOME)/.local/share/applications/io.github.aic0d3r.z13gui_plus.desktop $(HOME)/.local/share/kglobalaccel/io.github.aic0d3r.z13gui_plus.desktop
 
 ## clean: remove all generated build and test artifacts
 clean:
