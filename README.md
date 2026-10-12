@@ -65,7 +65,7 @@ Z13. Install the other two repos alongside it:
   scrolling and two-finger context menus
 - [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) — owns internal-panel
   scale/rotation/refresh changes and persists tablet settings (desktop touch
-  policy, two-finger hold, folio touchpad opt-in, scroll speed)
+  policy, two-finger hold, folio touchpad opt-in, scroll speed, keep display scale)
 - **Z13GUI+** (this repo) — GTK4 overlay drawer exposing live posture/health and
   the tablet toggles
 

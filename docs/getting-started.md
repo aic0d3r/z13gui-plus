@@ -40,6 +40,7 @@ heartbeats put the chip in a warning state. Enabling the GZ302EA folio touchpad
 always asks for confirmation because affected firmware can cause a jumping
 cursor. The optional two-finger hold setting opens the context menu after
 holding two stationary fingers briefly; moving fingers scrolls and cancels it.
+"Keep my display scale" stops posture changes from touching the screen scale.
 
 The theme picker button at the bottom-left of the drawer opens the theme view.
 See [Theming](theming.md) for details.

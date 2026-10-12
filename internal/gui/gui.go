@@ -154,6 +154,7 @@ type Window struct {
 	tabletTouchpadStatus      *gtk.Label
 	tabletDesktopSwitch       *gtk.Switch
 	tabletTwoFingerHoldSwitch *gtk.Switch
+	tabletKeepScaleSwitch     *gtk.Switch
 	tabletTouchpadRow         *gtk.Box
 	tabletTouchpadSwitch      *gtk.Switch
 	tabletTouchpadConfirm     *gtk.Box

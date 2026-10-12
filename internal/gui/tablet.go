@@ -144,6 +144,16 @@ func (w *Window) buildTabletPopover() *gtk.Box {
 			})
 		},
 	))
+	panel.Append(w.buildToggle(
+		"Keep my display scale",
+		"Never change the screen scale when the posture changes",
+		&w.tabletKeepScaleSwitch,
+		func(keep bool) {
+			w.changeTabletSettings(func(settings *api.TabletSettings) {
+				settings.KeepDisplayScale = keep
+			})
+		},
+	))
 	twoFingerDetail := gtk.NewLabel("Holding two stationary fingers about 650 ms opens the context menu. Moving fingers scrolls and cancels.")
 	twoFingerDetail.SetHAlign(gtk.AlignStart)
 	twoFingerDetail.SetWrap(true)
@@ -371,6 +381,7 @@ func (w *Window) syncTablet() {
 	}
 	w.tabletDesktopSwitch.SetActive(settings.DisableTouchscreenInDesktop)
 	w.tabletTwoFingerHoldSwitch.SetActive(settings.TwoFingerHoldContextMenu)
+	w.tabletKeepScaleSwitch.SetActive(settings.KeepDisplayScale)
 	w.tabletTouchpadSwitch.SetActive(settings.TouchpadEnabled)
 	w.tabletSensitivityScale.SetValue(float64(settings.ScrollSensitivity))
 	w.tabletSpeedScale.SetValue(float64(settings.ScrollSpeed))
