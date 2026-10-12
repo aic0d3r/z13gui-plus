@@ -109,10 +109,6 @@ sudo install -Dm755 z13gui-plus /usr/local/bin/z13gui-plus
 systemctl --user enable --now z13gui-plus.service
 ```
 
-> **AUR lag:** the `z13gui-plus-bin` AUR package trails the GitHub releases (currently
-> 1.3.0 vs. **v2.2.0** — AUR updates are paused). It lacks the tablet integration. For
-> the latest, install the **release tarball** from GitHub instead of AUR.
-
 See the [Installation guide](https://aic0d3r.github.io/z13gui-plus/installation/) for
 runtime dependencies, gamepad input blocking, source builds, and uninstall
 instructions. Packages leave the GUI service disabled; enable only the GUI that
