@@ -44,6 +44,26 @@
     font-size: 10px;
 }
 
+/* Presets screen cards: name in normal case so long names don't wrap. */
+.drawer .preset-card {
+    padding: 10px 12px;
+}
+
+.drawer .preset-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.drawer .preset-card .pill {
+    padding: 2px 7px;
+    font-size: 9px;
+}
+
+.drawer .subtle-btn {
+    min-height: 40px;
+    font-size: 12px;
+}
+
 /* Confirmation dialog message text */
 .drawer .confirm-message {
     padding: 10px;

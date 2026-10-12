@@ -135,6 +135,35 @@ window.z13-drawer-window {
     border-color: @z13-border-hi;
 }
 
+/* Assignment toggles: assigned reads as a selected state, not a primary action. */
+.drawer .btn-group button.assign-toggle {
+    color: @z13-text-dim;
+}
+
+.drawer .btn-group button.assign-toggle.assigned {
+    background: alpha(@z13-accent, 0.14);
+    color: @z13-accent;
+    border-color: alpha(@z13-accent, 0.6);
+}
+
+.drawer .preset-name {
+    color: @z13-text;
+}
+
+.drawer .preset-summary.warning {
+    color: @z13-warning;
+}
+
+.drawer button.subtle-btn {
+    background: transparent;
+    border: none;
+    color: @z13-text-dim;
+}
+
+.drawer button.subtle-btn:hover {
+    color: @z13-text;
+}
+
 /* Preset card in the Presets screen that is currently applied. */
 .drawer .card.current-assignment {
     background: alpha(@z13-accent, 0.08);

@@ -13,6 +13,7 @@ import (
 	"github.com/dahui/z13ctl/api"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+	"github.com/diamondburned/gotk4/pkg/pango"
 )
 
 func (w *Window) buildPresetEntrySection() *gtk.Box {
@@ -208,7 +209,7 @@ func (w *Window) buildPresetsView() *gtk.Box {
 	w.presetsList = gtk.NewBox(gtk.OrientationVertical, 8)
 	content.Append(w.presetsList)
 
-	w.presetSaveBtn = gtk.NewButtonWithLabel("+ Save Current Settings")
+	w.presetSaveBtn = gtk.NewButtonWithLabel("Save Current Settings as Preset")
 	w.presetSaveBtn.AddCSSClass("action-btn")
 	w.presetSaveBtn.SetTooltipText("Saves profile, TDP, undervolt, CPU, refresh and overdrive. Rename it in Edit.")
 	w.presetSaveBtn.ConnectClicked(func() {
@@ -221,8 +222,8 @@ func (w *Window) buildPresetsView() *gtk.Box {
 	})
 	content.Append(w.presetSaveBtn)
 
-	w.presetRestoreBtn = gtk.NewButtonWithLabel("Restore Recommended Automation")
-	w.presetRestoreBtn.AddCSSClass("action-btn")
+	w.presetRestoreBtn = gtk.NewButtonWithLabel("Restore recommended presets")
+	w.presetRestoreBtn.AddCSSClass("subtle-btn")
 	w.presetRestoreBtn.ConnectClicked(func() {
 		w.showConfirmation(
 			"Restore Recommended Automation",
@@ -355,63 +356,78 @@ func (w *Window) rebuildPresetRows() {
 		preset := w.state.Presets[name]
 		card := gtk.NewBox(gtk.OrientationVertical, 6)
 		card.AddCSSClass("card")
+		card.AddCSSClass("preset-card")
 		toggleClass(card, "current-assignment", w.state.ActivePreset == name)
 
-		header := gtk.NewBox(gtk.OrientationHorizontal, 6)
+		active := w.state.ActivePreset == name
+		ac := w.state.PowerPolicy != nil && w.state.PowerPolicy.ACPreset == name
+		battery := w.state.PowerPolicy != nil && w.state.PowerPolicy.BatteryPreset == name
+
+		// Name left; state pills right (assignment is information here, the
+		// toggles below are the action).
+		header := gtk.NewBox(gtk.OrientationHorizontal, 4)
 		title := gtk.NewLabel(name)
 		title.SetHAlign(gtk.AlignStart)
 		title.SetHExpand(true)
-		title.SetWrap(true)
-		title.AddCSSClass("card-title")
+		title.SetEllipsize(pango.EllipsizeEnd)
+		title.SetXAlign(0)
+		title.AddCSSClass("preset-name")
 		header.Append(title)
-		if w.state.ActivePreset == name {
-			header.Append(pill("ACTIVE", ""))
+		if active {
+			header.Append(pill("Active", "accent"))
 		}
-		if presetHighTDP(preset) {
-			badge := pill("SAFETY FANS", "warning")
-			badge.SetTooltipText("Sustained TDP above 75 W locks fans to safety cooling while active")
-			header.Append(badge)
+		if ac {
+			header.Append(pill("Plugged in", ""))
+		}
+		if battery {
+			header.Append(pill("Battery", ""))
 		}
 		card.Append(header)
 		summary := gtk.NewLabel(compactPresetSummary(preset))
 		summary.SetHAlign(gtk.AlignStart)
 		summary.SetWrap(true)
+		summary.SetXAlign(0)
 		summary.AddCSSClass("preset-summary")
+		if presetHighTDP(preset) {
+			summary.AddCSSClass("warning")
+			summary.SetTooltipText("Sustained TDP above 75 W locks fans to safety cooling while active")
+		}
 		card.Append(summary)
 
-		actions := gtk.NewBox(gtk.OrientationHorizontal, 4)
+		// One row: Apply · Edit · AC toggle · battery toggle.
+		actions := gtk.NewGrid()
+		actions.SetColumnSpacing(4)
+		actions.SetColumnHomogeneous(true)
 		actions.AddCSSClass("btn-group")
-		actions.SetHomogeneous(true)
 		apply := gtk.NewButtonWithLabel("Apply")
-		if w.state.ActivePreset == name {
-			apply.SetLabel("Reapply")
+		if active {
+			apply.SetLabel("Applied")
+			apply.SetSensitive(false)
 		}
 		apply.ConnectClicked(func() { w.applyPresetNow(name) })
 		edit := gtk.NewButtonWithLabel("Edit")
 		edit.ConnectClicked(func() { w.showPresetDetail(name) })
-		actions.Append(apply)
-		actions.Append(edit)
-		card.Append(actions)
+		actions.Attach(apply, 0, 0, 1, 1)
+		actions.Attach(edit, 1, 0, 1, 1)
 		focus(apply, 0)
 		focus(edit, 1)
-		row++
-
-		// Assignment toggles: tapping assigns this preset to that source.
-		assign := gtk.NewBox(gtk.OrientationHorizontal, 4)
-		assign.AddCSSClass("btn-group")
-		assign.SetHomogeneous(true)
-		for col, target := range []struct{ source, label string }{{"ac", "Plugged In"}, {"battery", "On Battery"}} {
-			btn := gtk.NewButtonWithLabel(target.label)
-			assigned := w.state.PowerPolicy != nil &&
-				((target.source == "ac" && w.state.PowerPolicy.ACPreset == name) ||
-					(target.source == "battery" && w.state.PowerPolicy.BatteryPreset == name))
-			toggleClass(btn, "active", assigned)
-			btn.SetTooltipText("Use this preset " + strings.ToLower(target.label))
+		for col, target := range []struct {
+			source, label, icon string
+			assigned            bool
+		}{{"ac", "plugged in", "ac-adapter-symbolic", ac}, {"battery", "on battery", "battery-symbolic", battery}} {
+			btn := gtk.NewButtonFromIconName(target.icon)
+			btn.AddCSSClass("assign-toggle")
+			toggleClass(btn, "assigned", target.assigned)
+			if target.assigned {
+				btn.SetTooltipText("Used " + target.label)
+			} else {
+				btn.SetTooltipText("Use " + target.label)
+			}
 			btn.ConnectClicked(func() {
-				if assigned {
+				if target.assigned {
 					return
 				}
-				message := fmt.Sprintf("%s used %s", name, strings.ToLower(target.label))
+				message := fmt.Sprintf("%s used %s", name, target.label)
 				if enabled && w.state.PowerSource == target.source {
 					message += " and applied"
 				}
@@ -421,10 +437,10 @@ func (w *Window) rebuildPresetRows() {
 					w.setPresetPolicy(enabled, "", name, message)
 				}
 			})
-			assign.Append(btn)
-			focus(btn, col)
+			actions.Attach(btn, 2+col, 0, 1, 1)
+			focus(btn, 2+col)
 		}
-		card.Append(assign)
+		card.Append(actions)
 		row++
 		w.presetsList.Append(card)
 	}
