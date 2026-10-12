@@ -740,13 +740,6 @@ func presetSummary(preset api.Preset) string {
 	if profile == "" {
 		profile = "Default"
 	}
-	fan := "Auto"
-	if preset.FanCurve != nil {
-		fan = strings.Title(matchingFanPreset(preset.FanCurve)) //nolint:staticcheck // ASCII label
-		if fan == "" {
-			fan = "Custom"
-		}
-	}
 	tdp := "Default"
 	if preset.TDP != nil {
 		tdp = fmt.Sprintf("%d/%d/%d W", preset.TDP.PL1SPL, preset.TDP.PL2SPPT, preset.TDP.FPPT)
@@ -777,7 +770,6 @@ func presetSummary(preset api.Preset) string {
 	}
 	rows := []string{
 		"Profile: " + profile,
-		"Fan: " + fan,
 		"TDP: " + tdp,
 		"Undervolt: " + uv,
 		"CPU: " + cpu,
@@ -813,9 +805,6 @@ func currentSettingsSummary(state *api.State) string {
 		CPUPower:       nil,
 		RefreshRate:    state.RefreshRate,
 		PanelOverdrive: &state.PanelOverdrive,
-	}
-	if state.FanCurveActive {
-		preset.FanCurve = state.FanCurve
 	}
 	if state.TDPActive {
 		preset.TDP = state.TDP

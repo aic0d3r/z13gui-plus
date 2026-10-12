@@ -45,11 +45,11 @@ func TestPresetSummary(t *testing.T) {
 		RefreshRate:    180,
 		PanelOverdrive: &overdrive,
 	}
-	want := "Profile: Balanced\nFan: Auto\nTDP: 45/55/65 W\nUndervolt: -15\nCPU: 625 MHz min · Efficient CPU · Boost on\nRefresh: 180 Hz\nOverdrive: On"
+	want := "Profile: Balanced\nTDP: 45/55/65 W\nUndervolt: -15\nCPU: 625 MHz min · Efficient CPU · Boost on\nRefresh: 180 Hz\nOverdrive: On"
 	if got := presetSummary(preset); got != want {
 		t.Fatalf("presetSummary() = %q, want %q", got, want)
 	}
-	if got, want := compactPresetSummary(preset), "Balanced · Auto · 45/55/65 W"; got != want {
+	if got, want := compactPresetSummary(preset), "Balanced · 45/55/65 W · -15"; got != want {
 		t.Fatalf("compactPresetSummary() = %q, want %q", got, want)
 	}
 }
