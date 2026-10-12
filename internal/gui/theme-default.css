@@ -159,12 +159,8 @@ window.z13-drawer-window {
     border-color: alpha(@z13-warning, 0.55);
 }
 
-.drawer .btn-group button.preset-chip.high-tdp image {
+.drawer .btn-group button.preset-chip.high-tdp:not(.active) {
     color: @z13-warning;
-}
-
-.drawer .btn-group button.preset-chip.high-tdp.active image {
-    color: #ffffff;
 }
 
 /* Quiet secondary action, e.g. Reapply after a manual change. */

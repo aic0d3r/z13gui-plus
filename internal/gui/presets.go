@@ -120,8 +120,8 @@ func (w *Window) syncPresetChips() {
 		btn.SetTooltipText(compactPresetSummary(preset))
 		high := presetHighTDP(preset)
 		toggleClass(btn, "high-tdp", high)
-		if icon, ok := btn.Child().(*gtk.Box); ok {
-			gtk.BaseWidget(icon.FirstChild()).SetVisible(high)
+		if high {
+			btn.SetTooltipText(compactPresetSummary(preset) + " — locks fans to safety cooling while active")
 		}
 	}
 	setActiveButton(w.presetChipBtns, w.state.ActivePreset)
@@ -138,21 +138,13 @@ func chipColumns(names []string) int {
 	return 3
 }
 
-// presetChip is a chip button with an ellipsized label and a hidden warning
-// icon shown for presets that engage safety fan cooling.
+// presetChip is a chip button with an ellipsized label.
 func presetChip(name string) *gtk.Button {
-	box := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	box.SetHAlign(gtk.AlignCenter)
-	icon := gtk.NewImageFromIconName("dialog-warning-symbolic")
-	icon.SetVisible(false)
-	icon.SetTooltipText("Locks fans to safety cooling while active")
-	box.Append(icon)
 	label := gtk.NewLabel(name)
 	label.SetEllipsize(pango.EllipsizeEnd)
 	label.SetMaxWidthChars(14)
-	box.Append(label)
 	btn := gtk.NewButton()
-	btn.SetChild(box)
+	btn.SetChild(label)
 	btn.SetHExpand(true)
 	btn.AddCSSClass("preset-chip")
 	return btn
@@ -422,12 +414,6 @@ func (w *Window) rebuildPresetRows() {
 		if active {
 			header.Append(pill("Active", "accent"))
 		}
-		if ac {
-			header.Append(pill("Plugged in", ""))
-		}
-		if battery {
-			header.Append(pill("Battery", ""))
-		}
 		card.Append(header)
 		summary := gtk.NewLabel(compactPresetSummary(preset))
 		summary.SetHAlign(gtk.AlignStart)
@@ -458,10 +444,10 @@ func (w *Window) rebuildPresetRows() {
 		focus(apply, 0)
 		focus(edit, 1)
 		for col, target := range []struct {
-			source, label, short, icon string
-			assigned                   bool
-		}{{"ac", "plugged in", "Plug", "ac-adapter-symbolic", ac}, {"battery", "on battery", "Battery", "battery-symbolic", battery}} {
-			btn := iconLabelButton(target.icon, target.short)
+			source, label, short string
+			assigned             bool
+		}{{"ac", "plugged in", "AC", ac}, {"battery", "on battery", "Battery", battery}} {
+			btn := gtk.NewButtonWithLabel(target.short)
 			btn.AddCSSClass("assign-toggle")
 			toggleClass(btn, "assigned", target.assigned)
 			if target.assigned {
@@ -494,16 +480,6 @@ func (w *Window) rebuildPresetRows() {
 	focus(w.presetSaveBtn, 0)
 	row++
 	focus(w.presetRestoreBtn, 0)
-}
-
-func iconLabelButton(icon, text string) *gtk.Button {
-	box := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	box.SetHAlign(gtk.AlignCenter)
-	box.Append(gtk.NewImageFromIconName(icon))
-	box.Append(gtk.NewLabel(text))
-	btn := gtk.NewButton()
-	btn.SetChild(box)
-	return btn
 }
 
 func pill(text, class string) *gtk.Label {
