@@ -3,6 +3,25 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## v2.3.0 (2026-10-12)
+
+- Energy-preference picker now only offers the values the kernel accepts.
+  amd-pstate-epp advertises the allowed EPP values per current cpufreq
+  policy — under the performance policy that is `performance` alone. All
+  four buttons used to render regardless; the daemon rejected the rest
+  (`unsupported CPU EPP`) and, because the failure was only reported in the
+  Presets view, the picker silently snapped back to Performance. Buttons now
+  follow the daemon's `epp_choices` (the kernel's advertised list) and
+  repopulate live whenever the policy changes.
+- New **Dynamic** energy preference on Linux 7.3+ kernels: amd-pstate-epp's
+  dynamic mode lets the kernel pick the EPP from the power source / platform
+  profile natively. The button only appears when the kernel advertises it,
+  so older kernels are unaffected.
+- Fixed the active highlight in dynamic mode: the 7.3 kernel reads dynamic
+  back as `dynamic(profile:…)`, which previously matched no button (nothing
+  turned red) and leaked into the tuning summary and presets captured from
+  live state. The suffix is now stripped at every consumption point.
+
 ## v2.2.1 (2026-10-12)
 
 - System tab: new ABOUT card showing the installed versions of Z13GUI+,
