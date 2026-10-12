@@ -4,6 +4,7 @@ package gui
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -125,10 +126,22 @@ func (w *Window) syncCPUPower() {
 	state := w.state.CPUPower
 	w.cpuMinScale.SetRange(float64(state.MinLimitKHz)/1000, float64(state.MaxLimitKHz)/1000)
 	w.cpuMinScale.SetValue(float64(state.MinFrequencyKHz) / 1000)
+	// amd-pstate-epp only accepts the EPP values the current governor advertises
+	// (with governor=performance that is "performance" alone), so hide the rest
+	// instead of offering buttons whose write the daemon must reject.
+	for value, btn := range w.cpuEPPBtns {
+		btn.SetVisible(eppSupported(state.EPPChoices, value))
+	}
 	setActiveButton(w.cpuEPPBtns, state.EPP)
 	if w.cpuBoostSwitch != nil {
 		syncSwitch(w.cpuBoostSwitch, state.Boost)
 	}
+}
+
+// eppSupported reports whether the daemon's state advertises the EPP value.
+// An empty choice list means an older daemon that reports none: assume all work.
+func eppSupported(choices []string, value string) bool {
+	return len(choices) == 0 || slices.Contains(choices, value)
 }
 
 func (w *Window) initCPUMinDebounce(scale *gtk.Scale) {

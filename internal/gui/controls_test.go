@@ -131,3 +131,23 @@ func TestBrightnessLabel(t *testing.T) {
 		t.Errorf("brightnessLabel clamps high value: %q", got)
 	}
 }
+
+func TestEPPSupported(t *testing.T) {
+	// amd-pstate-epp with governor=performance advertises only "performance".
+	choices := []string{"performance"}
+	for _, value := range []string{"balance_performance", "balance_power", "power"} {
+		if eppSupported(choices, value) {
+			t.Errorf("eppSupported(%v, %q) = true, want false", choices, value)
+		}
+	}
+	if !eppSupported(choices, "performance") {
+		t.Fatal("performance must stay available")
+	}
+	full := []string{"performance", "balance_performance", "balance_power", "power"}
+	if !eppSupported(full, "power") {
+		t.Fatal("all advertised choices must be available")
+	}
+	if !eppSupported(nil, "balance_power") {
+		t.Fatal("an empty choice list must not hide anything")
+	}
+}
