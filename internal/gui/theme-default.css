@@ -173,7 +173,8 @@ window.z13-drawer-window {
     color: @z13-warning;
 }
 
-.drawer .automation-source {
+.drawer .automation-source,
+.drawer .automation-detail {
     color: @z13-text-dim;
 }
 

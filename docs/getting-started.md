@@ -15,7 +15,7 @@ Press it again, click anywhere outside the drawer, or press **Escape** to close 
 |---------|-------------|
 | **Overview** | Monitor CPU, GPU, NPU, memory, battery, power, clocks, temperatures, and fan speed. |
 | **Profile** | Switch between quiet, balanced, and performance hardware profiles. |
-| **Power Automation** | Assign named presets to plugged-in and battery operation. |
+| **Power Automation** | Assign named presets to plugged-in and battery operation. Each row shows what the preset sets; a **MANUAL** badge and **Reapply** button appear when you change settings by hand. Open a preset in the library to edit its profile, TDP, undervolt, CPU behavior, refresh rate, and overdrive directly. Fan mode is never part of a preset. |
 | **CPU Power** | Set the CPU minimum frequency, AMD energy performance preference (EPP), and CPU boost without changing GPU clocks. |
 | **Power Tuning** | Open independent TDP, fan-curve, and undervolt overrides. |
 | **Fan Mode** | Select firmware Auto or the Balanced and Turbo curve presets. |

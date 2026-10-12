@@ -377,6 +377,14 @@ Feature-complete for both KDE and gamescope modes:
 - 50ms duplicate filter on daemon `gui-toggle` events (`internal/togglegate`)
 - Single-instance activate guard (re-activation toggles instead of building a second drawer)
 - GTK_A11Y=none for systemd AT-SPI timeout prevention
+- Power automation card: two-line AC/battery rows (name + key values), MANUAL
+  pill + "Reapply <preset>" when a manual change overrides the assignment, and
+  a "Turning on applies <preset> now" hint while off
+- Preset editor (`preset_editor.go`): direct editing of profile, TDP, undervolt,
+  CPU min/EPP/boost, refresh, overdrive via `api.SendPresetSet`; presets with
+  PL1 > 75 W get a SAFETY FANS badge/warning (no confirmation, by design).
+  Sync only rebuilds the editor when the saved preset or its usage changed, so
+  unsaved edits survive telemetry polls.
 - RGB lighting controls (mode, color presets + custom chooser/HSL picker, speed, brightness)
 - Profile switching via buttons (quiet/balanced/performance/custom)
 - Custom profile view with:

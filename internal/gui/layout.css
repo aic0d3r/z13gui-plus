@@ -48,6 +48,10 @@
     font-size: 11px;
 }
 
+.drawer .automation-detail {
+    font-size: 10px;
+}
+
 .drawer .assignment-row .card-title,
 .drawer .preset-row .card-title {
     margin-bottom: 0;

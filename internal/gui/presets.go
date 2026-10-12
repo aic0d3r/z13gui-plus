@@ -28,12 +28,43 @@ func (w *Window) buildPresetEntrySection() *gtk.Box {
 	header.Append(w.automationSwitch)
 	card.Append(header)
 
+	w.automationHint = gtk.NewLabel("")
+	w.automationHint.SetHAlign(gtk.AlignStart)
+	w.automationHint.SetWrap(true)
+	w.automationHint.AddCSSClass("card-sub")
+	w.automationHint.SetVisible(false)
+	card.Append(w.automationHint)
+
 	w.presetAssignments = gtk.NewBox(gtk.OrientationVertical, 2)
-	w.presetACRow, w.presetACLabel, w.presetACStatus = automationSummaryRow("PLUGGED IN")
-	w.presetBatteryRow, w.presetBatteryLabel, w.presetBatteryStatus = automationSummaryRow("ON BATTERY")
+	w.presetACRow, w.presetACLabel, w.presetACStatus, w.presetACDetail = automationSummaryRow("PLUGGED IN")
+	w.presetBatteryRow, w.presetBatteryLabel, w.presetBatteryStatus, w.presetBatteryDetail = automationSummaryRow("ON BATTERY")
 	w.presetAssignments.Append(w.presetACRow)
 	w.presetAssignments.Append(w.presetBatteryRow)
 	card.Append(w.presetAssignments)
+
+	// Shown while a manual change overrides the assigned preset.
+	w.presetReapplyBtn = gtk.NewButtonWithLabel("Reapply")
+	w.presetReapplyBtn.AddCSSClass("suggested-action")
+	w.presetReapplyBtn.SetVisible(false)
+	w.presetReapplyBtn.ConnectClicked(func() {
+		name, _ := automationCurrent(w.state)
+		if name == "" {
+			return
+		}
+		w.queueStateAction(stateAction{
+			name: "reapply preset", reportStatus: true,
+			fn:        func() (bool, error) { return api.SendPresetApply(name) },
+			onApplied: func() { w.showPresetFeedback(name + " reapplied") },
+		})
+	})
+	card.Append(w.presetReapplyBtn)
+
+	w.presetCardStatus = gtk.NewLabel("")
+	w.presetCardStatus.SetHAlign(gtk.AlignStart)
+	w.presetCardStatus.SetWrap(true)
+	w.presetCardStatus.AddCSSClass("card-sub")
+	w.presetCardStatus.SetVisible(false)
+	card.Append(w.presetCardStatus)
 
 	w.presetsBtn = gtk.NewButtonWithLabel("Edit Assignments")
 	w.presetsBtn.AddCSSClass("action-btn")
@@ -63,23 +94,32 @@ func (w *Window) newAutomationSwitch() *gtk.Switch {
 	return sw
 }
 
-func automationSummaryRow(source string) (row *gtk.Box, preset, status *gtk.Label) {
-	row = gtk.NewBox(gtk.OrientationHorizontal, 6)
+// automationSummaryRow builds a two-line row: source, preset name and status
+// pill, then the preset's key values.
+func automationSummaryRow(source string) (row *gtk.Box, preset, status, detail *gtk.Label) {
+	row = gtk.NewBox(gtk.OrientationVertical, 0)
 	row.AddCSSClass("automation-summary-row")
+	line := gtk.NewBox(gtk.OrientationHorizontal, 6)
 	sourceLabel := gtk.NewLabel(source)
 	sourceLabel.SetHAlign(gtk.AlignStart)
 	sourceLabel.AddCSSClass("automation-source")
-	row.Append(sourceLabel)
+	line.Append(sourceLabel)
 	preset = gtk.NewLabel("Not assigned")
 	preset.SetHAlign(gtk.AlignEnd)
 	preset.SetHExpand(true)
 	preset.AddCSSClass("preset-summary")
-	row.Append(preset)
+	line.Append(preset)
 	status = gtk.NewLabel("ACTIVE")
 	status.AddCSSClass("pill")
 	status.SetVisible(false)
-	row.Append(status)
-	return row, preset, status
+	line.Append(status)
+	row.Append(line)
+	detail = gtk.NewLabel("")
+	detail.SetHAlign(gtk.AlignEnd)
+	detail.SetWrap(true)
+	detail.AddCSSClass("automation-detail")
+	row.Append(detail)
+	return row, preset, status, detail
 }
 
 func viewHeader(title string, back func()) (*gtk.Box, *gtk.Button, *gtk.Label) {
@@ -299,9 +339,24 @@ func (w *Window) syncPresets() {
 
 	acActive := enabled && w.state.PowerSource == "ac"
 	batteryActive := enabled && w.state.PowerSource == "battery"
+	current, manual := automationCurrent(w.state)
+	if w.automationHint != nil {
+		hint := ""
+		if next := assignedForSource(w.state); !enabled && next != "" {
+			hint = "Turning on applies " + next + " now."
+		} else if manual {
+			hint = "Manual changes active. " + current + " returns on the next plug change."
+		}
+		w.automationHint.SetLabel(hint)
+		w.automationHint.SetVisible(hint != "")
+		w.presetReapplyBtn.SetLabel("Reapply " + current)
+		w.presetReapplyBtn.SetVisible(manual)
+	}
 	if w.presetAssignments != nil {
 		w.presetACLabel.SetLabel(ac)
 		w.presetBatteryLabel.SetLabel(battery)
+		w.presetACDetail.SetLabel(presetDetailLine(w.state, ac))
+		w.presetBatteryDetail.SetLabel(presetDetailLine(w.state, battery))
 		if ac == "Not assigned" {
 			w.presetACRow.AddCSSClass("assignment-missing")
 		} else {
@@ -312,8 +367,8 @@ func (w *Window) syncPresets() {
 		} else {
 			w.presetBatteryRow.RemoveCSSClass("assignment-missing")
 		}
-		w.presetACStatus.SetVisible(acActive)
-		w.presetBatteryStatus.SetVisible(batteryActive)
+		setAssignmentPill(w.presetACStatus, acActive, manual)
+		setAssignmentPill(w.presetBatteryStatus, batteryActive, manual)
 		if enabled {
 			w.presetAssignments.RemoveCSSClass("automation-off")
 		} else {
@@ -343,8 +398,8 @@ func (w *Window) syncPresets() {
 		} else {
 			w.batteryChangeBtn.RemoveCSSClass("assignment-missing")
 		}
-		w.acAssignmentStatus.SetVisible(acActive)
-		w.batteryAssignStatus.SetVisible(batteryActive)
+		setAssignmentPill(w.acAssignmentStatus, acActive, manual)
+		setAssignmentPill(w.batteryAssignStatus, batteryActive, manual)
 		if acActive {
 			w.acChangeBtn.AddCSSClass("current-assignment")
 		} else {
@@ -360,8 +415,16 @@ func (w *Window) syncPresets() {
 		w.presetCurrent.SetLabel(currentSettingsSummary(w.state))
 	}
 	w.rebuildPresetRows()
+	// Rebuilding the editor discards unsaved edits, so only do it when the
+	// preset itself or its usage changed underneath.
 	if w.presetDetailName != "" && w.presetDetailContent != nil {
-		w.rebuildPresetDetail()
+		preset, ok := w.state.Presets[w.presetDetailName]
+		base := clonePresetValue(preset)
+		base.BaseProfile = ""
+		usage := presetUsage(w.presetDetailName, w.state)
+		if !ok || !reflect.DeepEqual(base, w.presetDraftBase) || usage != w.presetDetailUsage {
+			w.rebuildPresetDetail()
+		}
 	}
 	if w.viewStack != nil {
 		switch w.viewStack.VisibleChildName() {
@@ -403,6 +466,13 @@ func (w *Window) rebuildPresetRows() {
 		usage.SetHAlign(gtk.AlignEnd)
 		usage.AddCSSClass("card-sub")
 		header.Append(usage)
+		if presetHighTDP(preset) {
+			badge := gtk.NewLabel("SAFETY FANS")
+			badge.AddCSSClass("pill")
+			badge.AddCSSClass("warning")
+			badge.SetTooltipText("Sustained TDP above 75 W locks fans to safety cooling while active")
+			header.Append(badge)
+		}
 		body.Append(header)
 		summary := gtk.NewLabel(compactPresetSummary(preset))
 		summary.SetHAlign(gtk.AlignStart)
@@ -433,6 +503,14 @@ func (w *Window) buildPresetDetailView() *gtk.Box {
 	w.presetDetailBackBtn = back
 	w.presetDetailTitle = title
 	view.Append(header)
+	w.presetDetailStatus = gtk.NewLabel("")
+	w.presetDetailStatus.SetHAlign(gtk.AlignStart)
+	w.presetDetailStatus.SetWrap(true)
+	w.presetDetailStatus.SetMarginStart(12)
+	w.presetDetailStatus.SetMarginEnd(12)
+	w.presetDetailStatus.AddCSSClass("card-sub")
+	w.presetDetailStatus.SetVisible(false)
+	view.Append(w.presetDetailStatus)
 	w.presetDetailContent = gtk.NewBox(gtk.OrientationVertical, 8)
 	w.presetDetailContent.SetMarginTop(4)
 	w.presetDetailContent.SetMarginBottom(12)
@@ -457,59 +535,6 @@ func (w *Window) showPresetDetail(name string) {
 	w.rebuildPresetDetail()
 	w.viewStack.SetVisibleChildName("preset-detail")
 	w.swapFocusList(w.presetDetailFocusItems)
-}
-
-func (w *Window) rebuildPresetDetail() {
-	preset, ok := w.state.Presets[w.presetDetailName]
-	if !ok {
-		w.showPresetsView()
-		return
-	}
-	for child := w.presetDetailContent.FirstChild(); child != nil; child = w.presetDetailContent.FirstChild() {
-		w.presetDetailContent.Remove(child)
-	}
-	w.presetDetailTitle.SetLabel(w.presetDetailName)
-	usage := gtk.NewLabel(presetUsage(w.presetDetailName, w.state))
-	usage.SetHAlign(gtk.AlignStart)
-	usage.AddCSSClass("card-sub")
-	w.presetDetailContent.Append(usage)
-	settings := plainPowerCard("SETTINGS")
-	summary := gtk.NewLabel(presetSummary(preset))
-	summary.SetHAlign(gtk.AlignStart)
-	summary.SetWrap(true)
-	summary.AddCSSClass("preset-summary")
-	settings.Append(summary)
-	w.presetDetailContent.Append(settings)
-
-	update := gtk.NewButtonWithLabel("Update from Current Settings")
-	update.AddCSSClass("action-btn")
-	name := w.presetDetailName
-	update.ConnectClicked(func() {
-		w.runStateAction("update preset", func() (bool, error) { return api.SendPresetSave(name) })
-	})
-	w.presetDetailContent.Append(update)
-	remove := gtk.NewButtonWithLabel("Delete Preset")
-	remove.AddCSSClass("destructive-action")
-	assigned := presetAssigned(name, w.state)
-	remove.SetSensitive(!assigned)
-	remove.ConnectClicked(func() {
-		w.showConfirmation("Delete Preset", fmt.Sprintf("Delete %q? Current hardware settings will not change.", name), "Delete", "preset-library", true, func() {
-			w.runStateAction("delete preset", func() (bool, error) { return api.SendPresetDelete(name) })
-		})
-	})
-	w.presetDetailContent.Append(remove)
-	if assigned {
-		hint := gtk.NewLabel("Assign another preset before deleting this one.")
-		hint.SetHAlign(gtk.AlignStart)
-		hint.SetWrap(true)
-		hint.AddCSSClass("card-sub")
-		w.presetDetailContent.Append(hint)
-	}
-	w.presetDetailFocusItems = []focusItem{
-		{widget: w.presetDetailBackBtn, row: 0, col: 0, section: "preset-detail-header", onActivate: func() { w.presetDetailBackBtn.Activate() }},
-		{widget: update, row: 1, col: 0, section: "preset-detail", onActivate: func() { update.Activate() }},
-		{widget: remove, row: 2, col: 0, section: "preset-detail", onActivate: func() { remove.Activate() }},
-	}
 }
 
 func (w *Window) buildPresetChooser() *gtk.Box {
@@ -680,6 +705,53 @@ func sortedPresetNames(presets map[string]api.Preset) []string {
 	return slices.Sorted(maps.Keys(presets))
 }
 
+// assignedForSource returns the preset assigned to the current power source,
+// whether or not automation is enabled.
+func assignedForSource(state *api.State) string {
+	if state == nil || state.PowerPolicy == nil {
+		return ""
+	}
+	switch state.PowerSource {
+	case "ac":
+		return state.PowerPolicy.ACPreset
+	case "battery":
+		return state.PowerPolicy.BatteryPreset
+	}
+	return ""
+}
+
+// automationCurrent returns the preset automation wants right now and
+// whether a manual change has overridden it until the next plug change.
+func automationCurrent(state *api.State) (name string, manual bool) {
+	if !currentPolicyEnabled(state) {
+		return "", false
+	}
+	name = assignedForSource(state)
+	return name, name != "" && state.ActivePreset != name
+}
+
+func setAssignmentPill(pill *gtk.Label, active, manual bool) {
+	pill.SetVisible(active)
+	if manual {
+		pill.SetLabel("MANUAL")
+		pill.AddCSSClass("warning")
+	} else {
+		pill.SetLabel("ACTIVE")
+		pill.RemoveCSSClass("warning")
+	}
+}
+
+func presetDetailLine(state *api.State, name string) string {
+	if state == nil {
+		return ""
+	}
+	preset, ok := state.Presets[name]
+	if !ok {
+		return ""
+	}
+	return compactPresetSummary(preset)
+}
+
 func currentPolicyEnabled(state *api.State) bool {
 	return state != nil && state.PowerPolicy != nil && state.PowerPolicy.Enabled
 }
@@ -725,14 +797,27 @@ func presetAssigned(name string, state *api.State) bool {
 		(state.PowerPolicy.ACPreset == name || state.PowerPolicy.BatteryPreset == name)
 }
 
+// compactPresetSummary lists only what the preset changes, e.g.
+// "Balanced · 70 W · UV -30 · 60 Hz".
 func compactPresetSummary(preset api.Preset) string {
-	rows := strings.Split(presetSummary(preset), "\n")
-	for i := 0; i < 3; i++ {
-		if _, value, ok := strings.Cut(rows[i], ": "); ok {
-			rows[i] = value
-		}
+	profile := strings.Title(preset.Profile) //nolint:staticcheck // ASCII daemon value
+	if profile == "" {
+		profile = "Default"
 	}
-	return strings.Join(rows[:3], " · ")
+	parts := []string{profile}
+	if preset.TDP != nil {
+		parts = append(parts, fmt.Sprintf("%d W", preset.TDP.PL1SPL))
+	}
+	if preset.Undervolt != nil {
+		parts = append(parts, fmt.Sprintf("UV %d", preset.Undervolt.CPUCO))
+	}
+	if preset.RefreshRate > 0 {
+		parts = append(parts, fmt.Sprintf("%d Hz", preset.RefreshRate))
+	}
+	if presetHighTDP(preset) {
+		parts = append(parts, "safety fans")
+	}
+	return strings.Join(parts, " · ")
 }
 
 func presetSummary(preset api.Preset) string {
@@ -960,18 +1045,24 @@ func (w *Window) finishStateAction() {
 }
 
 func (w *Window) setPresetStatus(message string) {
-	if w.presetStatus != nil {
-		w.presetStatus.SetLabel(message)
+	w.presetFeedbackGen++
+	for _, label := range []*gtk.Label{w.presetStatus, w.presetAssignmentStatus, w.presetDetailStatus, w.presetCardStatus} {
+		if label != nil {
+			label.SetLabel(message)
+		}
 	}
-	if w.presetAssignmentStatus != nil {
-		w.presetAssignmentStatus.SetLabel(message)
+	for _, label := range []*gtk.Label{w.presetDetailStatus, w.presetCardStatus} {
+		if label != nil {
+			label.SetVisible(message != "")
+		}
 	}
 }
 
 func (w *Window) showPresetFeedback(message string) {
 	w.setPresetStatus(message)
+	gen := w.presetFeedbackGen
 	glib.TimeoutAdd(3000, func() bool {
-		if w.presetAssignmentStatus != nil && w.presetAssignmentStatus.Label() == message {
+		if w.presetFeedbackGen == gen {
 			w.setPresetStatus("")
 		}
 		return false

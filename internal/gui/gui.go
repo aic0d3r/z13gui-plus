@@ -178,6 +178,15 @@ type Window struct {
 	presetDetailContent     *gtk.Box
 	presetDetailBackBtn     *gtk.Button
 	presetDetailFocusItems  []focusItem
+	presetDetailStatus      *gtk.Label
+	presetDetailUsage       string     // usage text the editor was built with
+	presetDraftBase         api.Preset // saved values the editor was built from
+	presetFeedbackGen       int
+	automationHint          *gtk.Label
+	presetReapplyBtn        *gtk.Button
+	presetCardStatus        *gtk.Label
+	presetACDetail          *gtk.Label
+	presetBatteryDetail     *gtk.Label
 
 	// Premium hero widgets — battery card (Overview tab).
 	// Power tab telemetry gauges removed; live stats live on Overview tab only.

@@ -1211,6 +1211,17 @@ func (w *Window) powerTabFocusItems() []focusItem {
 		row++
 	}
 
+	if w.presetReapplyBtn != nil {
+		btn := w.presetReapplyBtn
+		items = append(items, focusItem{
+			widget: btn, row: row, col: 0,
+			section:    "presets",
+			isVisible:  btn.Visible,
+			onActivate: func() { btn.Activate() },
+		})
+		row++
+	}
+
 	if w.presetsBtn != nil {
 		btn := w.presetsBtn
 		items = append(items, focusItem{

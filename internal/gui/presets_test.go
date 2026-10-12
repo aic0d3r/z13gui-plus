@@ -49,7 +49,7 @@ func TestPresetSummary(t *testing.T) {
 	if got := presetSummary(preset); got != want {
 		t.Fatalf("presetSummary() = %q, want %q", got, want)
 	}
-	if got, want := compactPresetSummary(preset), "Balanced · 45/55/65 W · -15"; got != want {
+	if got, want := compactPresetSummary(preset), "Balanced · 45 W · UV -15 · 180 Hz"; got != want {
 		t.Fatalf("compactPresetSummary() = %q, want %q", got, want)
 	}
 }
@@ -93,5 +93,40 @@ func TestEPPDisplayName(t *testing.T) {
 		if got := eppDisplayName(value); got != want {
 			t.Errorf("eppDisplayName(%q) = %q, want %q", value, got, want)
 		}
+	}
+}
+
+func TestAutomationCurrent(t *testing.T) {
+	state := &api.State{
+		PowerSource:  "ac",
+		ActivePreset: "70W",
+		PowerPolicy:  &api.PowerPolicy{Enabled: true, ACPreset: "70W", BatteryPreset: "On Battery"},
+	}
+	if name, manual := automationCurrent(state); name != "70W" || manual {
+		t.Fatalf("applied preset = %q manual=%v", name, manual)
+	}
+	state.ActivePreset = ""
+	if name, manual := automationCurrent(state); name != "70W" || !manual {
+		t.Fatalf("after manual change = %q manual=%v", name, manual)
+	}
+	state.PowerPolicy.Enabled = false
+	if _, manual := automationCurrent(state); manual {
+		t.Fatal("manual reported while automation is off")
+	}
+	if got := assignedForSource(state); got != "70W" {
+		t.Fatalf("assignedForSource() = %q", got)
+	}
+}
+
+func TestPresetHighTDP(t *testing.T) {
+	if presetHighTDP(api.Preset{TDP: &api.TDPState{PL1SPL: 75}}) {
+		t.Fatal("75 W flagged as high TDP")
+	}
+	p := api.Preset{Profile: "balanced", TDP: &api.TDPState{PL1SPL: 80}}
+	if !presetHighTDP(p) {
+		t.Fatal("80 W not flagged")
+	}
+	if got := compactPresetSummary(p); got != "Balanced · 80 W · safety fans" {
+		t.Fatalf("compactPresetSummary() = %q", got)
 	}
 }
