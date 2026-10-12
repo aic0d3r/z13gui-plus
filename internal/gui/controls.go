@@ -564,7 +564,7 @@ func (w *Window) backCurrentView() {
 		return
 	}
 	switch w.viewStack.VisibleChildName() {
-	case "chooser":
+	case "preset-detail":
 		w.showPresetsView()
 	case "confirm":
 		w.returnFromConfirmation()
@@ -1210,6 +1210,16 @@ func (w *Window) powerTabFocusItems() []focusItem {
 		})
 		row++
 	}
+
+	for i, name := range w.presetChipNames {
+		btn := w.presetChipBtns[name]
+		items = append(items, focusItem{
+			widget: btn, row: row + i/3, col: i % 3,
+			section:    "presets",
+			onActivate: func() { btn.Activate() },
+		})
+	}
+	row += (len(w.presetChipNames) + 2) / 3
 
 	if w.presetReapplyBtn != nil {
 		btn := w.presetReapplyBtn

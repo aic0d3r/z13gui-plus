@@ -112,25 +112,11 @@ type Window struct {
 	presetsScroll       *gtk.ScrolledWindow
 	presetsBackBtn      *gtk.Button
 	presetsList         *gtk.Box
-	presetNameEntry     *gtk.Entry
 	automationSwitch    *gtk.Switch
 	automationViewSw    *gtk.Switch
 	presetSaveBtn       *gtk.Button
 	presetRestoreBtn    *gtk.Button
-	presetStatus        *gtk.Label
-	acAssignment        *gtk.Box
-	batteryAssignment   *gtk.Box
-	acAssignmentLabel   *gtk.Label
-	batteryAssignLabel  *gtk.Label
-	acChangeBtn         *gtk.Button
-	batteryChangeBtn    *gtk.Button
-	presetCurrent       *gtk.Label
 	presetFocusItems    []focusItem
-	chooserScroll       *gtk.ScrolledWindow
-	chooserList         *gtk.Box
-	chooserTitle        *gtk.Label
-	chooserDetail       *gtk.Label
-	chooserFocusItems   []focusItem
 	confirmTitle        *gtk.Label
 	confirmMessage      *gtk.Label
 	confirmBtn          *gtk.Button
@@ -166,27 +152,25 @@ type Window struct {
 	tabletFeedback            *gtk.Label
 	tabletPendingSettings     *api.TabletSettings
 
-	presetAssignmentStatus  *gtk.Label
-	presetLibraryBtn        *gtk.Button
-	presetLibraryScroll     *gtk.ScrolledWindow
-	presetLibraryBackBtn    *gtk.Button
-	presetLibraryFocusItems []focusItem
-	acAssignmentStatus      *gtk.Label
-	batteryAssignStatus     *gtk.Label
-	presetDetailName        string
-	presetDetailTitle       *gtk.Label
-	presetDetailContent     *gtk.Box
-	presetDetailBackBtn     *gtk.Button
-	presetDetailFocusItems  []focusItem
-	presetDetailStatus      *gtk.Label
-	presetDetailUsage       string     // usage text the editor was built with
-	presetDraftBase         api.Preset // saved values the editor was built from
-	presetFeedbackGen       int
-	automationHint          *gtk.Label
-	presetReapplyBtn        *gtk.Button
-	presetCardStatus        *gtk.Label
-	presetACDetail          *gtk.Label
-	presetBatteryDetail     *gtk.Label
+	presetAssignmentStatus *gtk.Label
+	presetDetailName       string
+	presetDetailTitle      *gtk.Label
+	presetDetailContent    *gtk.Box
+	presetDetailBackBtn    *gtk.Button
+	presetDetailFocusItems []focusItem
+	presetDetailStatus     *gtk.Label
+	presetDetailScroll     *gtk.ScrolledWindow
+	presetChips            *gtk.Grid
+	presetChipNames        []string
+	presetChipBtns         map[string]*gtk.Button
+	presetDetailUsage      string     // usage text the editor was built with
+	presetDraftBase        api.Preset // saved values the editor was built from
+	presetFeedbackGen      int
+	automationHint         *gtk.Label
+	presetReapplyBtn       *gtk.Button
+	presetCardStatus       *gtk.Label
+	presetACDetail         *gtk.Label
+	presetBatteryDetail    *gtk.Label
 
 	// Premium hero widgets — battery card (Overview tab).
 	// Power tab telemetry gauges removed; live stats live on Overview tab only.

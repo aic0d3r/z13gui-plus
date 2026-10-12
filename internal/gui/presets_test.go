@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/dahui/z13ctl/api"
@@ -35,36 +34,30 @@ func TestPowerPolicyAssignments(t *testing.T) {
 	}
 }
 
-func TestPresetSummary(t *testing.T) {
-	overdrive := 1
+func TestCompactPresetSummary(t *testing.T) {
 	preset := api.Preset{
-		Profile:        "balanced",
-		TDP:            &api.TDPState{PL1SPL: 45, PL2SPPT: 55, FPPT: 65},
-		Undervolt:      &api.UndervoltState{CPUCO: -15},
-		CPUPower:       &api.CPUPowerPreset{MinFrequencyKHz: 625000, EPP: "balance_power", Boost: true},
-		RefreshRate:    180,
-		PanelOverdrive: &overdrive,
-	}
-	want := "Profile: Balanced\nTDP: 45/55/65 W\nUndervolt: -15\nCPU: 625 MHz min · Efficient CPU · Boost on\nRefresh: 180 Hz\nOverdrive: On"
-	if got := presetSummary(preset); got != want {
-		t.Fatalf("presetSummary() = %q, want %q", got, want)
+		Profile:     "balanced",
+		TDP:         &api.TDPState{PL1SPL: 45, PL2SPPT: 55, FPPT: 65},
+		Undervolt:   &api.UndervoltState{CPUCO: -15},
+		RefreshRate: 180,
 	}
 	if got, want := compactPresetSummary(preset), "Balanced · 45 W · UV -15 · 180 Hz"; got != want {
 		t.Fatalf("compactPresetSummary() = %q, want %q", got, want)
 	}
 }
 
-func TestCurrentSettingsSummaryUsesOverrideFlags(t *testing.T) {
-	state := &api.State{
-		Profile: "quiet",
-		TDP:     &api.TDPState{PL1SPL: 55, PL2SPPT: 65, FPPT: 75},
+func TestAutoPresetName(t *testing.T) {
+	state := &api.State{Profile: "balanced", TDPActive: true, TDP: &api.TDPState{PL1SPL: 70}}
+	if got := autoPresetName(state); got != "Balanced 70 W" {
+		t.Fatalf("autoPresetName() = %q", got)
 	}
-	if got := currentSettingsSummary(state); !strings.Contains(got, "TDP: Default") {
-		t.Fatalf("inactive TDP included in current summary: %q", got)
+	state.Presets = map[string]api.Preset{"Balanced 70 W": {}, "Balanced 70 W 2": {}}
+	if got := autoPresetName(state); got != "Balanced 70 W 3" {
+		t.Fatalf("autoPresetName() with collisions = %q", got)
 	}
-	state.TDPActive = true
-	if got := currentSettingsSummary(state); !strings.Contains(got, "TDP: 55/65/75 W") {
-		t.Fatalf("active TDP missing from current summary: %q", got)
+	state.TDPActive = false
+	if got := autoPresetName(state); got != "Balanced" {
+		t.Fatalf("autoPresetName() without TDP override = %q", got)
 	}
 }
 
@@ -78,21 +71,6 @@ func TestPresetUsageSeparatesActiveAndAssigned(t *testing.T) {
 	}
 	if !presetAssigned("Daily", state) || presetAssigned("Manual", state) {
 		t.Fatal("presetAssigned() did not reflect policy assignments")
-	}
-}
-
-func TestEPPDisplayName(t *testing.T) {
-	tests := map[string]string{
-		"balance_performance": "Responsive CPU",
-		"balance_power":       "Efficient CPU",
-		"performance":         "Maximum performance",
-		"power":               "Maximum efficiency",
-		"dynamic":             "Dynamic (follows power source)",
-	}
-	for value, want := range tests {
-		if got := eppDisplayName(value); got != want {
-			t.Errorf("eppDisplayName(%q) = %q, want %q", value, got, want)
-		}
 	}
 }
 

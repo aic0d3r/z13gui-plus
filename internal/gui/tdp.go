@@ -885,7 +885,7 @@ func (w *Window) startTelemetryPolling() {
 		}
 		customActive := view == "custom"
 		overviewActive := tab == "overview"
-		powerActive := tab == "power" || view == "presets" || view == "chooser" || view == "confirm"
+		powerActive := tab == "power" || view == "presets" || view == "preset-detail" || view == "confirm"
 		systemActive := tab == "system"
 		rgbActive := tab == "rgb"
 		if (!customActive && !overviewActive && !powerActive && !systemActive && !rgbActive) || w.stateActionBusy || w.telemetryPollBusy {

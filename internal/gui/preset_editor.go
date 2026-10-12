@@ -5,6 +5,7 @@ package gui
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/dahui/z13ctl/api"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
@@ -138,14 +139,24 @@ func (w *Window) rebuildPresetDetail() {
 	usage.AddCSSClass("card-sub")
 	e.box.Append(usage)
 
-	save := gtk.NewButtonWithLabel("Save Changes")
+	save := gtk.NewButtonWithLabel("Save")
+	if w.state.ActivePreset == name {
+		save.SetLabel("Save & Apply")
+	}
+	e.heading("NAME")
+	nameEntry := gtk.NewEntry()
+	nameEntry.SetText(name)
+	e.box.Append(nameEntry)
+	e.focus = append(e.focus, focusItem{widget: nameEntry, row: e.row, col: 0, section: "preset-editor", onActivate: func() { nameEntry.GrabFocus() }})
+	e.row++
 	safety := gtk.NewLabel("Sustained TDP above 75 W: fans lock to high-TDP safety cooling while this preset is active.")
 	safety.SetHAlign(gtk.AlignStart)
 	safety.SetWrap(true)
 	safety.AddCSSClass("card-sub")
 	safety.AddCSSClass("warning")
+	newName := func() string { return strings.TrimSpace(nameEntry.Text()) }
 	changed := func() {
-		save.SetSensitive(!reflect.DeepEqual(draft, w.presetDraftBase))
+		save.SetSensitive(newName() != name || !reflect.DeepEqual(draft, w.presetDraftBase))
 		safety.SetVisible(presetHighTDP(draft))
 	}
 
@@ -321,16 +332,40 @@ func (w *Window) rebuildPresetDetail() {
 	})
 
 	save.AddCSSClass("suggested-action")
+	nameEntry.ConnectChanged(changed)
 	save.ConnectClicked(func() {
 		value := clonePresetValue(draft)
-		message := "Preset saved"
-		if w.state.ActivePreset == name {
-			message = "Preset saved and applied"
+		target := newName()
+		if target == "" {
+			w.setPresetStatus("Enter a preset name")
+			return
+		}
+		if target != name && hasPreset(w.state, target) {
+			w.setPresetStatus(fmt.Sprintf("A preset named %q already exists", target))
+			return
+		}
+		valuesChanged := !reflect.DeepEqual(draft, w.presetDraftBase)
+		message := target + " saved"
+		if w.state.ActivePreset == name && valuesChanged {
+			message = target + " saved and applied"
 		}
 		w.queueStateAction(stateAction{
 			name: "save preset", reportStatus: true,
-			fn:        func() (bool, error) { return api.SendPresetSet(name, value) },
-			onApplied: func() { w.showPresetFeedback(message) },
+			fn: func() (bool, error) {
+				if target != name {
+					if ok, err := api.SendPresetRename(name, target); !ok || err != nil {
+						return ok, err
+					}
+				}
+				if !valuesChanged {
+					return true, nil
+				}
+				return api.SendPresetSet(target, value)
+			},
+			onApplied: func() {
+				w.showPresetsView()
+				w.showPresetFeedback(message)
+			},
 		})
 	})
 	e.box.Append(save)
@@ -351,7 +386,7 @@ func (w *Window) rebuildPresetDetail() {
 	assigned := presetAssigned(name, w.state)
 	remove.SetSensitive(!assigned)
 	remove.ConnectClicked(func() {
-		w.showConfirmation("Delete Preset", fmt.Sprintf("Delete %q? Current hardware settings will not change.", name), "Delete", "preset-library", true, func() {
+		w.showConfirmation("Delete Preset", fmt.Sprintf("Delete %q? Current hardware settings will not change.", name), "Delete", "presets", true, func() {
 			w.runStateAction("delete preset", func() (bool, error) { return api.SendPresetDelete(name) })
 		})
 	})

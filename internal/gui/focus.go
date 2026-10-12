@@ -344,8 +344,8 @@ func (w *Window) ensureVisible(widget gtk.Widgetter) {
 			scroll = w.customScroll
 		case "presets":
 			scroll = w.presetsScroll
-		case "chooser":
-			scroll = w.chooserScroll
+		case "preset-detail":
+			scroll = w.presetDetailScroll
 		case "color":
 			scroll = w.colorScroll
 		default:

@@ -377,9 +377,15 @@ Feature-complete for both KDE and gamescope modes:
 - 50ms duplicate filter on daemon `gui-toggle` events (`internal/togglegate`)
 - Single-instance activate guard (re-activation toggles instead of building a second drawer)
 - GTK_A11Y=none for systemd AT-SPI timeout prevention
-- Power automation card: two-line AC/battery rows (name + key values), MANUAL
-  pill + "Reapply <preset>" when a manual change overrides the assignment, and
-  a "Turning on applies <preset> now" hint while off
+- Power automation card: two-line AC/battery rows (name + key values), one-tap
+  preset chips (3 per row, active highlighted), MANUAL pill + "Reapply
+  <preset>" when a manual change overrides the assignment, and a "Turning on
+  applies <preset> now" hint while off. Chip changes rebuild the main focus list.
+- One "presets" view (no separate library/chooser): per-preset Apply/Edit and
+  inline Plugged In / On Battery assignment buttons (no popovers — gamescope),
+  "+ Save Current Settings" with an auto name (`autoPresetName`), Restore
+  Recommended at the bottom. Rename happens in the editor via
+  `api.SendPresetRename`, which keeps assignments.
 - Preset editor (`preset_editor.go`): direct editing of profile, TDP, undervolt,
   CPU min/EPP/boost, refresh, overdrive via `api.SendPresetSet`; presets with
   PL1 > 75 W get a SAFETY FANS badge/warning (no confirmation, by design).
