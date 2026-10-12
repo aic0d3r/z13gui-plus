@@ -66,7 +66,7 @@ func TestPresetUsageSeparatesActiveAndAssigned(t *testing.T) {
 		ActivePreset: "Daily",
 		PowerPolicy:  &api.PowerPolicy{ACPreset: "Daily", BatteryPreset: "Mobile"},
 	}
-	if got := presetUsage("Daily", state); got != "ACTIVE NOW · PLUGGED IN" {
+	if got := presetUsage("Daily", state); got != "Active now · Plugged in" {
 		t.Fatalf("presetUsage() = %q", got)
 	}
 	if !presetAssigned("Daily", state) || presetAssigned("Manual", state) {

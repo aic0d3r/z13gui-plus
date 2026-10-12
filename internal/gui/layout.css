@@ -56,7 +56,12 @@
 
 .drawer .preset-card .pill {
     padding: 2px 7px;
-    font-size: 9px;
+}
+
+.drawer .outline-btn {
+    min-height: 32px;
+    padding: 2px 12px;
+    font-size: 12px;
 }
 
 .drawer .subtle-btn {

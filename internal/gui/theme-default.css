@@ -154,6 +154,30 @@ window.z13-drawer-window {
     color: @z13-warning;
 }
 
+/* Preset chips that engage safety fan cooling: visible before the tap. */
+.drawer .btn-group button.preset-chip.high-tdp {
+    border-color: alpha(@z13-warning, 0.55);
+}
+
+.drawer .btn-group button.preset-chip.high-tdp image {
+    color: @z13-warning;
+}
+
+.drawer .btn-group button.preset-chip.high-tdp.active image {
+    color: #ffffff;
+}
+
+/* Quiet secondary action, e.g. Reapply after a manual change. */
+.drawer button.outline-btn {
+    background: transparent;
+    border: 1px solid alpha(@z13-accent, 0.55);
+    color: @z13-accent;
+}
+
+.drawer button.outline-btn:hover {
+    background: alpha(@z13-accent, 0.1);
+}
+
 .drawer button.subtle-btn {
     background: transparent;
     border: none;
@@ -388,20 +412,20 @@ window.z13-drawer-window {
 
 /* Status pill (charging state, profile name, etc.) */
 .drawer .pill {
-    background: rgba(255, 255, 255, 0.05);
+    background: alpha(@z13-text, 0.05);
     border: 1px solid @z13-border-hi;
     color: @z13-text-dim;
 }
 
 .drawer .pill.success {
-    background: rgba(74, 222, 128, 0.12);
-    border-color: rgba(74, 222, 128, 0.4);
+    background: alpha(@z13-success, 0.12);
+    border-color: alpha(@z13-success, 0.4);
     color: @z13-success;
 }
 
 .drawer .pill.warning {
-    background: rgba(251, 191, 36, 0.12);
-    border-color: rgba(251, 191, 36, 0.4);
+    background: alpha(@z13-warning, 0.12);
+    border-color: alpha(@z13-warning, 0.4);
     color: @z13-warning;
 }
 
@@ -412,8 +436,8 @@ window.z13-drawer-window {
 }
 
 .drawer .pill.accent {
-    background: rgba(226, 35, 26, 0.15);
-    border-color: rgba(226, 35, 26, 0.5);
+    background: alpha(@z13-accent, 0.15);
+    border-color: alpha(@z13-accent, 0.5);
     color: @z13-accent;
 }
 

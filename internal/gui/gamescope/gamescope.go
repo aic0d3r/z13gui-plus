@@ -275,6 +275,9 @@ func (b *Backend) scaledCSS() string {
 .drawer .automation-summary-row { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
 .drawer .automation-source { font-size: %.0fpx; letter-spacing: %.0fpx; }
 .drawer .automation-summary-row .preset-summary { font-size: %.0fpx; }
+.drawer .automation-detail, .drawer .pill { font-size: %.0fpx; }
+.drawer .preset-name { font-size: %.0fpx; }
+.drawer .outline-btn { min-height: %.0fpx; font-size: %.0fpx; }
 .drawer .settings-row .toggle-label { font-size: %.0fpx; letter-spacing: %.1fpx; }
 .drawer .settings-row switch, .drawer switch.automation-switch { min-height: %.0fpx; min-width: %.0fpx; border-radius: %.0fpx; }
 .drawer .settings-row switch slider, .drawer switch.automation-switch slider { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
@@ -307,7 +310,10 @@ func (b *Backend) scaledCSS() string {
 		2*s,                 // accent-dot-active border
 		28*s, 2*s, 6*s, 6*s, // automation-summary-row
 		10*s, 1*s, // automation-source
-		11*s,        // automation preset summary
+		11*s,       // automation preset summary
+		10*s,       // automation-detail, pill
+		14*s,       // preset-name
+		40*s, 12*s, // outline-btn
 		10*s, 0.5*s, // toggle-label
 		22*s, 40*s, 11*s, // settings-row switch (height, width, border-radius)
 		18*s, 18*s, 9*s, // switch slider (width, height, border-radius)

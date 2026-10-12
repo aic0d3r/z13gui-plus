@@ -155,6 +155,7 @@ func (w *Window) rebuildPresetDetail() {
 	safety.AddCSSClass("card-sub")
 	safety.AddCSSClass("warning")
 	newName := func() string { return strings.TrimSpace(nameEntry.Text()) }
+	w.presetEditorDirty = func() bool { return newName() != name || !reflect.DeepEqual(draft, w.presetDraftBase) }
 	changed := func() {
 		save.SetSensitive(newName() != name || !reflect.DeepEqual(draft, w.presetDraftBase))
 		safety.SetVisible(presetHighTDP(draft))
@@ -363,6 +364,7 @@ func (w *Window) rebuildPresetDetail() {
 				return api.SendPresetSet(target, value)
 			},
 			onApplied: func() {
+				w.presetEditorDirty = nil
 				w.showPresetsView()
 				w.showPresetFeedback(message)
 			},
@@ -375,7 +377,9 @@ func (w *Window) rebuildPresetDetail() {
 	update := gtk.NewButtonWithLabel("Update from Current Settings")
 	update.AddCSSClass("action-btn")
 	update.ConnectClicked(func() {
-		w.runStateAction("update preset", func() (bool, error) { return api.SendPresetSave(name) })
+		w.showConfirmation("Update Preset", fmt.Sprintf("Replace %q with the settings active right now?", name), "Replace", "preset-detail", false, func() {
+			w.runStateAction("update preset", func() (bool, error) { return api.SendPresetSave(name) })
+		})
 	})
 	e.box.Append(update)
 	e.focus = append(e.focus, focusItem{widget: update, row: e.row, col: 0, section: "preset-actions", onActivate: func() { update.Activate() }})

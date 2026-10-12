@@ -163,6 +163,8 @@ type Window struct {
 	presetChips            *gtk.Grid
 	presetChipNames        []string
 	presetChipBtns         map[string]*gtk.Button
+	presetChipCols         int
+	presetEditorDirty      func() bool
 	presetDetailUsage      string     // usage text the editor was built with
 	presetDraftBase        api.Preset // saved values the editor was built from
 	presetFeedbackGen      int

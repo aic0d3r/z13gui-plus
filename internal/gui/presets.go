@@ -53,7 +53,8 @@ func (w *Window) buildPresetEntrySection() *gtk.Box {
 
 	// Shown while a manual change overrides the assigned preset.
 	w.presetReapplyBtn = gtk.NewButtonWithLabel("Reapply")
-	w.presetReapplyBtn.AddCSSClass("suggested-action")
+	w.presetReapplyBtn.AddCSSClass("outline-btn")
+	w.presetReapplyBtn.SetHAlign(gtk.AlignStart)
 	w.presetReapplyBtn.SetVisible(false)
 	w.presetReapplyBtn.ConnectClicked(func() {
 		if name, _ := automationCurrent(w.state); name != "" {
@@ -97,13 +98,16 @@ func (w *Window) syncPresetChips() {
 		}
 		w.presetChipNames = names
 		w.presetChipBtns = make(map[string]*gtk.Button, len(names))
+		w.presetChipCols = chipColumns(names)
 		for i, name := range names {
-			btn := gtk.NewButtonWithLabel(name)
-			btn.SetHExpand(true)
-			btn.SetTooltipText(compactPresetSummary(w.state.Presets[name]))
-			btn.ConnectClicked(func() { w.applyPresetNow(name) })
+			btn := presetChip(name)
+			btn.ConnectClicked(func() {
+				// Highlight immediately: the tapped chip is where the eye is.
+				setActiveButton(w.presetChipBtns, name)
+				w.applyPresetNow(name)
+			})
 			w.presetChipBtns[name] = btn
-			w.presetChips.Attach(btn, i%3, i/3, 1, 1)
+			w.presetChips.Attach(btn, i%w.presetChipCols, i/w.presetChipCols, 1, 1)
 		}
 		w.presetChips.SetVisible(len(names) > 0)
 		w.buildMainFocusList()
@@ -112,9 +116,46 @@ func (w *Window) syncPresetChips() {
 		}
 	}
 	for name, btn := range w.presetChipBtns {
-		btn.SetTooltipText(compactPresetSummary(w.state.Presets[name]))
+		preset := w.state.Presets[name]
+		btn.SetTooltipText(compactPresetSummary(preset))
+		high := presetHighTDP(preset)
+		toggleClass(btn, "high-tdp", high)
+		if icon, ok := btn.Child().(*gtk.Box); ok {
+			gtk.BaseWidget(icon.FirstChild()).SetVisible(high)
+		}
 	}
 	setActiveButton(w.presetChipBtns, w.state.ActivePreset)
+}
+
+// chipColumns uses three chips per row, or two when any name would be cut
+// short at a third of the 320 px drawer.
+func chipColumns(names []string) int {
+	for _, name := range names {
+		if len([]rune(name)) > 10 {
+			return 2
+		}
+	}
+	return 3
+}
+
+// presetChip is a chip button with an ellipsized label and a hidden warning
+// icon shown for presets that engage safety fan cooling.
+func presetChip(name string) *gtk.Button {
+	box := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	box.SetHAlign(gtk.AlignCenter)
+	icon := gtk.NewImageFromIconName("dialog-warning-symbolic")
+	icon.SetVisible(false)
+	icon.SetTooltipText("Locks fans to safety cooling while active")
+	box.Append(icon)
+	label := gtk.NewLabel(name)
+	label.SetEllipsize(pango.EllipsizeEnd)
+	label.SetMaxWidthChars(14)
+	box.Append(label)
+	btn := gtk.NewButton()
+	btn.SetChild(box)
+	btn.SetHExpand(true)
+	btn.AddCSSClass("preset-chip")
+	return btn
 }
 
 func (w *Window) newAutomationSwitch() *gtk.Switch {
@@ -153,7 +194,7 @@ func automationSummaryRow(source string) (row *gtk.Box, preset, status, detail *
 	preset.SetHExpand(true)
 	preset.AddCSSClass("preset-summary")
 	line.Append(preset)
-	status = gtk.NewLabel("ACTIVE")
+	status = gtk.NewLabel("Active")
 	status.AddCSSClass("pill")
 	status.SetVisible(false)
 	line.Append(status)
@@ -174,6 +215,7 @@ func viewHeader(title string, back func()) (*gtk.Box, *gtk.Button, *gtk.Label) {
 	backBtn := gtk.NewButton()
 	backBtn.SetIconName("go-previous-symbolic")
 	backBtn.AddCSSClass("view-back-btn")
+	backBtn.SetTooltipText("Back")
 	backBtn.ConnectClicked(back)
 	header.Append(backBtn)
 	label := gtk.NewLabel(title)
@@ -204,6 +246,7 @@ func (w *Window) buildPresetsView() *gtk.Box {
 	w.presetAssignmentStatus.SetHAlign(gtk.AlignStart)
 	w.presetAssignmentStatus.SetWrap(true)
 	w.presetAssignmentStatus.AddCSSClass("card-sub")
+	w.presetAssignmentStatus.SetVisible(false)
 	content.Append(w.presetAssignmentStatus)
 
 	w.presetsList = gtk.NewBox(gtk.OrientationVertical, 8)
@@ -226,8 +269,8 @@ func (w *Window) buildPresetsView() *gtk.Box {
 	w.presetRestoreBtn.AddCSSClass("subtle-btn")
 	w.presetRestoreBtn.ConnectClicked(func() {
 		w.showConfirmation(
-			"Restore Recommended Automation",
-			"Create or refresh Plugged In and On Battery, assign them to the correct power sources, and enable automation? Other presets and your battery charge limit are preserved.",
+			"Restore Recommended Presets",
+			"Reset Plugged In and On Battery to recommended values, assign them, and turn automation on. Your other presets stay.",
 			"Restore",
 			"presets",
 			false,
@@ -350,7 +393,10 @@ func (w *Window) rebuildPresetRows() {
 	enabled := currentPolicyEnabled(w.state)
 	row := 1
 	focus := func(btn *gtk.Button, col int) {
-		w.presetFocusItems = append(w.presetFocusItems, focusItem{widget: btn, row: row, col: col, section: "presets", onActivate: func() { btn.Activate() }})
+		w.presetFocusItems = append(w.presetFocusItems, focusItem{
+			widget: btn, row: row, col: col, section: "presets",
+			isVisible: btn.Sensitive, onActivate: func() { btn.Activate() },
+		})
 	}
 	for _, name := range sortedPresetNames(w.state.Presets) {
 		preset := w.state.Presets[name]
@@ -412,24 +458,25 @@ func (w *Window) rebuildPresetRows() {
 		focus(apply, 0)
 		focus(edit, 1)
 		for col, target := range []struct {
-			source, label, icon string
-			assigned            bool
-		}{{"ac", "plugged in", "ac-adapter-symbolic", ac}, {"battery", "on battery", "battery-symbolic", battery}} {
-			btn := gtk.NewButtonFromIconName(target.icon)
+			source, label, short, icon string
+			assigned                   bool
+		}{{"ac", "plugged in", "Plug", "ac-adapter-symbolic", ac}, {"battery", "on battery", "Battery", "battery-symbolic", battery}} {
+			btn := iconLabelButton(target.icon, target.short)
 			btn.AddCSSClass("assign-toggle")
 			toggleClass(btn, "assigned", target.assigned)
 			if target.assigned {
-				btn.SetTooltipText("Used " + target.label)
+				btn.SetTooltipText(fmt.Sprintf("%s is the %s preset", name, target.label))
 			} else {
-				btn.SetTooltipText("Use " + target.label)
+				btn.SetTooltipText("Use " + name + " " + target.label)
 			}
 			btn.ConnectClicked(func() {
 				if target.assigned {
+					w.showPresetFeedback(fmt.Sprintf("%s is already the %s preset. Assign another preset to replace it.", name, target.label))
 					return
 				}
-				message := fmt.Sprintf("%s used %s", name, target.label)
+				message := fmt.Sprintf("%s set for %s", name, target.label)
 				if enabled && w.state.PowerSource == target.source {
-					message += " and applied"
+					message += " · applied"
 				}
 				if target.source == "ac" {
 					w.setPresetPolicy(enabled, name, "", message)
@@ -447,6 +494,16 @@ func (w *Window) rebuildPresetRows() {
 	focus(w.presetSaveBtn, 0)
 	row++
 	focus(w.presetRestoreBtn, 0)
+}
+
+func iconLabelButton(icon, text string) *gtk.Button {
+	box := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	box.SetHAlign(gtk.AlignCenter)
+	box.Append(gtk.NewImageFromIconName(icon))
+	box.Append(gtk.NewLabel(text))
+	btn := gtk.NewButton()
+	btn.SetChild(box)
+	return btn
 }
 
 func pill(text, class string) *gtk.Label {
@@ -483,7 +540,7 @@ func hasPreset(state *api.State, name string) bool {
 
 func (w *Window) buildPresetDetailView() *gtk.Box {
 	view := gtk.NewBox(gtk.OrientationVertical, 0)
-	header, back, title := viewHeader("Preset", func() { w.showPresetsView() })
+	header, back, title := viewHeader("Preset", func() { w.leavePresetDetail() })
 	w.presetDetailBackBtn = back
 	w.presetDetailTitle = title
 	view.Append(header)
@@ -585,11 +642,26 @@ func (w *Window) showConfirmation(title, message, actionLabel, returnView string
 	w.swapFocusList(w.confirmFocusItems)
 }
 
+// leavePresetDetail returns to the Presets screen, asking first when the
+// editor holds unsaved changes.
+func (w *Window) leavePresetDetail() {
+	if w.presetEditorDirty == nil || !w.presetEditorDirty() {
+		w.showPresetsView()
+		return
+	}
+	w.showConfirmation("Discard Changes", fmt.Sprintf("Discard unsaved changes to %q?", w.presetDetailName), "Discard", "preset-detail", true, func() {
+		w.showPresetsView()
+	})
+}
+
 func (w *Window) returnFromConfirmation() {
 	returnView := w.confirmReturnView
 	w.confirmAction = nil
 	w.confirmReturnView = ""
 	switch returnView {
+	case "preset-detail":
+		w.viewStack.SetVisibleChildName("preset-detail")
+		w.swapFocusList(w.presetDetailFocusItems)
 	case "custom":
 		w.viewStack.SetVisibleChildName("custom")
 		w.swapFocusList(w.customFocusItems)
@@ -630,10 +702,10 @@ func automationCurrent(state *api.State) (name string, manual bool) {
 func setAssignmentPill(pill *gtk.Label, active, manual bool) {
 	pill.SetVisible(active)
 	if manual {
-		pill.SetLabel("MANUAL")
+		pill.SetLabel("Manual")
 		pill.AddCSSClass("warning")
 	} else {
-		pill.SetLabel("ACTIVE")
+		pill.SetLabel("Active")
 		pill.RemoveCSSClass("warning")
 	}
 }
@@ -673,14 +745,14 @@ func presetUsage(name string, state *api.State) string {
 	}
 	var uses []string
 	if state.ActivePreset == name {
-		uses = append(uses, "ACTIVE NOW")
+		uses = append(uses, "Active now")
 	}
 	if state.PowerPolicy != nil {
 		if state.PowerPolicy.ACPreset == name {
-			uses = append(uses, "PLUGGED IN")
+			uses = append(uses, "Plugged in")
 		}
 		if state.PowerPolicy.BatteryPreset == name {
-			uses = append(uses, "ON BATTERY")
+			uses = append(uses, "On battery")
 		}
 	}
 	if len(uses) == 0 {
@@ -807,7 +879,8 @@ func (w *Window) startStateAction(action stateAction) {
 					action.onFailed(err)
 				}
 				if action.reportStatus {
-					w.setPresetStatus(err.Error())
+					// Stays until the next action so it can be read and acted on.
+					w.setPresetStatus("Couldn't " + action.name + ": " + err.Error())
 				}
 				if len(w.stateActionQueue) == 0 {
 					w.syncState()
