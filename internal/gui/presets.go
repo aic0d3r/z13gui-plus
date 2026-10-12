@@ -797,6 +797,8 @@ func eppDisplayName(epp string) string {
 		return "Maximum performance"
 	case "power":
 		return "Maximum efficiency"
+	case "dynamic":
+		return "Dynamic (follows power source)"
 	default:
 		return strings.ReplaceAll(strings.Title(epp), "_", " ") //nolint:staticcheck // ASCII daemon value
 	}
@@ -822,7 +824,7 @@ func currentSettingsSummary(state *api.State) string {
 		preset.Undervolt = state.Undervolt
 	}
 	if state.CPUPower != nil {
-		preset.CPUPower = &api.CPUPowerPreset{MinFrequencyKHz: state.CPUPower.MinFrequencyKHz, EPP: state.CPUPower.EPP, Boost: state.CPUPower.Boost}
+		preset.CPUPower = &api.CPUPowerPreset{MinFrequencyKHz: state.CPUPower.MinFrequencyKHz, EPP: kernelEPP(state.CPUPower.EPP), Boost: state.CPUPower.Boost}
 	}
 	return presetSummary(preset)
 }

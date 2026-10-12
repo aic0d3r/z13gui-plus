@@ -1024,6 +1024,9 @@ var cpuEPPs = []struct {
 	{"balance_performance", "Responsive"},
 	{"balance_power", "Efficient"},
 	{"power", "Power Saver"},
+	// Kernel ≥7.3 amd-pstate-epp: EPP follows the power source/platform
+	// profile natively. Only shows up when the kernel advertises it.
+	{"dynamic", "Dynamic"},
 }
 
 func (w *Window) buildAdvancedTuningSection() *gtk.Box {

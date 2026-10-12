@@ -132,10 +132,19 @@ func (w *Window) syncCPUPower() {
 	for value, btn := range w.cpuEPPBtns {
 		btn.SetVisible(eppSupported(state.EPPChoices, value))
 	}
-	setActiveButton(w.cpuEPPBtns, state.EPP)
+	setActiveButton(w.cpuEPPBtns, kernelEPP(state.EPP))
 	if w.cpuBoostSwitch != nil {
 		syncSwitch(w.cpuBoostSwitch, state.Boost)
 	}
+}
+
+// kernelEPP strips the effective-value suffix the 7.3+ kernel appends in
+// dynamic mode: setting "dynamic" reads back as "dynamic(profile:performance)".
+func kernelEPP(epp string) string {
+	if i := strings.IndexByte(epp, '('); i >= 0 {
+		return epp[:i]
+	}
+	return epp
 }
 
 // eppSupported reports whether the daemon's state advertises the EPP value.
@@ -338,8 +347,8 @@ func tuningStatus(state *api.State) string {
 	}
 	cpu := "CPU —"
 	if state.CPUPower != nil {
-		epp := strings.ToUpper(strings.ReplaceAll(state.CPUPower.EPP, "_", " "))
-		switch state.CPUPower.EPP {
+		epp := kernelEPP(state.CPUPower.EPP)
+		switch epp {
 		case "balance_performance":
 			epp = "RESPONSIVE"
 		case "balance_power":
@@ -348,6 +357,8 @@ func tuningStatus(state *api.State) string {
 			epp = "PERFORMANCE"
 		case "power":
 			epp = "POWER SAVER"
+		default:
+			epp = strings.ToUpper(strings.ReplaceAll(epp, "_", " "))
 		}
 		cpu = "CPU " + epp
 		if state.CPUPower.Boost {

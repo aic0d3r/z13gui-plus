@@ -87,6 +87,7 @@ func TestEPPDisplayName(t *testing.T) {
 		"balance_power":       "Efficient CPU",
 		"performance":         "Maximum performance",
 		"power":               "Maximum efficiency",
+		"dynamic":             "Dynamic (follows power source)",
 	}
 	for value, want := range tests {
 		if got := eppDisplayName(value); got != want {

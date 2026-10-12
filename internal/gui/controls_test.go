@@ -151,3 +151,19 @@ func TestEPPSupported(t *testing.T) {
 		t.Fatal("an empty choice list must not hide anything")
 	}
 }
+
+func TestKernelEPP(t *testing.T) {
+	for in, want := range map[string]string{
+		"dynamic(profile:performance)": "dynamic",
+		"dynamic(profile:balanced)":    "dynamic",
+		"performance":                  "performance",
+		"balance_power":                "balance_power",
+	} {
+		if got := kernelEPP(in); got != want {
+			t.Errorf("kernelEPP(%q) = %q, want %q", in, got, want)
+		}
+	}
+	if got := tuningStatus(&api.State{CPUPower: &api.CPUPowerState{EPP: "dynamic(profile:performance)"}}); got != "CPU DYNAMIC · TDP FIRMWARE · UV STOCK" {
+		t.Fatalf("tuningStatus(dynamic) = %q", got)
+	}
+}
