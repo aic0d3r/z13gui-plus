@@ -3,6 +3,29 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## v2.4.0 (2026-10-13)
+
+Requires z13ctl-plus v2.3.0 or newer.
+
+- Power Automation card gets one-tap preset chips: tap to apply, the active
+  preset is highlighted, and presets above 75 W sustained TDP are flagged
+  before the tap.
+- A single Presets screen replaces the separate library and chooser: each
+  preset has Apply / Edit and inline AC / Battery assignment toggles.
+  "+ Save Current Settings" names the preset automatically.
+- Presets are now editable: profile, TDP (default or PL1/PL2/PL3),
+  undervolt, CPU minimum/EPP/boost, refresh rate and panel overdrive.
+  Renaming keeps assignments. Leaving with unsaved changes asks first.
+- When a manual change overrides the assigned preset, the card shows a
+  MANUAL pill and a "Reapply <preset>" button; while automation is off, a
+  hint names the preset that turning it on will apply.
+- Preset status and partial-apply errors show on the main card and in the
+  editor.
+- Presets no longer show a fan-mode row (presets no longer carry fan mode).
+- KDE Plasma: **Meta+Z** toggles the drawer (default global shortcut,
+  rebindable under System Settings → Shortcuts → Z13GUI+). Takes effect
+  after the next login.
+
 ## v2.3.0 (2026-10-12)
 
 - Energy-preference picker now only offers the values the kernel accepts.
