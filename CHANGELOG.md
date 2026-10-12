@@ -3,8 +3,11 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
-## Unreleased
+## v2.2.0 (2026-10-12)
 
+- Tablet Kit panel: new "Keep my display scale" toggle. When on, z13ctl-plus
+  never changes the screen scale on posture changes. Requires z13ctl-plus
+  v2.2.1. [z13-tablet-kit#1](https://github.com/aic0d3r/z13-tablet-kit/issues/1)
 - KDE Plasma: the hidden drawer now really stops blocking clicks on a monitor to
   the right of the Z13 screen (the v2.1.2 fix was not enough on KWin). While hidden
   the drawer drops below all windows.
