@@ -88,6 +88,7 @@ type Window struct {
 	cpuMinScale         *gtk.Scale
 	cpuEPPBtns          map[string]*gtk.Button
 	cpuBoostSwitch      *gtk.Switch
+	cpuBoostRow         *gtk.Box // boost row + caption; hidden when cpufreq is unreadable
 	battPresetBtns      map[int]*gtk.Button // battery presets: 100/80/60 %
 	batterySummary      *gtk.Label
 	fanPresetBtns       map[string]*gtk.Button // fan modes: auto/balanced/turbo

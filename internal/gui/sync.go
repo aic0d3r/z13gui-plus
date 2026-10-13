@@ -120,21 +120,30 @@ func (w *Window) syncPowerState(syncAutomation bool) {
 }
 
 func (w *Window) syncCPUPower() {
-	if w.state == nil || w.state.CPUPower == nil || w.cpuMinScale == nil {
+	if w.state == nil {
 		return
 	}
-	state := w.state.CPUPower
-	w.cpuMinScale.SetRange(float64(state.MinLimitKHz)/1000, float64(state.MaxLimitKHz)/1000)
-	w.cpuMinScale.SetValue(float64(state.MinFrequencyKHz) / 1000)
+	state := w.state
+	// The daemon omits cpu_power when cpufreq is unreadable; without it the
+	// switch can only show a state the hardware never had.
+	if w.cpuBoostRow != nil {
+		w.cpuBoostRow.SetVisible(state.CPUPower != nil)
+	}
+	if state.CPUPower == nil || w.cpuMinScale == nil {
+		return
+	}
+	cpu := state.CPUPower
+	w.cpuMinScale.SetRange(float64(cpu.MinLimitKHz)/1000, float64(cpu.MaxLimitKHz)/1000)
+	w.cpuMinScale.SetValue(float64(cpu.MinFrequencyKHz) / 1000)
 	// amd-pstate-epp only accepts the EPP values the current governor advertises
 	// (with governor=performance that is "performance" alone), so hide the rest
 	// instead of offering buttons whose write the daemon must reject.
 	for value, btn := range w.cpuEPPBtns {
-		btn.SetVisible(eppSupported(state.EPPChoices, value))
+		btn.SetVisible(eppSupported(cpu.EPPChoices, value))
 	}
-	setActiveButton(w.cpuEPPBtns, kernelEPP(state.EPP))
+	setActiveButton(w.cpuEPPBtns, kernelEPP(cpu.EPP))
 	if w.cpuBoostSwitch != nil {
-		syncSwitch(w.cpuBoostSwitch, state.Boost)
+		syncSwitch(w.cpuBoostSwitch, cpu.Boost)
 	}
 }
 
@@ -361,9 +370,6 @@ func tuningStatus(state *api.State) string {
 			epp = strings.ToUpper(strings.ReplaceAll(epp, "_", " "))
 		}
 		cpu = "CPU " + epp
-		if state.CPUPower.Boost {
-			cpu += " + BOOST"
-		}
 	}
 	tdp := "FIRMWARE"
 	if state.TDPActive && state.TDP != nil {

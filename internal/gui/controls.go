@@ -1068,28 +1068,34 @@ func (w *Window) buildAdvancedTuningSection() *gtk.Box {
 		grid.Attach(btn, i%2, i/2, 1, 1)
 	}
 	content.Append(grid)
-	content.Append(w.buildToggle("CPU Boost", "Allow frequencies above the nominal maximum", &w.cpuBoostSwitch, func(enabled bool) {
-		w.runStateAction("set CPU boost", func() (bool, error) { return api.SendCPUBoostSet(enabled) })
-	}))
-	boostDetail := gtk.NewLabel("Higher peak performance with increased power use and heat")
-	boostDetail.SetHAlign(gtk.AlignStart)
-	boostDetail.SetWrap(true)
-	boostDetail.AddCSSClass("setting-description")
-	content.Append(boostDetail)
 	content.Append(gtk.NewSeparator(gtk.OrientationHorizontal))
 	w.tuningBtn = gtk.NewButtonWithLabel("Open Power Tuning")
 	w.tuningBtn.AddCSSClass("action-btn")
 	w.tuningBtn.ConnectClicked(func() { w.showCustomView() })
 	content.Append(w.tuningBtn)
-	box := gtk.NewBox(gtk.OrientationVertical, 4)
+	box := gtk.NewBox(gtk.OrientationVertical, 6)
 	box.AddCSSClass("card")
-	header := newCollapsibleHeader("CPU & POWER TUNING", false)
-	box.Append(header)
 	w.tuningSummary = gtk.NewLabel("CPU — · TDP FIRMWARE · UV STOCK")
 	w.tuningSummary.SetHAlign(gtk.AlignStart)
 	w.tuningSummary.SetWrap(true)
-	w.tuningSummary.AddCSSClass("preset-summary")
-	box.Append(w.tuningSummary)
+	w.tuningSummary.AddCSSClass("section-collapse-summary")
+	header := newCollapsibleHeader("CPU & POWER TUNING", w.tuningSummary, false)
+	box.Append(header)
+	// CPU Boost lives outside the collapsible body so it is reachable without
+	// expanding the card.
+	boostRow := w.buildToggle("CPU Boost", "Allow frequencies above the nominal maximum", &w.cpuBoostSwitch, func(enabled bool) {
+		w.runStateAction("set CPU boost", func() (bool, error) { return api.SendCPUBoostSet(enabled) })
+	})
+	boostDetail := gtk.NewLabel("Higher peak performance with increased power use and heat")
+	boostDetail.SetHAlign(gtk.AlignStart)
+	boostDetail.SetWrap(true)
+	boostDetail.AddCSSClass("setting-description")
+	// Row and caption hide together when the daemon reports no cpu_power.
+	boostBox := gtk.NewBox(gtk.OrientationVertical, 0)
+	boostBox.Append(boostRow)
+	boostBox.Append(boostDetail)
+	box.Append(boostBox)
+	w.cpuBoostRow = boostBox
 	content.SetVisible(false)
 	header.ConnectToggled(func() { content.SetVisible(header.Active()) })
 	box.Append(content)
@@ -1114,33 +1120,29 @@ func sectionLabel(text string) *gtk.Label {
 	return l
 }
 
-// newCollapsibleHeader builds a toggle with an expansion-state chevron.
-func newCollapsibleHeader(label string, defaultOpen bool) *gtk.ToggleButton {
-	contents := gtk.NewBox(gtk.OrientationHorizontal, 8)
-	chevron := gtk.NewImageFromIconName("pan-end-symbolic")
-	chevron.AddCSSClass("disclosure-icon")
-	contents.Append(chevron)
-
+// newCollapsibleHeader builds a disclosure toggle: title, optional state
+// summary, and a trailing chevron that rotates open via CSS transform.
+func newCollapsibleHeader(label string, summary *gtk.Label, defaultOpen bool) *gtk.ToggleButton {
+	contents := gtk.NewBox(gtk.OrientationVertical, 2)
+	titleRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
 	lbl := gtk.NewLabel(label)
 	lbl.AddCSSClass("section-collapse-label")
 	lbl.SetHAlign(gtk.AlignStart)
 	lbl.SetHExpand(true)
-	contents.Append(lbl)
+	titleRow.Append(lbl)
+	chevron := gtk.NewImageFromIconName("pan-end-symbolic")
+	chevron.AddCSSClass("disclosure-icon")
+	titleRow.Append(chevron)
+	contents.Append(titleRow)
+	if summary != nil {
+		contents.Append(summary)
+	}
 
 	button := gtk.NewToggleButton()
 	button.SetChild(contents)
 	button.AddCSSClass("section-collapse")
 	button.SetActive(defaultOpen)
 	button.SetHExpand(true)
-	updateChevron := func() {
-		if button.Active() {
-			chevron.SetFromIconName("pan-down-symbolic")
-		} else {
-			chevron.SetFromIconName("pan-end-symbolic")
-		}
-	}
-	updateChevron()
-	button.ConnectToggled(updateChevron)
 	return button
 }
 
@@ -1263,6 +1265,14 @@ func (w *Window) powerTabFocusItems() []focusItem {
 		})
 		row++
 	}
+	if w.cpuBoostSwitch != nil {
+		items = append(items, focusItem{
+			widget: w.cpuBoostSwitch, row: row, col: 0,
+			section:    "tuning",
+			onActivate: func() { w.cpuBoostSwitch.SetActive(!w.cpuBoostSwitch.Active()) },
+		})
+		row++
+	}
 	tuningVisible := func() bool { return w.tuningHeader != nil && w.tuningHeader.Active() }
 	if w.cpuMinScale != nil {
 		left, right, get, set := scaleAdjust(w.cpuMinScale, 25)
@@ -1281,15 +1291,7 @@ func (w *Window) powerTabFocusItems() []focusItem {
 			onActivate: func() { btn.Activate() },
 		})
 	}
-	row += 2
-	if w.cpuBoostSwitch != nil {
-		items = append(items, focusItem{
-			widget: w.cpuBoostSwitch, row: row, col: 0,
-			section: "tuning", isVisible: tuningVisible,
-			onActivate: func() { w.cpuBoostSwitch.SetActive(!w.cpuBoostSwitch.Active()) },
-		})
-		row++
-	}
+	row += (len(cpuEPPs) + 1) / 2
 	if w.tuningBtn != nil {
 		btn := w.tuningBtn
 		items = append(items, focusItem{

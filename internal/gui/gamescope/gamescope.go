@@ -291,7 +291,12 @@ func (b *Backend) scaledCSS() string {
 .advanced-check { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
 .telemetry-value { font-size: %.0fpx; }
 .tuning-telemetry { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
-.color-preview { min-width: %.0fpx; min-height: %.0fpx; }`,
+.color-preview { min-width: %.0fpx; min-height: %.0fpx; }
+.drawer .section-collapse { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
+.drawer .section-collapse-label { font-size: %.0fpx; letter-spacing: %.0fpx; }
+.drawer .section-collapse-summary { font-size: %.0fpx; }
+.drawer .section-collapse-action { font-size: %.0fpx; letter-spacing: %.0fpx; }
+.drawer .disclosure-icon { -gtk-icon-size: %.0fpx; }`,
 		s,
 		14*s,                 // .drawer font-size
 		48*s, 4*s, 10*s, 6*s, // btn-group button
@@ -327,5 +332,10 @@ func (b *Backend) scaledCSS() string {
 		13*s,                 // telemetry-value font-size
 		40*s, 4*s, 10*s, 8*s, // tuning-telemetry
 		64*s, 40*s, // color-preview (min-width, min-height)
+		44*s, 6*s, 10*s, 8*s, // section-collapse (min-height, padding-v, padding-h, border-radius)
+		13*s, 2*s, // section-collapse-label (font-size, letter-spacing)
+		12*s,       // section-collapse-summary font-size
+		11*s, 1*s, // section-collapse-action (font-size, letter-spacing)
+		16*s,       // disclosure-icon size
 	)
 }

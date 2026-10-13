@@ -69,13 +69,13 @@ func TestTuningStatus(t *testing.T) {
 		t.Fatalf("default tuningStatus() = %q", got)
 	}
 	state := &api.State{
-		CPUPower:        &api.CPUPowerState{EPP: "balance_performance", Boost: true},
+		CPUPower:        &api.CPUPowerState{EPP: "balance_performance"},
 		TDPActive:       true,
 		TDP:             &api.TDPState{PL1SPL: 55},
 		UndervoltActive: true,
 		Undervolt:       &api.UndervoltState{CPUCO: -20},
 	}
-	if got := tuningStatus(state); got != "CPU RESPONSIVE + BOOST · TDP 55 W · UV -20" {
+	if got := tuningStatus(state); got != "CPU RESPONSIVE · TDP 55 W · UV -20" {
 		t.Fatalf("tuningStatus() = %q", got)
 	}
 }

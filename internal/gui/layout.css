@@ -169,8 +169,8 @@
 }
 
 .drawer .setting-description {
-    font-size: 11px;
-    margin: -2px 6px 2px;
+    font-size: 12px;
+    margin: 2px 8px 4px;
 }
 
 /* Pill — status chip */
@@ -335,15 +335,17 @@
     background: rgba(0, 0, 0, 0.3);
 }
 
-/* Collapsible section header — ToggleButton wrapping [chevron] [LABEL] [suffix].
-   Looks like a clickable row: subtle surface bg, hover lightens, active (expanded)
-   state tints accent so the user knows which sections are open. 40px touch floor. */
+/* Collapsible section header — ToggleButton wrapping [LABEL] [state summary]
+   [chevron]. Looks like a clickable row: subtle surface bg, hover lightens,
+   active (expanded) state tints accent so the user knows which sections are
+   open. 40px touch floor. */
 .drawer .section-collapse {
-    min-height: 40px;
-    padding: 4px 10px;
+    min-height: 44px;
+    padding: 6px 10px;
     border-radius: 8px;
     background: alpha(@z13-surface-hi, 0.4);
     border: 1px solid alpha(@z13-border-hi, 0.4);
+    cursor: pointer;
     transition: background 150ms ease, border-color 150ms ease;
 }
 
@@ -358,14 +360,17 @@
 }
 
 /* Disclosure chevron — bigger than the old 12px so it reads at a glance.
-   Color shifts to accent when expanded, reinforcing "this section is open". */
+   Rotates 90° to point down when open; color shifts to accent, reinforcing
+   "this section is open". */
 .drawer .disclosure-icon {
     -gtk-icon-size: 16px;
-    color: alpha(@z13-text-dim, 0.85);
+    color: @z13-text-dim;
+    transition: transform 150ms ease, color 150ms ease;
 }
 
 .drawer .section-collapse:checked .disclosure-icon {
     color: @z13-accent;
+    transform: rotate(90deg);
 }
 
 /* Header label — small caps, same style as section labels. */
@@ -377,16 +382,33 @@
     color: @z13-text;
 }
 
-.drawer .card > .section-collapse,
-.drawer .card > .section-collapse:hover,
-.drawer .card > .section-collapse:checked {
-    padding: 0;
-    background: transparent;
-    border-color: transparent;
-}
-
+/* Inside cards the interactive row look stays — it is the only cue that the
+   header expands. Only the title grows to match .card-title. */
 .drawer .card > .section-collapse .section-collapse-label {
     font-size: 13px;
+}
+
+/* State summary inside the header: dim while collapsed, bright when open. */
+.drawer .section-collapse-summary {
+    font-size: 12px;
+    color: @z13-text-dim;
+}
+
+.drawer .section-collapse:checked .section-collapse-summary {
+    color: @z13-text;
+}
+
+/* EXPAND/COLLAPSE action word — the header's primary affordance. */
+.drawer .section-collapse-action {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: @z13-text-dim;
+}
+
+.drawer .section-collapse:hover .section-collapse-action,
+.drawer .section-collapse:checked .section-collapse-action {
+    color: @z13-accent;
 }
 
 /* Overview tab — right-aligned mono values in the metrics grid. */

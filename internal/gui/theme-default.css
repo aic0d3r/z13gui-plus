@@ -342,7 +342,7 @@ window.z13-drawer-window {
 }
 
 .drawer .setting-description {
-    color: @z13-text-faint;
+    color: @z13-text-dim;
 }
 
 .drawer .card-sub.warning {
