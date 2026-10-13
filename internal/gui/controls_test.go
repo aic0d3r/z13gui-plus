@@ -83,10 +83,10 @@ func TestTuningStatus(t *testing.T) {
 func TestBatteryStrategySummary(t *testing.T) {
 	tests := map[int]string{
 		0:   "—",
-		60:  "MAX LIFE · 60%",
-		75:  "CUSTOM · 75%",
-		80:  "BALANCED · 80%",
-		100: "STANDARD · 100%",
+		60:  "60%",
+		75:  "75%",
+		80:  "80%",
+		100: "100%",
 	}
 	for limit, want := range tests {
 		if got := batteryStrategySummary(limit); got != want {

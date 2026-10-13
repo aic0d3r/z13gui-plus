@@ -63,13 +63,6 @@ func (w *Window) buildPresetEntrySection() *gtk.Box {
 	})
 	card.Append(w.presetReapplyBtn)
 
-	w.presetCardStatus = gtk.NewLabel("")
-	w.presetCardStatus.SetHAlign(gtk.AlignStart)
-	w.presetCardStatus.SetWrap(true)
-	w.presetCardStatus.AddCSSClass("card-sub")
-	w.presetCardStatus.SetVisible(false)
-	card.Append(w.presetCardStatus)
-
 	w.presetsBtn = gtk.NewButtonWithLabel("Manage Presets")
 	w.presetsBtn.AddCSSClass("action-btn")
 	w.presetsBtn.ConnectClicked(func() { w.showPresetsView() })
@@ -233,13 +226,6 @@ func (w *Window) buildPresetsView() *gtk.Box {
 	content.SetMarginBottom(12)
 	content.SetMarginStart(12)
 	content.SetMarginEnd(12)
-
-	w.presetAssignmentStatus = gtk.NewLabel("")
-	w.presetAssignmentStatus.SetHAlign(gtk.AlignStart)
-	w.presetAssignmentStatus.SetWrap(true)
-	w.presetAssignmentStatus.AddCSSClass("card-sub")
-	w.presetAssignmentStatus.SetVisible(false)
-	content.Append(w.presetAssignmentStatus)
 
 	w.presetsList = gtk.NewBox(gtk.OrientationVertical, 8)
 	content.Append(w.presetsList)
@@ -520,14 +506,6 @@ func (w *Window) buildPresetDetailView() *gtk.Box {
 	w.presetDetailBackBtn = back
 	w.presetDetailTitle = title
 	view.Append(header)
-	w.presetDetailStatus = gtk.NewLabel("")
-	w.presetDetailStatus.SetHAlign(gtk.AlignStart)
-	w.presetDetailStatus.SetWrap(true)
-	w.presetDetailStatus.SetMarginStart(12)
-	w.presetDetailStatus.SetMarginEnd(12)
-	w.presetDetailStatus.AddCSSClass("card-sub")
-	w.presetDetailStatus.SetVisible(false)
-	view.Append(w.presetDetailStatus)
 	w.presetDetailContent = gtk.NewBox(gtk.OrientationVertical, 8)
 	w.presetDetailContent.SetMarginTop(4)
 	w.presetDetailContent.SetMarginBottom(12)
@@ -694,7 +672,7 @@ func presetDetailLine(state *api.State, name string) string {
 	if !ok {
 		return ""
 	}
-	return compactPresetSummary(preset)
+	return "applies " + compactPresetSummary(preset)
 }
 
 func currentPolicyEnabled(state *api.State) bool {
@@ -841,7 +819,17 @@ func (w *Window) startStateAction(action stateAction) {
 	w.stateActionBusy = true
 	w.stateRequestGen++ // invalidate state reads started before this mutation
 	if action.reportStatus {
-		w.setPresetStatus("Working...")
+		// Only report progress if the write is actually slow. A fast local
+		// round-trip would otherwise flash a line and shove every card below
+		// the automation card down mid-tap.
+		w.progressGen++
+		gen := w.progressGen
+		glib.TimeoutAdd(300, func() bool {
+			if w.progressGen == gen && w.stateActionBusy {
+				w.setPresetStatus("Working...")
+			}
+			return false
+		})
 	}
 	go func() {
 		handled, err := action.fn()
@@ -881,7 +869,9 @@ func (w *Window) startStateAction(action stateAction) {
 				return
 			}
 			if action.reportStatus {
-				w.setPresetStatus("")
+				// Confirm the write landed: the control already shows its new value,
+				// so a bare acknowledgement is enough to close the loop.
+				w.flashStatus("Applied", 1200)
 			}
 			w.state = state
 			// Queued actions captured newer widget values; syncing now would show
@@ -907,27 +897,28 @@ func (w *Window) finishStateAction() {
 	w.startStateAction(next)
 }
 
+// setPresetStatus writes the drawer's single feedback line. It is reserved
+// space, so writing never reflows the cards.
 func (w *Window) setPresetStatus(message string) {
 	w.presetFeedbackGen++
-	for _, label := range []*gtk.Label{w.presetAssignmentStatus, w.presetDetailStatus, w.presetCardStatus} {
-		if label != nil {
-			label.SetLabel(message)
-		}
-	}
-	for _, label := range []*gtk.Label{w.presetDetailStatus, w.presetCardStatus} {
-		if label != nil {
-			label.SetVisible(message != "")
-		}
+	if w.statusLine != nil {
+		w.statusLine.SetLabel(message)
 	}
 }
 
-func (w *Window) showPresetFeedback(message string) {
+// flashStatus shows a message for a moment, then clears it if nothing newer
+// has been written in the meantime.
+func (w *Window) flashStatus(message string, ms uint) {
 	w.setPresetStatus(message)
 	gen := w.presetFeedbackGen
-	glib.TimeoutAdd(3000, func() bool {
+	glib.TimeoutAdd(ms, func() bool {
 		if w.presetFeedbackGen == gen {
 			w.setPresetStatus("")
 		}
 		return false
 	})
+}
+
+func (w *Window) showPresetFeedback(message string) {
+	w.flashStatus(message, 3000)
 }

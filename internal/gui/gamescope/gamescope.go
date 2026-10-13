@@ -296,7 +296,8 @@ func (b *Backend) scaledCSS() string {
 .drawer .section-collapse-label { font-size: %.0fpx; letter-spacing: %.0fpx; }
 .drawer .section-collapse-summary { font-size: %.0fpx; }
 .drawer .section-collapse-action { font-size: %.0fpx; letter-spacing: %.0fpx; }
-.drawer .disclosure-icon { -gtk-icon-size: %.0fpx; }`,
+.drawer .disclosure-icon { -gtk-icon-size: %.0fpx; }
+.drawer .drawer-status { min-height: %.0fpx; font-size: %.0fpx; }`,
 		s,
 		14*s,                 // .drawer font-size
 		48*s, 4*s, 10*s, 6*s, // btn-group button
@@ -334,8 +335,9 @@ func (b *Backend) scaledCSS() string {
 		64*s, 40*s, // color-preview (min-width, min-height)
 		44*s, 6*s, 10*s, 8*s, // section-collapse (min-height, padding-v, padding-h, border-radius)
 		13*s, 2*s, // section-collapse-label (font-size, letter-spacing)
-		12*s,       // section-collapse-summary font-size
+		12*s,      // section-collapse-summary font-size
 		11*s, 1*s, // section-collapse-action (font-size, letter-spacing)
 		18*s,       // disclosure-icon size
+		18*s, 11*s, // drawer-status (min-height, font-size)
 	)
 }

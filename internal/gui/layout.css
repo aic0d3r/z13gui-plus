@@ -160,6 +160,14 @@
     font-feature-settings: "tnum";
 }
 
+/* Drawer-wide feedback line — height is reserved while empty so a message
+   can never reflow the cards above it. */
+.drawer .drawer-status {
+    min-height: 18px;
+    font-size: 11px;
+    font-feature-settings: "tnum";
+}
+
 .drawer .preset-summary {
     font-size: 13px;
 }
@@ -336,26 +344,15 @@
 }
 
 /* Collapsible section header — ToggleButton wrapping [LABEL] [state summary]
-   [chevron]. Looks like a clickable row: subtle surface bg, hover lightens,
-   active (expanded) state tints accent so the user knows which sections are
-   open. 40px touch floor. */
+   [action + chevron]. Structure only: colors live in the theme, matched to
+   .settings-row so every tappable row in the drawer looks alike.
+   44px touch floor. */
 .drawer .section-collapse {
     min-height: 44px;
     padding: 6px 10px;
     border-radius: 8px;
-    background: alpha(@z13-surface-hi, 0.4);
-    border: 1px solid alpha(@z13-border-hi, 0.4);
+    border: 1px solid transparent;
     transition: background 150ms ease, border-color 150ms ease;
-}
-
-.drawer .section-collapse:hover {
-    background: alpha(@z13-surface-hi, 0.7);
-    border-color: alpha(@z13-border-hi, 0.7);
-}
-
-.drawer .section-collapse:checked {
-    background: alpha(@z13-accent, 0.08);
-    border-color: alpha(@z13-accent, 0.35);
 }
 
 /* Disclosure chevron — bigger than the old 12px so it reads at a glance.

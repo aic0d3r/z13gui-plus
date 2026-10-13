@@ -267,18 +267,15 @@ func (w *Window) syncBattery() {
 	}
 }
 
+// batteryStrategySummary labels the battery card pill. The strategy name lives
+// on the highlighted preset button, so the pill only carries the live limit —
+// the full name did not fit the pill and was ellipsized.
 func batteryStrategySummary(limit int) string {
 	switch limit {
-	case 100:
-		return "STANDARD · 100%"
-	case 80:
-		return "BALANCED · 80%"
-	case 60:
-		return "MAX LIFE · 60%"
 	case 0:
 		return "—"
 	default:
-		return fmt.Sprintf("CUSTOM · %d%%", limit)
+		return fmt.Sprintf("%d%%", limit)
 	}
 }
 

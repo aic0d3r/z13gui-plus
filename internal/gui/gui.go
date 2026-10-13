@@ -88,7 +88,7 @@ type Window struct {
 	cpuMinScale         *gtk.Scale
 	cpuEPPBtns          map[string]*gtk.Button
 	cpuBoostSwitch      *gtk.Switch
-	cpuBoostRow         *gtk.Box // boost row + caption; hidden when cpufreq is unreadable
+	cpuBoostRow         *gtk.Box            // boost row + caption; hidden when cpufreq is unreadable
 	battPresetBtns      map[int]*gtk.Button // battery presets: 100/80/60 %
 	batterySummary      *gtk.Label
 	fanPresetBtns       map[string]*gtk.Button // fan modes: auto/balanced/turbo
@@ -153,13 +153,12 @@ type Window struct {
 	tabletFeedback            *gtk.Label
 	tabletPendingSettings     *api.TabletSettings
 
-	presetAssignmentStatus *gtk.Label
+	statusLine             *gtk.Label // one fixed feedback line at the drawer bottom
 	presetDetailName       string
 	presetDetailTitle      *gtk.Label
 	presetDetailContent    *gtk.Box
 	presetDetailBackBtn    *gtk.Button
 	presetDetailFocusItems []focusItem
-	presetDetailStatus     *gtk.Label
 	presetDetailScroll     *gtk.ScrolledWindow
 	presetChips            *gtk.Grid
 	presetChipNames        []string
@@ -169,9 +168,9 @@ type Window struct {
 	presetDetailUsage      string     // usage text the editor was built with
 	presetDraftBase        api.Preset // saved values the editor was built from
 	presetFeedbackGen      int
+	progressGen            int // guards the delayed "Working..." timer
 	automationHint         *gtk.Label
 	presetReapplyBtn       *gtk.Button
-	presetCardStatus       *gtk.Label
 	presetACDetail         *gtk.Label
 	presetBatteryDetail    *gtk.Label
 

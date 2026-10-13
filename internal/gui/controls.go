@@ -82,6 +82,18 @@ func (w *Window) buildContent() gtk.Widgetter {
 	w.viewStack.SetVisibleChildName("main")
 	outer.Append(w.viewStack)
 
+	// One fixed feedback line for the whole drawer. Its height is reserved while
+	// empty so a message can never reflow the cards above it, and it is visible
+	// from every view, not just the card that owns the action.
+	w.statusLine = gtk.NewLabel("")
+	w.statusLine.SetHAlign(gtk.AlignStart)
+	w.statusLine.SetWrap(true)
+	w.statusLine.SetMarginStart(14)
+	w.statusLine.SetMarginEnd(14)
+	w.statusLine.SetMarginBottom(4)
+	w.statusLine.AddCSSClass("drawer-status")
+	outer.Append(w.statusLine)
+
 	w.buildMainFocusList()
 	w.focusItems = w.mainFocusItems
 
@@ -1131,8 +1143,9 @@ func newCollapsibleHeader(label string, summary *gtk.Label, defaultOpen bool) *g
 	lbl.SetHExpand(true)
 	titleRow.Append(lbl)
 	// Action word is the primary affordance: seeing that the header expands must
-	// not depend on reading a chevron glyph, on any input method.
-	action := gtk.NewLabel("EXPAND")
+	// not depend on reading a chevron glyph, on any input method. "MORE" rather
+	// than "EXPAND" because the quick CPU Boost row stays visible either way.
+	action := gtk.NewLabel("MORE")
 	action.AddCSSClass("section-collapse-action")
 	titleRow.Append(action)
 	chevron := gtk.NewImageFromIconName("pan-end-symbolic")
@@ -1150,9 +1163,9 @@ func newCollapsibleHeader(label string, summary *gtk.Label, defaultOpen bool) *g
 	button.SetHExpand(true)
 	button.ConnectToggled(func() {
 		if button.Active() {
-			action.SetLabel("COLLAPSE")
+			action.SetLabel("LESS")
 		} else {
-			action.SetLabel("EXPAND")
+			action.SetLabel("MORE")
 		}
 	})
 	return button

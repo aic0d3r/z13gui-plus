@@ -349,6 +349,10 @@ window.z13-drawer-window {
     color: @z13-warning;
 }
 
+.drawer .drawer-status {
+    color: @z13-text-dim;
+}
+
 .drawer .secondary-metric {
     opacity: 0.72;
 }
@@ -507,6 +511,23 @@ window.z13-drawer-window {
 .drawer .settings-row {
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid @z13-border;
+}
+
+/* The disclosure header gets the same treatment as .settings-row: a row you
+   can press must look pressable, whichever control it is. */
+.drawer .section-collapse {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: @z13-border;
+}
+
+.drawer .section-collapse:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: @z13-border-hi;
+}
+
+.drawer .section-collapse:checked {
+    background: alpha(@z13-accent, 0.08);
+    border-color: alpha(@z13-accent, 0.4);
 }
 
 .drawer .settings-row .toggle-label {
