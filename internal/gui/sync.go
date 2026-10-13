@@ -241,16 +241,6 @@ func (w *Window) syncProfile() {
 		return
 	}
 	setActiveButton(w.profileBtns, w.state.Profile)
-	if w.profileSummary != nil {
-		w.profileSummary.SetLabel(profileSummary(w.state.Profile))
-	}
-}
-
-func profileSummary(profile string) string {
-	if profile == "" {
-		return "—"
-	}
-	return strings.ToUpper(profile)
 }
 
 // syncBattery sets the battery limit scale to match the daemon state.

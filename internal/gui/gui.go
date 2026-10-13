@@ -80,7 +80,6 @@ type Window struct {
 	speedBtns           map[string]*gtk.Button
 	brightBtns          map[int]*gtk.Button
 	profileBtns         map[string]*gtk.Button
-	profileSummary      *gtk.Label
 	tuningHeader        *gtk.ToggleButton
 	tuningSummary       *gtk.Label
 	tuningBtn           *gtk.Button

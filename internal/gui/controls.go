@@ -816,8 +816,7 @@ func statusCard(title string) (*gtk.Box, *gtk.Label) {
 
 // buildProfileSection creates the stock profile button row.
 func (w *Window) buildProfileSection() *gtk.Box {
-	box, summary := statusCard("PROFILE")
-	w.profileSummary = summary
+	box := titledCard("PROFILE")
 
 	grid := gtk.NewGrid()
 	grid.SetColumnSpacing(4)
@@ -882,6 +881,9 @@ var fanPresets = []string{"auto", "balanced", "turbo"}
 
 // buildFanPresetSection creates firmware Auto and custom fan-mode controls.
 func (w *Window) buildFanPresetSection() *gtk.Box {
+	// Keeps its pill: SAFETY LOCK and CUSTOM are states where no mode button is
+	// highlighted, so the pill is the only place they appear. The mode name itself is
+	// not echoed here when a button already shows it.
 	box, summary := statusCard("FAN MODE")
 	w.fanSummary = summary
 	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
