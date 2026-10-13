@@ -3,6 +3,31 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## v2.5.0 (2026-10-13)
+
+The new display notes need z13ctl-plus v2.4.0; older daemons keep the
+previous behaviour.
+
+- The DISPLAY card says which screen the refresh buttons drive. With an
+  external display on it reads "Built-in panel: 180 Hz. Other displays
+  aren't affected."; docked with the built-in panel off, the buttons are
+  greyed out and the note says so. The old "firmware does not report" note
+  was wrong and now reads "The current rate can't be read".
+- Every action reports failures on the status line; writes on the RGB and
+  System tabs used to fail silently. Single-tap controls confirm with
+  "Applied".
+- Power tab: one fixed feedback line at the bottom of the drawer, so status
+  text no longer reflows the cards above it.
+- CPU Boost is an always-visible row at the top of the CPU & Power Tuning
+  card. The collapsible header shows an explicit EXPAND label.
+- Dim text meets WCAG AA (4.5:1) on every theme, custom `theme.toml`
+  included; the inactive RGB effect card is easier to read; Overview
+  numerals use one style.
+- Removed duplicated readouts: the PROFILE and EFFECT pills, preset names
+  repeating their row, and battery percentages shown twice.
+- Preset chips show full names, with a tooltip; the preset Reapply button
+  meets the 40 px touch floor, now guarded by a test.
+
 ## v2.4.0 (2026-10-13)
 
 Requires z13ctl-plus v2.3.0 or newer.
