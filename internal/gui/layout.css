@@ -59,7 +59,9 @@
 }
 
 .drawer .outline-btn {
-    min-height: 32px;
+    /* Was 32px: the only tap target under the drawer's 40px floor (it is the
+       preset "Reapply" button). Guarded by TestTouchTargetsKeepTheFloor. */
+    min-height: 40px;
     padding: 2px 12px;
     font-size: 12px;
 }
