@@ -752,7 +752,7 @@ func (w *Window) setLightingEnabled(enabled bool) {
 		return
 	}
 	device := w.tab
-	w.runStateActionQuiet("lighting off", func() (bool, error) { return api.SendOff(device) }, nil, nil)
+	w.runStateAction("lighting off", func() (bool, error) { return api.SendOff(device) })
 }
 
 // sendApply queues the current lighting state for the daemon. Guarded by

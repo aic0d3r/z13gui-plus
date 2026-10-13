@@ -131,13 +131,16 @@ func chipColumns(names []string) int {
 	return 3
 }
 
-// presetChip is a chip button with an ellipsized label.
+// presetChip is a chip button with an ellipsized label. No width cap: the label
+// ellipsizes only when the chip cell is really too narrow, and chipColumns already
+// drops to two columns for long names. A hard cap truncated user-chosen names with
+// no touch-accessible way to read them.
 func presetChip(name string) *gtk.Button {
 	label := gtk.NewLabel(name)
 	label.SetEllipsize(pango.EllipsizeEnd)
-	label.SetMaxWidthChars(14)
 	btn := gtk.NewButton()
 	btn.SetChild(label)
+	btn.SetTooltipText(name)
 	btn.SetHExpand(true)
 	btn.AddCSSClass("preset-chip")
 	return btn
@@ -394,6 +397,7 @@ func (w *Window) rebuildPresetRows() {
 		title.SetHAlign(gtk.AlignStart)
 		title.SetHExpand(true)
 		title.SetEllipsize(pango.EllipsizeEnd)
+		title.SetTooltipText(name) // full name when the row is too narrow for it
 		title.SetXAlign(0)
 		title.AddCSSClass("preset-name")
 		header.Append(title)
@@ -791,7 +795,7 @@ func (w *Window) setPresetPolicy(enabled bool, ac, battery, success string) {
 type stateAction struct {
 	name         string
 	fn           func() (bool, error)
-	reportStatus bool
+	reportStatus bool // progress + "Applied"; failures are always reported
 	onApplied    func()
 	onFailed     func(error)
 }
@@ -800,8 +804,19 @@ func (w *Window) runStateAction(action string, fn func() (bool, error)) {
 	w.queueStateAction(stateAction{name: action, fn: fn, reportStatus: true})
 }
 
+// runStateActionQuiet is for controls driven by a drag or a stream of taps
+// (brightness, speed, scroll level): no progress line and no "Applied" flash, but a
+// failure is still reported on the status line.
 func (w *Window) runStateActionQuiet(action string, fn func() (bool, error), onApplied func(), onFailed func(error)) {
 	w.queueStateAction(stateAction{name: action, fn: fn, onApplied: onApplied, onFailed: onFailed})
+}
+
+// runStateActionApplied confirms like runStateAction ("Applied" on the status line)
+// while keeping the caller's optimistic update. For single-tap controls; controls
+// driven by a drag (brightness, speed, scroll level) stay quiet so they do not flash
+// on every tick. Failures are reported for every action, quiet ones included.
+func (w *Window) runStateActionApplied(action string, fn func() (bool, error), onApplied func(), onFailed func(error)) {
+	w.queueStateAction(stateAction{name: action, fn: fn, reportStatus: true, onApplied: onApplied, onFailed: onFailed})
 }
 
 func (w *Window) queueStateAction(action stateAction) {
@@ -840,12 +855,12 @@ func (w *Window) startStateAction(action stateAction) {
 			slog.Warn(action.name+" failed", "err", err)
 			glib.IdleAdd(func() {
 				if action.onFailed != nil {
-					action.onFailed(err)
+					action.onFailed(err) // local rollback
 				}
-				if action.reportStatus {
-					// Stays until the next action so it can be read and acted on.
-					w.setPresetStatus("Couldn't " + action.name + ": " + err.Error())
-				}
+				// Every action says why nothing changed, quiet ones included: a silent
+				// failure looks exactly like a control that is not wired up. The text
+				// stays until the next action so it can be read and acted on.
+				w.setPresetStatus("Couldn't " + action.name + ": " + err.Error())
 				if len(w.stateActionQueue) == 0 {
 					w.syncState()
 				}
@@ -860,11 +875,9 @@ func (w *Window) startStateAction(action stateAction) {
 		glib.IdleAdd(func() {
 			if err != nil || !ok {
 				if action.onApplied != nil {
-					action.onApplied()
+					action.onApplied() // local optimistic value
 				}
-				if action.reportStatus {
-					w.setPresetStatus("Applied, but failed to refresh state")
-				}
+				w.setPresetStatus("Applied, but failed to refresh state")
 				w.finishStateAction()
 				return
 			}

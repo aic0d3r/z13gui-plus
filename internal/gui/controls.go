@@ -225,7 +225,7 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 		if active {
 			v = 1
 		}
-		w.runStateActionQuiet("panel overdrive", func() (bool, error) {
+		w.runStateActionApplied("panel overdrive", func() (bool, error) {
 			return api.SendPanelOverdriveSet(v)
 		}, func() {
 			if w.state != nil {
@@ -247,7 +247,7 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 		if active {
 			v = 1
 		}
-		w.runStateActionQuiet("boot sound", func() (bool, error) {
+		w.runStateActionApplied("boot sound", func() (bool, error) {
 			return api.SendBootSoundSet(v)
 		}, func() {
 			if w.state != nil {
@@ -916,7 +916,7 @@ func (w *Window) buildRefreshRateSection() *gtk.Box {
 			w.pendingRefreshRate = hz
 			w.refreshPendingUntil = time.Now().Add(5 * time.Second)
 			setActiveButton(w.refreshBtns, hz)
-			w.runStateActionQuiet("refresh rate", func() (bool, error) {
+			w.runStateActionApplied("refresh rate", func() (bool, error) {
 				return api.SendRefreshRateSet(hz)
 			}, func() {
 				if w.pendingRefreshRate != 0 {
