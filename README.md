@@ -1,8 +1,12 @@
+<div align="center">
+
+<img src="assets/logo.svg" width="440" alt="Z13GUI+">
+
+</div>
+
 # Z13GUI+ — profiles, TDP, fan curves, RGB & undervolt control for the ASUS ROG Flow Z13 on Linux
 
 <div align="center">
-
-<img src="assets/icon.svg" width="88" height="88" alt="Z13GUI+ icon: the control drawer slid in from the right edge of the Z13 display">
 
 [![Release](https://img.shields.io/github/v/release/aic0d3r/z13gui-plus)](https://github.com/aic0d3r/z13gui-plus/releases)
 [![AUR](https://img.shields.io/aur/version/z13gui-plus-bin)](https://aur.archlinux.org/packages/z13gui-plus-bin)
