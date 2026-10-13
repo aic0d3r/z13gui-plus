@@ -108,6 +108,13 @@ internal/theme/
 internal/togglegate/
   togglegate.go                 Pure debounce helper for duplicate gui-toggle bursts
   togglegate_test.go            Unit tests (pure Go, no GTK4)
+assets/
+  icon.svg                      Launcher icon: one scalable SVG (rog-dark palette, drawer
+                                sliding in from the right). Used as Icon= in the desktop
+                                entry, installed to hicolor/scalable/apps, and reused as the
+                                README logo and the docs logo + favicon.
+docs/assets/icon.svg            Symlink to assets/icon.svg so mkdocs can reach it; never
+                                commit a second copy of the artwork.
 contrib/
   z13gui-plus.service           systemd user service (EnvironmentFile for gamescope-session)
   io.github.aic0d3r.z13gui_plus.desktop
@@ -185,6 +192,12 @@ contrib/
   out of the struct makes it unreachable from the main thread and removes any chance of
   an unsynchronized read. Do not promote it to a field — reading it from `show()`/
   `hide()` would be a data race, and `internal/gui` is not covered by `go test -race`.
+- **Icon naming**: the single source of truth is `assets/icon.svg`, installed as
+  `hicolor/scalable/apps/io.github.aic0d3r.z13gui_plus.svg` (Makefile `install` /
+  `install-desktop`, goreleaser nfpms contents). The desktop entry's `Icon=` must stay
+  `io.github.aic0d3r.z13gui_plus` — it is also the GApplication ID, so GTK picks the icon
+  up for window/launcher use with no code. One scalable file only; do not add PNG sizes
+  or a `z13gui` icon name.
 - **CSS architecture**:
   - `layout.css` → `STYLE_PROVIDER_PRIORITY_APPLICATION` (structural, not overridable)
   - `theme-default.css` → `STYLE_PROVIDER_PRIORITY_USER` (colors, user-overridable)

@@ -3,6 +3,7 @@ LDFLAGS  := -s -w -X main.Version=$(VERSION)
 PREFIX   ?= /usr/local
 
 HIDBLOCKER_DIR := internal/gui/gamepad/hidblocker
+ICON := io.github.aic0d3r.z13gui_plus.svg
 
 .PHONY: build test cover lint mod-tidy vmlinux generate snapshot release install setcap install-service uninstall-service install-desktop clean help
 
@@ -45,11 +46,12 @@ snapshot:
 release:
 	goreleaser release --clean
 
-## install: install pre-built binary, desktop entry and KDE Meta+Z shortcut (run make build first)
+## install: install pre-built binary, desktop entry, icon and KDE Meta+Z shortcut (run make build first)
 install:
 	@test -f z13gui-plus || { echo "error: z13gui-plus binary not found. Run 'make build' first."; exit 1; }
 	install -Dm755 z13gui-plus $(DESTDIR)$(PREFIX)/bin/z13gui-plus
 	install -Dm644 contrib/io.github.aic0d3r.z13gui_plus.desktop $(DESTDIR)$(PREFIX)/share/applications/io.github.aic0d3r.z13gui_plus.desktop
+	install -Dm644 assets/icon.svg $(DESTDIR)$(PREFIX)/share/icons/hicolor/scalable/apps/$(ICON)
 	install -d $(DESTDIR)$(PREFIX)/share/kglobalaccel
 	ln -sf ../applications/io.github.aic0d3r.z13gui_plus.desktop $(DESTDIR)$(PREFIX)/share/kglobalaccel/io.github.aic0d3r.z13gui_plus.desktop
 
@@ -72,9 +74,11 @@ uninstall-service:
 	systemctl --user daemon-reload
 	@echo "Service removed."
 
-## install-desktop: install desktop entry for the current user
+## install-desktop: install desktop entry and icon for the current user
 install-desktop:
 	install -Dm644 contrib/io.github.aic0d3r.z13gui_plus.desktop $(HOME)/.local/share/applications/io.github.aic0d3r.z13gui_plus.desktop
+	install -Dm644 assets/icon.svg $(HOME)/.local/share/icons/hicolor/scalable/apps/$(ICON)
+	-command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q -t -f $(HOME)/.local/share/icons/hicolor
 	install -d $(HOME)/.local/share/kglobalaccel
 	ln -sf $(HOME)/.local/share/applications/io.github.aic0d3r.z13gui_plus.desktop $(HOME)/.local/share/kglobalaccel/io.github.aic0d3r.z13gui_plus.desktop
 

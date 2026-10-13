@@ -10,6 +10,10 @@ edit_uri: edit/main/docs/
 theme:
   name: material
   custom_dir: overrides
+  # Same artwork as the launcher icon (assets/icon.svg, symlinked in so the
+  # docs can never drift from what gets installed).
+  logo: assets/icon.svg
+  favicon: assets/icon.svg
   palette:
     - scheme: slate
       primary: indigo

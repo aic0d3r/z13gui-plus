@@ -2,6 +2,8 @@
 
 <div align="center">
 
+<img src="assets/icon.svg" width="88" height="88" alt="Z13GUI+ icon: the control drawer slid in from the right edge of the Z13 display">
+
 [![Release](https://img.shields.io/github/v/release/aic0d3r/z13gui-plus)](https://github.com/aic0d3r/z13gui-plus/releases)
 [![AUR](https://img.shields.io/aur/version/z13gui-plus-bin)](https://aur.archlinux.org/packages/z13gui-plus-bin)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)

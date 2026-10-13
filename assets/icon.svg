@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"
+     role="img" aria-label="Z13GUI+">
+  <!--
+    Z13GUI+ launcher icon: the ROG Flow Z13 display with the control drawer
+    slid in from the right edge. Colors come from the shipped rog-dark theme
+    (background #1a1a1a, surface #2a2a2a, text #e0e0e0, accent #cc0000); the
+    bezel is a step up from background so the mark survives both dark and
+    light launcher backgrounds. Geometry is aligned to a 16-unit grid so the
+    key edges land on whole pixels when rendered at 16px.
+    Installed as io.github.aic0d3r.z13gui_plus.svg in hicolor/scalable/apps.
+  -->
+  <defs>
+    <clipPath id="z13-screen">
+      <rect x="16" y="24" width="96" height="80" rx="8"/>
+    </clipPath>
+    <linearGradient id="z13-cast" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#000000" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- tablet body -->
+  <rect x="8" y="16" width="112" height="96" rx="16" fill="#4a4a4a"/>
+  <!-- display -->
+  <rect x="16" y="24" width="96" height="80" rx="8" fill="#141414"/>
+
+  <g clip-path="url(#z13-screen)">
+    <!-- desktop content behind the drawer -->
+    <rect x="24" y="36" width="32" height="8" rx="4" fill="#3a3a3a"/>
+    <rect x="24" y="52" width="24" height="8" rx="4" fill="#2e2e2e"/>
+    <!-- the drawer sits above the desktop: shadow falls to its left -->
+    <rect x="52" y="24" width="20" height="80" fill="url(#z13-cast)"/>
+    <!-- drawer, slid in from the right edge -->
+    <rect x="72" y="24" width="40" height="80" fill="#cc0000"/>
+    <!-- rows: active first, then dimmed -->
+    <rect x="80" y="34" width="24" height="14" rx="7" fill="#e0e0e0"/>
+    <rect x="80" y="56" width="24" height="14" rx="7" fill="#e0e0e0" opacity=".55"/>
+    <rect x="80" y="78" width="16" height="14" rx="7" fill="#e0e0e0" opacity=".35"/>
+  </g>
+</svg>

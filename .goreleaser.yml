@@ -23,6 +23,7 @@ archives:
       - contrib/z13gui-plus.service
       - contrib/io.github.aic0d3r.z13gui_plus.desktop
       - contrib/70-z13gui-plus-gamepad.rules
+      - assets/icon.svg
 
 checksum:
   name_template: "checksums.txt"
@@ -54,6 +55,10 @@ nfpms:
         dst: /usr/lib/systemd/user/z13gui-plus.service
       - src: contrib/io.github.aic0d3r.z13gui_plus.desktop
         dst: /usr/share/applications/io.github.aic0d3r.z13gui_plus.desktop
+      # The desktop entry's Icon= resolves to this; hicolor/scalable is the
+      # canonical location for a single scalable icon.
+      - src: assets/icon.svg
+        dst: /usr/share/icons/hicolor/scalable/apps/io.github.aic0d3r.z13gui_plus.svg
       # KDE registers the X-KDE-Shortcuts default (Meta+Z) for launchers linked here.
       - src: /usr/share/applications/io.github.aic0d3r.z13gui_plus.desktop
         dst: /usr/share/kglobalaccel/io.github.aic0d3r.z13gui_plus.desktop
