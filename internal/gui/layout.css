@@ -345,7 +345,6 @@
     border-radius: 8px;
     background: alpha(@z13-surface-hi, 0.4);
     border: 1px solid alpha(@z13-border-hi, 0.4);
-    cursor: pointer;
     transition: background 150ms ease, border-color 150ms ease;
 }
 
@@ -363,8 +362,8 @@
    Rotates 90° to point down when open; color shifts to accent, reinforcing
    "this section is open". */
 .drawer .disclosure-icon {
-    -gtk-icon-size: 16px;
-    color: @z13-text-dim;
+    -gtk-icon-size: 18px;
+    color: @z13-text;
     transition: transform 150ms ease, color 150ms ease;
 }
 
@@ -403,7 +402,7 @@
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 1px;
-    color: @z13-text-dim;
+    color: @z13-text;
 }
 
 .drawer .section-collapse:hover .section-collapse-action,

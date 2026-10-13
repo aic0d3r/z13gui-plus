@@ -1130,6 +1130,11 @@ func newCollapsibleHeader(label string, summary *gtk.Label, defaultOpen bool) *g
 	lbl.SetHAlign(gtk.AlignStart)
 	lbl.SetHExpand(true)
 	titleRow.Append(lbl)
+	// Action word is the primary affordance: seeing that the header expands must
+	// not depend on reading a chevron glyph, on any input method.
+	action := gtk.NewLabel("EXPAND")
+	action.AddCSSClass("section-collapse-action")
+	titleRow.Append(action)
 	chevron := gtk.NewImageFromIconName("pan-end-symbolic")
 	chevron.AddCSSClass("disclosure-icon")
 	titleRow.Append(chevron)
@@ -1143,6 +1148,13 @@ func newCollapsibleHeader(label string, summary *gtk.Label, defaultOpen bool) *g
 	button.AddCSSClass("section-collapse")
 	button.SetActive(defaultOpen)
 	button.SetHExpand(true)
+	button.ConnectToggled(func() {
+		if button.Active() {
+			action.SetLabel("COLLAPSE")
+		} else {
+			action.SetLabel("EXPAND")
+		}
+	})
 	return button
 }
 

@@ -336,6 +336,6 @@ func (b *Backend) scaledCSS() string {
 		13*s, 2*s, // section-collapse-label (font-size, letter-spacing)
 		12*s,       // section-collapse-summary font-size
 		11*s, 1*s, // section-collapse-action (font-size, letter-spacing)
-		16*s,       // disclosure-icon size
+		18*s,       // disclosure-icon size
 	)
 }
