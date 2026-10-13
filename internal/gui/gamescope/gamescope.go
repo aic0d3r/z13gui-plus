@@ -89,7 +89,17 @@ func New(appWin *gtk.ApplicationWindow, drawerWidth int) *Backend {
 		appWin:      appWin,
 		gtkWin:      &appWin.Window,
 		drawerWidth: drawerWidth,
+		scale:       initialScale(), // used as-is if realize can't find a monitor
 	}
+}
+
+// initialScale returns the Z13GUI_PLUS_SCALE override clamped to
+// [minScale, maxScale], or minScale when unset or invalid.
+func initialScale() float64 {
+	if v, err := strconv.ParseFloat(os.Getenv("Z13GUI_PLUS_SCALE"), 64); err == nil && v > 0 {
+		return min(max(v, minScale), maxScale)
+	}
+	return minScale
 }
 
 // Configure sets up the fullscreen undecorated window and registers a realize
@@ -124,18 +134,8 @@ func (b *Backend) Configure(_ func() bool, onDismiss func()) {
 		if monitor := display.MonitorAtSurface(surface); monitor != nil {
 			geo := monitor.Geometry()
 			b.outputHeight = geo.Height()
-			if envScale := os.Getenv("Z13GUI_PLUS_SCALE"); envScale != "" {
-				if v, err := strconv.ParseFloat(envScale, 64); err == nil && v > 0 {
-					b.scale = v
-				}
-			} else {
-				b.scale = float64(geo.Width()) / referenceWidth
-			}
-			if b.scale < minScale {
-				b.scale = minScale
-			}
-			if b.scale > maxScale {
-				b.scale = maxScale
+			if os.Getenv("Z13GUI_PLUS_SCALE") == "" {
+				b.scale = min(max(float64(geo.Width())/referenceWidth, minScale), maxScale)
 			}
 			b.appWin.SetDefaultSize(geo.Width(), geo.Height())
 			slog.Info("gamescope: sized to monitor", "w", geo.Width(), "h", geo.Height(), "scale", b.scale)
@@ -281,7 +281,8 @@ func (b *Backend) scaledCSS() string {
 .drawer .settings-row .toggle-label { font-size: %.0fpx; letter-spacing: %.1fpx; }
 .drawer .settings-row switch, .drawer switch.automation-switch { min-height: %.0fpx; min-width: %.0fpx; border-radius: %.0fpx; }
 .drawer .settings-row switch slider, .drawer switch.automation-switch slider { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
-.drawer .overview-system-card .scale-value, .drawer .battery-metric-value { font-size: 15px; }
+.drawer .overview-system-card .scale-value, .drawer .battery-metric-value { font-size: %.0fpx; }
+.drawer .battery-time-metric .battery-metric-value { font-size: %.0fpx; }
 .view-back-btn { min-width: %.0fpx; min-height: %.0fpx; padding: %.0fpx; }
 .gamepad-focus { outline-width: %.0fpx; outline-offset: %.0fpx; }
 .gamepad-editing { outline-width: %.0fpx; outline-offset: %.0fpx; }
@@ -323,6 +324,8 @@ func (b *Backend) scaledCSS() string {
 		10*s, 0.5*s, // toggle-label
 		22*s, 40*s, 11*s, // settings-row switch (height, width, border-radius)
 		18*s, 18*s, 9*s, // switch slider (width, height, border-radius)
+		15*s,            // overview/battery metric values
+		18*s,            // battery time metric value
 		40*s, 40*s, 4*s, // view-back-btn
 		2*s, 2*s, // gamepad-focus (outline-width, outline-offset)
 		2*s, 2*s, // gamepad-editing (outline-width, outline-offset)

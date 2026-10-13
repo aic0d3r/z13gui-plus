@@ -77,14 +77,22 @@ func (w *Window) moveVertical(dir int) {
 			break
 		}
 	}
+	var nextPos int
 	if curPos == -1 {
-		return
-	}
-
-	// Step to next/prev row (wrapping).
-	nextPos := (curPos + dir + len(rows)) % len(rows)
-	if nextPos == curPos {
-		return // only one visible row
+		// Current item went hidden/insensitive (e.g. a Save button after
+		// saving): step to the nearest visible row in the requested direction.
+		ins := sort.SearchInts(rows, current.row) // first row > current.row
+		if dir > 0 {
+			nextPos = ins % len(rows)
+		} else {
+			nextPos = (ins - 1 + len(rows)) % len(rows)
+		}
+	} else {
+		// Step to next/prev row (wrapping).
+		nextPos = (curPos + dir + len(rows)) % len(rows)
+		if nextPos == curPos {
+			return // only one visible row
+		}
 	}
 	targetRow := rows[nextPos]
 
@@ -124,6 +132,10 @@ func (w *Window) moveHorizontal(dir int) {
 		if fi.row == current.row && fi.visible() {
 			rowItems = append(rowItems, i)
 		}
+	}
+	if !w.focusItems[w.focusIdx].visible() {
+		w.moveVertical(dir) // current item went insensitive; don't strand focus
+		return
 	}
 	if len(rowItems) <= 1 {
 		return // single-item row, no horizontal movement
@@ -303,6 +315,11 @@ func (w *Window) hideGamepadFocus() {
 // swapFocusList switches to a different focus item list (e.g. on view change).
 // Clears the current highlight and resets focus to the first visible item.
 func (w *Window) swapFocusList(items []focusItem) {
+	// Same list (e.g. a background refresh re-asserting the current view):
+	// keep focus and any in-progress slider edit.
+	if len(items) > 0 && len(w.focusItems) == len(items) && &items[0] == &w.focusItems[0] {
+		return
+	}
 	if w.focusIdx < len(w.focusItems) {
 		gtk.BaseWidget(w.focusItems[w.focusIdx].widget).RemoveCSSClass("gamepad-focus")
 		gtk.BaseWidget(w.focusItems[w.focusIdx].widget).RemoveCSSClass("gamepad-editing")

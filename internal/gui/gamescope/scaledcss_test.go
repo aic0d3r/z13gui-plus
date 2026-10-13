@@ -19,3 +19,22 @@ func TestScaledCSS(t *testing.T) {
 		t.Error("scaledCSS() label font not scaled")
 	}
 }
+
+func TestScaledCSSNoVerbMismatch(t *testing.T) {
+	css := (&Backend{scale: 1.5}).scaledCSS()
+	if strings.Contains(css, "%!") {
+		t.Fatal("scaledCSS() has a fmt verb/arg mismatch")
+	}
+	if !strings.Contains(css, "battery-time-metric .battery-metric-value { font-size: 27px") { // 18 * 1.5
+		t.Error("battery time metric not scaled")
+	}
+}
+
+func TestInitialScale(t *testing.T) {
+	for env, want := range map[string]float64{"": minScale, "junk": minScale, "-2": minScale, "0.5": minScale, "2": 2, "9": maxScale} {
+		t.Setenv("Z13GUI_PLUS_SCALE", env)
+		if got := initialScale(); got != want {
+			t.Errorf("initialScale(%q) = %v, want %v", env, got, want)
+		}
+	}
+}

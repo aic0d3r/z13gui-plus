@@ -32,8 +32,8 @@ system package manager first.
     sudo install -Dm755 z13gui-plus /usr/local/bin/z13gui-plus
     sudo install -Dm644 contrib/io.github.aic0d3r.z13gui_plus.desktop \
         /usr/local/share/applications/io.github.aic0d3r.z13gui_plus.desktop
-    sudo install -Dm644 contrib/99-z13gui-plus-gamepad.rules \
-        /etc/udev/rules.d/99-z13gui-plus-gamepad.rules
+    sudo install -Dm644 contrib/70-z13gui-plus-gamepad.rules \
+        /etc/udev/rules.d/70-z13gui-plus-gamepad.rules
     ```
 
     Install the systemd user service:
@@ -293,7 +293,8 @@ Remove manually installed Plus artifacts:
 ```sh
 sudo rm -f /usr/local/bin/z13gui-plus
 sudo rm -f /usr/local/share/applications/io.github.aic0d3r.z13gui_plus.desktop
-sudo rm -f /etc/udev/rules.d/99-z13gui-plus-gamepad.rules
+sudo rm -f /etc/udev/rules.d/70-z13gui-plus-gamepad.rules
+sudo rm -f /etc/udev/rules.d/99-z13gui-plus-gamepad.rules  # name used before v2.6
 ```
 
 These commands do not remove or manage z13ctl-plus.

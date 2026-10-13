@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 )
@@ -60,7 +61,15 @@ func SaveAppConfig(cfg AppConfig) {
 	if cfg.Accent != "" {
 		content += "accent = \"" + cfg.Accent + "\"\n"
 	}
-	if err := os.WriteFile(filepath.Join(dir, "config.toml"), []byte(content), 0o644); err != nil {
+	// Write-then-rename so a crash mid-write can't leave an empty config.
+	path := filepath.Join(dir, "config.toml")
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, []byte(content), 0o644); err != nil {
+		slog.Warn("failed to write config", "err", err)
+		return
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
 		slog.Warn("failed to write config", "err", err)
 	}
 }
@@ -68,11 +77,16 @@ func SaveAppConfig(cfg AppConfig) {
 // XDGConfigHome returns the current user's configuration directory.
 func XDGConfigHome() string {
 	dir, err := os.UserConfigDir()
-	if err != nil {
-		slog.Warn("failed to get config directory", "err", err)
-		return "/tmp/.config"
+	if err == nil {
+		return dir
 	}
-	return dir
+	// HOME and XDG_CONFIG_HOME unset: look the home up instead of using a
+	// shared /tmp path another user could pre-create.
+	if u, uerr := user.Current(); uerr == nil && u.HomeDir != "" {
+		return filepath.Join(u.HomeDir, ".config")
+	}
+	slog.Warn("failed to get config directory; config disabled", "err", err)
+	return "/nonexistent/.config" // reads fall back to defaults, writes fail
 }
 
 // ConfigDir returns the z13gui-plus configuration directory.

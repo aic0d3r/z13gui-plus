@@ -382,6 +382,7 @@ func (w *Window) appendThemeChoices(box *gtk.Box) {
 		}
 		btn.ConnectToggled(func() {
 			if btn.Active() {
+				w.clearAccentDots()
 				w.applyTheme(id, "")
 			}
 		})
@@ -392,7 +393,8 @@ func (w *Window) appendThemeChoices(box *gtk.Box) {
 		box.Append(btn)
 
 		dots := w.appendAccentDots(box, t.Accents,
-			func(ac theme.Accent) bool { return id == activeCfg.Theme && ac.ID == activeCfg.Accent },
+			// With a custom theme.toml, config's accent belongs to it, not to the saved built-in.
+			func(ac theme.Accent) bool { return !w.isCustomTheme && id == activeCfg.Theme && ac.ID == activeCfg.Accent },
 			func(ac theme.Accent) { btn.SetActive(true); w.applyTheme(id, ac.ID) },
 		)
 		w.themeDots = append(w.themeDots, dots)
@@ -407,6 +409,7 @@ func (w *Window) appendThemeChoices(box *gtk.Box) {
 		customBtn.SetActive(true)
 		customBtn.ConnectToggled(func() {
 			if customBtn.Active() {
+				w.clearAccentDots()
 				w.applyCustomAccent("")
 			}
 		})
@@ -421,6 +424,15 @@ func (w *Window) appendThemeChoices(box *gtk.Box) {
 			func(ac theme.Accent) { w.applyCustomAccent(ac.ID) },
 		)
 		w.themeDots = append(w.themeDots, dots)
+	}
+}
+
+// clearAccentDots un-highlights every accent dot across all themes.
+func (w *Window) clearAccentDots() {
+	for _, dots := range w.themeDots {
+		for _, d := range dots {
+			d.RemoveCSSClass("accent-dot-active")
+		}
 	}
 }
 
@@ -455,9 +467,7 @@ func (w *Window) appendAccentDots(box *gtk.Box, accents []theme.Accent, isActive
 		dot.SetTooltipText(ac.Name)
 		dot.ConnectClicked(func() {
 			onClick(ac)
-			for _, d := range dots {
-				d.RemoveCSSClass("accent-dot-active")
-			}
+			w.clearAccentDots()
 			dot.AddCSSClass("accent-dot-active")
 		})
 		dots = append(dots, dot)
@@ -599,6 +609,7 @@ func (w *Window) showCustomView() {
 		w.viewStack.AddNamed(w.buildCustomView(), "custom")
 		w.buildCustomFocusList()
 	}
+	w.tuningSynced = nil // opening the view always shows the saved values
 	w.syncCustomView()
 	w.viewStack.SetVisibleChildName("custom")
 	w.swapFocusList(w.customFocusItems)

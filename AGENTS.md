@@ -24,7 +24,8 @@ It has two display backends:
 - The user unit is `z13gui-plus.service`.
 - The GApplication ID is `io.github.aic0d3r.z13gui_plus` and the desktop file is
   `io.github.aic0d3r.z13gui_plus.desktop`.
-- The gamepad udev file is `99-z13gui-plus-gamepad.rules`.
+- The gamepad udev file is `70-z13gui-plus-gamepad.rules` (renamed from `99-`
+  so `TAG+="uaccess"` runs before logind's `73-seat-late.rules`).
 - Configuration lives at `$XDG_CONFIG_HOME/z13gui-plus`, normally
   `~/.config/z13gui-plus`.
 - Owned runtime files live under `$XDG_RUNTIME_DIR/z13gui-plus`. Preserve the
@@ -111,7 +112,7 @@ contrib/
   z13gui-plus.service           systemd user service (EnvironmentFile for gamescope-session)
   io.github.aic0d3r.z13gui_plus.desktop
                                 Desktop entry
-  99-z13gui-plus-gamepad.rules  Gamepad access udev rules
+  70-z13gui-plus-gamepad.rules  Gamepad access udev rules
 ```
 
 ## Key architectural decisions

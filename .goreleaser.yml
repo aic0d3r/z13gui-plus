@@ -22,7 +22,7 @@ archives:
       - LICENSE
       - contrib/z13gui-plus.service
       - contrib/io.github.aic0d3r.z13gui_plus.desktop
-      - contrib/99-z13gui-plus-gamepad.rules
+      - contrib/70-z13gui-plus-gamepad.rules
 
 checksum:
   name_template: "checksums.txt"
@@ -58,8 +58,8 @@ nfpms:
       - src: /usr/share/applications/io.github.aic0d3r.z13gui_plus.desktop
         dst: /usr/share/kglobalaccel/io.github.aic0d3r.z13gui_plus.desktop
         type: symlink
-      - src: contrib/99-z13gui-plus-gamepad.rules
-        dst: /usr/lib/udev/rules.d/99-z13gui-plus-gamepad.rules
+      - src: contrib/70-z13gui-plus-gamepad.rules
+        dst: /usr/lib/udev/rules.d/70-z13gui-plus-gamepad.rules
     overrides:
       deb:
         dependencies:

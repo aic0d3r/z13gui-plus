@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -82,10 +83,16 @@ type Reader struct {
 	mu      sync.Mutex
 	devices map[string]*evdev.InputDevice
 	grabbed bool // true while overlay is visible (exclusive grab)
+
+	// ignored remembers non-gamepad nodes so scan doesn't reopen them every
+	// 5s. Only touched by the scan goroutine. Keyed by path; the FileInfo
+	// detects a replugged device reusing the same eventN path.
+	ignored map[string]os.FileInfo
 }
 
 // New creates a Reader. handler is called (via dispatch) for each action.
-// isVisible gates dispatch so events are ignored when the overlay is hidden.
+// isVisible gates handling so events are ignored when the overlay is hidden;
+// it is called on the dispatch (GTK main) thread.
 // dispatch must schedule f on the GTK main thread (typically glib.IdleAdd wrapper).
 func New(handler Handler, isVisible func() bool, dispatch func(func())) *Reader {
 	return &Reader{
@@ -93,6 +100,7 @@ func New(handler Handler, isVisible func() bool, dispatch func(func())) *Reader 
 		isVisible: isVisible,
 		dispatch:  dispatch,
 		devices:   make(map[string]*evdev.InputDevice),
+		ignored:   make(map[string]os.FileInfo),
 	}
 }
 
@@ -137,33 +145,49 @@ func (r *Reader) UngrabAll() {
 
 // scan enumerates /dev/input/event* and starts readers for new devices.
 func (r *Reader) scan() {
-	paths, err := evdev.ListDevicePaths()
-	if err != nil {
-		slog.Debug("gamepad: scan failed", "err", err)
-		return
-	}
+	// Glob instead of evdev.ListDevicePaths, which opens every node.
+	paths, _ := filepath.Glob("/dev/input/event*")
+	present := make(map[string]bool, len(paths))
 	for _, p := range paths {
+		present[p] = true
 		r.mu.Lock()
-		_, registered := r.devices[p.Path]
+		_, registered := r.devices[p]
 		r.mu.Unlock()
 		if registered {
 			continue
 		}
-		r.tryOpen(p.Path)
+		info, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		if prev, ok := r.ignored[p]; ok && os.SameFile(prev, info) {
+			continue
+		}
+		delete(r.ignored, p)
+		if r.tryOpen(p) == deviceIgnore {
+			r.ignored[p] = info
+		}
+	}
+	for p := range r.ignored {
+		if !present[p] {
+			delete(r.ignored, p)
+		}
 	}
 }
 
 // tryOpen opens a device, classifies it, and starts the appropriate handler.
-func (r *Reader) tryOpen(path string) {
+// It returns deviceIgnore only for devices that opened and were classified as
+// irrelevant; open failures (e.g. ACLs not yet applied) return -1 to retry.
+func (r *Reader) tryOpen(path string) deviceClass {
 	dev, err := evdev.OpenWithFlags(path, os.O_RDONLY)
 	if err != nil {
-		return
+		return -1
 	}
 
 	class := classifyDevice(dev)
 	if class == deviceIgnore {
 		_ = dev.Close()
-		return
+		return class
 	}
 
 	name, _ := dev.Name()
@@ -192,6 +216,7 @@ func (r *Reader) tryOpen(path string) {
 		go r.holdLoop(path, dev)
 		slog.Info("gamepad: found", append(attrs, "class", "grab-only")...)
 	}
+	return class
 }
 
 // classifyDevice determines how to handle an evdev device.
@@ -274,9 +299,11 @@ func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
 
 	var repeatMu sync.Mutex
 	var repeatTimer *time.Timer
+	var repeatGen int // bumped on every start/stop; stale ticks don't reschedule
 
 	stopRepeat := func() {
 		repeatMu.Lock()
+		repeatGen++
 		if repeatTimer != nil {
 			repeatTimer.Stop()
 			repeatTimer = nil
@@ -290,11 +317,13 @@ func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
 		if repeatTimer != nil {
 			repeatTimer.Stop()
 		}
+		repeatGen++
+		gen := repeatGen
 		var tick func()
 		tick = func() {
 			r.emit(a)
 			repeatMu.Lock()
-			if repeatTimer != nil {
+			if repeatGen == gen {
 				repeatTimer = time.AfterFunc(repeatInterval, tick)
 			}
 			repeatMu.Unlock()
@@ -378,12 +407,14 @@ func (r *Reader) holdLoop(path string, dev *evdev.InputDevice) {
 	}
 }
 
-// emit dispatches an action to the GUI thread if the overlay is visible.
+// emit dispatches an action to the GUI thread. Visibility is checked there,
+// not here: it is main-thread state, and the drawer may hide while queued.
 func (r *Reader) emit(a Action) {
-	if !r.isVisible() {
-		return
-	}
-	r.dispatch(func() { r.handler(a) })
+	r.dispatch(func() {
+		if r.isVisible() {
+			r.handler(a)
+		}
+	})
 }
 
 // buttonToAction maps evdev button codes to actions.

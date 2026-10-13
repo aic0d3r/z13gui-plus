@@ -5,9 +5,11 @@ package fonts
 
 import (
 	_ "embed"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"syscall"
 	"unsafe" //nolint:gocritic // used with cgo, requires separate import block
 )
 
@@ -27,10 +29,19 @@ var interBold []byte
 // "Inter" family available to GTK/Pango CSS without installing system-wide.
 // Must be called before any GTK CSS providers are loaded.
 func Register() {
-	dir := filepath.Join(runtimeDir(), "z13gui-plus", "fonts")
+	base := filepath.Join(runtimeDir(), "z13gui-plus")
+	dir := filepath.Join(base, "fonts")
 	if err := os.MkdirAll(dir, 0o700); err != nil { //nolint:gocritic // err is checked
 		slog.Warn("fonts: cannot create dir", "path", dir, "err", err)
 		return
+	}
+	// The /tmp fallback is shared: another user could pre-create these
+	// directories with symlinks inside to make us overwrite their targets.
+	for _, d := range []string{base, dir} {
+		if err := checkPrivateDir(d); err != nil { //nolint:gocritic // err is checked
+			slog.Warn("fonts: refusing unsafe dir", "path", d, "err", err)
+			return
+		}
 	}
 
 	for _, f := range []struct {
@@ -57,6 +68,25 @@ func Register() {
 			slog.Warn("fonts: FcConfigAppFontAddFile failed", "path", path)
 		}
 	}
+}
+
+// checkPrivateDir reports an error unless path is a real directory (not a
+// symlink) owned by the current user and inaccessible to anyone else.
+func checkPrivateDir(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("not a directory")
+	}
+	if st, ok := info.Sys().(*syscall.Stat_t); !ok || int(st.Uid) != os.Getuid() {
+		return fmt.Errorf("not owned by current user")
+	}
+	if info.Mode().Perm()&0o077 != 0 {
+		return fmt.Errorf("mode %v is accessible to other users", info.Mode().Perm())
+	}
+	return nil
 }
 
 // runtimeDir returns XDG_RUNTIME_DIR or falls back to /tmp.

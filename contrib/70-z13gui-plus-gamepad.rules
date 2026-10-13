@@ -5,7 +5,10 @@
 # for the active seat user. This file is a safety net for edge cases
 # (wireless dongles, unusual devices not in the default hwdb).
 #
-# Install: sudo cp 99-z13gui-plus-gamepad.rules /etc/udev/rules.d/
-# Reload:  sudo udevadm control --reload-rules && sudo udevadm trigger
+# The 70- prefix matters: logind applies "uaccess" in 73-seat-late.rules, so
+# the tag must be set before that file runs (a 99- rule never took effect).
+#
+# Install: sudo cp 70-z13gui-plus-gamepad.rules /etc/udev/rules.d/
+# Reload:  sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=input
 
 SUBSYSTEM=="input", ENV{ID_INPUT_JOYSTICK}=="?*", TAG+="uaccess"

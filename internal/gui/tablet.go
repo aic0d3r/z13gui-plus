@@ -471,9 +471,10 @@ func (w *Window) tabletFocusItems() []focusItem {
 	sensitivityLeft, sensitivityRight, sensitivityGet, sensitivitySet := scaleAdjust(w.tabletSensitivityScale, 1)
 	speedLeft, speedRight, speedGet, speedSet := scaleAdjust(w.tabletSpeedScale, 1)
 	return []focusItem{
-		{widget: w.tabletChip, row: -11, col: 0, section: "tablet", onActivate: func() { w.tabletChip.SetActive(!w.tabletChip.Active()) }},
-		{widget: w.tabletDesktopSwitch, row: -10, col: 0, section: "tablet", isVisible: panelVisible, onActivate: func() { w.tabletDesktopSwitch.SetActive(!w.tabletDesktopSwitch.Active()) }},
-		{widget: w.tabletTwoFingerHoldSwitch, row: -9, col: 0, section: "tablet", isVisible: panelVisible, onActivate: func() { w.tabletTwoFingerHoldSwitch.SetActive(!w.tabletTwoFingerHoldSwitch.Active()) }},
+		{widget: w.tabletChip, row: -12, col: 0, section: "tablet", onActivate: func() { w.tabletChip.SetActive(!w.tabletChip.Active()) }},
+		{widget: w.tabletDesktopSwitch, row: -11, col: 0, section: "tablet", isVisible: panelVisible, onActivate: func() { w.tabletDesktopSwitch.SetActive(!w.tabletDesktopSwitch.Active()) }},
+		{widget: w.tabletTwoFingerHoldSwitch, row: -10, col: 0, section: "tablet", isVisible: panelVisible, onActivate: func() { w.tabletTwoFingerHoldSwitch.SetActive(!w.tabletTwoFingerHoldSwitch.Active()) }},
+		{widget: w.tabletKeepScaleSwitch, row: -9, col: 0, section: "tablet", isVisible: panelVisible, onActivate: func() { w.tabletKeepScaleSwitch.SetActive(!w.tabletKeepScaleSwitch.Active()) }},
 		{widget: w.tabletTouchpadSwitch, row: -8, col: 0, section: "tablet", isVisible: touchpadVisible, onActivate: w.toggleTabletTouchpad},
 		{widget: w.tabletConfirmCancel, row: -7, col: 0, section: "tablet-confirm", isVisible: confirmVisible, onActivate: func() { w.tabletConfirmCancel.Activate() }},
 		{widget: w.tabletConfirmEnable, row: -7, col: 1, section: "tablet-confirm", isVisible: confirmVisible, onActivate: func() { w.tabletConfirmEnable.Activate() }},

@@ -133,16 +133,12 @@ func (w *Window) rebuildPresetDetail() {
 	w.presetDraftBase.BaseProfile = ""
 
 	e := &presetEditor{box: w.presetDetailContent, row: 1}
-	w.presetDetailUsage = presetUsage(name, w.state)
-	usage := gtk.NewLabel(w.presetDetailUsage)
+	usage := gtk.NewLabel("")
 	usage.SetHAlign(gtk.AlignStart)
 	usage.AddCSSClass("card-sub")
 	e.box.Append(usage)
 
 	save := gtk.NewButtonWithLabel("Save")
-	if w.state.ActivePreset == name {
-		save.SetLabel("Save & Apply")
-	}
 	e.heading("NAME")
 	nameEntry := gtk.NewEntry()
 	nameEntry.SetText(name)
@@ -353,15 +349,18 @@ func (w *Window) rebuildPresetDetail() {
 		w.queueStateAction(stateAction{
 			name: "save preset", reportStatus: true,
 			fn: func() (bool, error) {
-				if target != name {
-					if ok, err := api.SendPresetRename(name, target); !ok || err != nil {
+				// Set before rename: if the rename then fails, the values
+				// are saved under the old name instead of half a commit
+				// leaving the editor pointing at a name that is gone.
+				if valuesChanged {
+					if ok, err := api.SendPresetSet(name, value); !ok || err != nil {
 						return ok, err
 					}
 				}
-				if !valuesChanged {
-					return true, nil
+				if target != name {
+					return api.SendPresetRename(name, target)
 				}
-				return api.SendPresetSet(target, value)
+				return true, nil
 			},
 			onApplied: func() {
 				w.presetEditorDirty = nil
@@ -387,8 +386,6 @@ func (w *Window) rebuildPresetDetail() {
 
 	remove := gtk.NewButtonWithLabel("Delete Preset")
 	remove.AddCSSClass("destructive-action")
-	assigned := presetAssigned(name, w.state)
-	remove.SetSensitive(!assigned)
 	remove.ConnectClicked(func() {
 		w.showConfirmation("Delete Preset", fmt.Sprintf("Delete %q? Current hardware settings will not change.", name), "Delete", "presets", true, func() {
 			w.runStateAction("delete preset", func() (bool, error) { return api.SendPresetDelete(name) })
@@ -396,13 +393,25 @@ func (w *Window) rebuildPresetDetail() {
 	})
 	e.box.Append(remove)
 	e.focus = append(e.focus, focusItem{widget: remove, row: e.row, col: 0, section: "preset-actions", onActivate: func() { remove.Activate() }})
-	if assigned {
-		hint := gtk.NewLabel("Assign another preset before deleting this one.")
-		hint.SetHAlign(gtk.AlignStart)
-		hint.SetWrap(true)
-		hint.AddCSSClass("card-sub")
-		e.box.Append(hint)
+	hint := gtk.NewLabel("Assign another preset before deleting this one.")
+	hint.SetHAlign(gtk.AlignStart)
+	hint.SetWrap(true)
+	hint.AddCSSClass("card-sub")
+	e.box.Append(hint)
+	// Usage-dependent bits; refreshed in place by syncPresets so a power
+	// source change or assignment doesn't rebuild away unsaved edits.
+	w.presetDetailRefresh = func() {
+		usage.SetLabel(presetUsage(name, w.state))
+		if w.state.ActivePreset == name {
+			save.SetLabel("Save & Apply")
+		} else {
+			save.SetLabel("Save")
+		}
+		assigned := presetAssigned(name, w.state)
+		remove.SetSensitive(!assigned)
+		hint.SetVisible(assigned)
 	}
+	w.presetDetailRefresh()
 	changed()
 
 	w.presetDetailFocusItems = append([]focusItem{

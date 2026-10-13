@@ -20,5 +20,5 @@ package() {
     install -Dm644 "contrib/io.github.aic0d3r.z13gui_plus.desktop" "${pkgdir}/usr/share/applications/io.github.aic0d3r.z13gui_plus.desktop"
     install -d "${pkgdir}/usr/share/kglobalaccel"
     ln -s "../applications/io.github.aic0d3r.z13gui_plus.desktop" "${pkgdir}/usr/share/kglobalaccel/io.github.aic0d3r.z13gui_plus.desktop"
-    install -Dm644 "contrib/99-z13gui-plus-gamepad.rules"      "${pkgdir}/usr/lib/udev/rules.d/99-z13gui-plus-gamepad.rules"
+    install -Dm644 "contrib/70-z13gui-plus-gamepad.rules"      "${pkgdir}/usr/lib/udev/rules.d/70-z13gui-plus-gamepad.rules"
 }

@@ -331,14 +331,15 @@ func (w *Window) syncPresets() {
 	w.syncPresetChips()
 	w.rebuildPresetRows()
 	// Rebuilding the editor discards unsaved edits, so only do it when the
-	// preset itself or its usage changed underneath.
+	// preset itself changed underneath; usage (active/assigned) is updated in place.
 	if w.presetDetailName != "" && w.presetDetailContent != nil {
 		preset, ok := w.state.Presets[w.presetDetailName]
 		base := clonePresetValue(preset)
 		base.BaseProfile = ""
-		usage := presetUsage(w.presetDetailName, w.state)
-		if !ok || !reflect.DeepEqual(base, w.presetDraftBase) || usage != w.presetDetailUsage {
+		if !ok || !reflect.DeepEqual(base, w.presetDraftBase) {
 			w.rebuildPresetDetail()
+		} else if w.presetDetailRefresh != nil {
+			w.presetDetailRefresh()
 		}
 	}
 	if w.viewStack != nil {

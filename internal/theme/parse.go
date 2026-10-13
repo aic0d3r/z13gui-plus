@@ -20,15 +20,16 @@ func ParseThemeTOMLFull(data []byte) (Colors, []Accent) {
 			continue
 		}
 
-		// Detect section headers.
-		if strings.HasPrefix(line, "[") {
-			inAccents = strings.TrimSpace(line) == "[accents]"
-			continue
-		}
-
-		// Strip inline comments.
+		// Strip inline comments (before header detection, so a commented
+		// "[accents]  # ..." header is still recognized).
 		if i := strings.Index(line, " #"); i >= 0 {
 			line = strings.TrimSpace(line[:i])
+		}
+
+		// Detect section headers.
+		if strings.HasPrefix(line, "[") {
+			inAccents = line == "[accents]"
+			continue
 		}
 		k, v, ok := strings.Cut(line, "=")
 		if !ok {

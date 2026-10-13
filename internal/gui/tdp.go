@@ -5,7 +5,6 @@ package gui
 import (
 	"fmt"
 	"math"
-	"slices"
 	"strings"
 
 	"github.com/dahui/z13ctl/api"
@@ -79,8 +78,10 @@ func (fc *fanCurveEditor) curveString() string {
 
 // enforceConstraints ensures temps are strictly increasing and PWM non-decreasing.
 func (fc *fanCurveEditor) enforceConstraints(idx int) {
-	// Clamp the dragged point first.
-	fc.points[idx].Temp = min(max(fc.points[idx].Temp, 35), 105)
+	// Clamp the dragged point so every neighbour still fits a distinct degree
+	// inside 35–105°C; the cascades below then never leave that range and
+	// points the user didn't push (e.g. a preset's 30°C start) stay put.
+	fc.points[idx].Temp = min(max(fc.points[idx].Temp, 35+idx), 105-(7-idx))
 	fc.points[idx].PWM = min(max(fc.points[idx].PWM, 0), 255)
 
 	// Cascade temps forward (must be strictly increasing).
@@ -106,11 +107,6 @@ func (fc *fanCurveEditor) enforceConstraints(idx int) {
 		if fc.points[i].PWM > fc.points[i+1].PWM {
 			fc.points[i].PWM = fc.points[i+1].PWM
 		}
-	}
-	// Final clamp pass.
-	for i := range fc.points {
-		fc.points[i].Temp = min(max(fc.points[i].Temp, 35), 105)
-		fc.points[i].PWM = min(max(fc.points[i].PWM, 0), 255)
 	}
 }
 
@@ -513,7 +509,7 @@ func (w *Window) buildCustomView() *gtk.Box {
 	fanHdr.Append(w.fanModeLabel)
 	content.Append(fanHdr)
 
-	w.fanSafetyBanner = gtk.NewLabel("Fan control is locked while a safety profile is active.")
+	w.fanSafetyBanner = gtk.NewLabel("Above 75 W the safety fan curve runs. To use your own, keep every point at 50% or higher.")
 	w.fanSafetyBanner.SetWrap(true)
 	w.fanSafetyBanner.SetHAlign(gtk.AlignStart)
 	w.fanSafetyBanner.AddCSSClass("tdp-warning")
@@ -610,7 +606,51 @@ func uvLabel(name string, val int) string {
 	return fmt.Sprintf("%s: %d", name, val)
 }
 
-// syncCustomView populates the tuning widgets from daemon state.
+// highTDPMinPWM mirrors z13ctl-plus cli.HighTDPMinPWM: above 75 W a user
+// fan curve is applied only if every point is at or above it.
+const highTDPMinPWM = 127
+
+// curveMeetsHighTDPFloor mirrors the daemon rule of the same name.
+func curveMeetsHighTDPFloor(points []api.FanCurvePoint) bool {
+	for _, p := range points {
+		if p.PWM < highTDPMinPWM {
+			return false
+		}
+	}
+	return len(points) > 0
+}
+
+// tuningSnapshot is the effective saved tuning, with daemon "unset" (nil)
+// mapped to the values the widgets show for it.
+type tuningSnapshot struct {
+	tdp   [3]int // PL1, PL2, PL3
+	fan   [8]api.FanCurvePoint
+	cpuCO int
+}
+
+// tuningTarget derives the saved tuning from daemon state. TDP and FanCurve
+// are nil after a reset, which means 50 W and the default curve.
+func tuningTarget(s *api.State) tuningSnapshot {
+	t := tuningSnapshot{tdp: [3]int{50, 50, 50}, fan: defaultFanCurve()}
+	if s == nil {
+		return t
+	}
+	if s.TDP != nil {
+		t.tdp = [3]int{s.TDP.PL1SPL, s.TDP.PL2SPPT, s.TDP.FPPT}
+	}
+	if s.FanCurve != nil && len(s.FanCurve.Points) == 8 {
+		copy(t.fan[:], s.FanCurve.Points)
+	}
+	if s.UndervoltActive && s.Undervolt != nil {
+		t.cpuCO = s.Undervolt.CPUCO
+	}
+	return t
+}
+
+// syncCustomView populates the tuning widgets from daemon state. Only
+// sections whose saved value changed since the last sync are rewritten, so
+// unsaved edits survive unrelated actions and polls; set w.tuningSynced = nil
+// to force a full rewrite.
 func (w *Window) syncCustomView() {
 	if w.state == nil {
 		return
@@ -619,31 +659,35 @@ func (w *Window) syncCustomView() {
 	w.syncing = true
 	defer func() { w.syncing = prev }()
 
+	t := tuningTarget(w.state)
+	last := w.tuningSynced
+	w.tuningSynced = &t
+
 	// TDP.
-	if w.state.TDP != nil {
-		tdp := w.state.TDP
+	if last == nil || last.tdp != t.tdp {
+		pl1, pl2, pl3 := t.tdp[0], t.tdp[1], t.tdp[2]
 		if w.tdpBasicScale != nil {
-			v := min(float64(tdp.PL1SPL), tdpMaxBasic)
+			v := min(float64(pl1), tdpMaxBasic)
 			w.tdpBasicScale.SetValue(v)
 			w.tdpBasicLabel.SetLabel(fmt.Sprintf("%d W", int(v)))
 		}
 		if w.tdpPL1Scale != nil {
-			w.tdpPL1Scale.SetValue(float64(tdp.PL1SPL))
-			w.tdpPL1Label.SetLabel(fmt.Sprintf("%d W", tdp.PL1SPL))
+			w.tdpPL1Scale.SetValue(float64(pl1))
+			w.tdpPL1Label.SetLabel(fmt.Sprintf("%d W", pl1))
 		}
 		if w.tdpPL2Scale != nil {
-			w.tdpPL2Scale.SetValue(float64(tdp.PL2SPPT))
-			w.tdpPL2Label.SetLabel(fmt.Sprintf("%d W", tdp.PL2SPPT))
+			w.tdpPL2Scale.SetValue(float64(pl2))
+			w.tdpPL2Label.SetLabel(fmt.Sprintf("%d W", pl2))
 		}
 		if w.tdpPL3Scale != nil {
-			w.tdpPL3Scale.SetValue(float64(tdp.FPPT))
-			w.tdpPL3Label.SetLabel(fmt.Sprintf("%d W", tdp.FPPT))
+			w.tdpPL3Scale.SetValue(float64(pl3))
+			w.tdpPL3Label.SetLabel(fmt.Sprintf("%d W", pl3))
 		}
 	}
 
 	// Fan curve.
-	if w.state.FanCurve != nil && len(w.state.FanCurve.Points) == 8 && w.fanCurve != nil {
-		copy(w.fanCurve.points[:], w.state.FanCurve.Points)
+	if w.fanCurve != nil && (last == nil || last.fan != t.fan) {
+		w.fanCurve.points = t.fan
 		w.fanCurve.area.QueueDraw()
 	}
 
@@ -651,13 +695,9 @@ func (w *Window) syncCustomView() {
 	if w.uvBox != nil {
 		w.uvBox.SetVisible(w.state.UndervoltAvailable)
 	}
-	cpuCO := 0
-	if w.state.UndervoltActive && w.state.Undervolt != nil {
-		cpuCO = w.state.Undervolt.CPUCO
-	}
-	if w.uvCpuScale != nil {
-		w.uvCpuScale.SetValue(float64(cpuCO))
-		w.uvCpuLabel.SetLabel(uvLabel("CPU Curve Optimizer", cpuCO))
+	if w.uvCpuScale != nil && (last == nil || last.cpuCO != t.cpuCO) {
+		w.uvCpuScale.SetValue(float64(t.cpuCO))
+		w.uvCpuLabel.SetLabel(uvLabel("CPU Curve Optimizer", t.cpuCO))
 	}
 
 	w.syncTuningTelemetry(w.state)
@@ -683,17 +723,16 @@ func (w *Window) refreshTuningDirty() {
 	toggleMark(w.tdpDirtyMark, tdpDirty && !clamped)
 
 	// Fan.
+	// Under the high-TDP safety lock the daemon still honours a user curve
+	// that meets the PWM floor, so only block saving curves below it.
 	fanLocked := w.state != nil && w.state.FanSafetyActive
-	fanDirty := w.fanDirty()
+	fanSaveable := w.fanDirty() && (!fanLocked || (w.fanCurve != nil && curveMeetsHighTDPFloor(w.fanCurve.points[:])))
 	if w.fanSafetyBanner != nil {
 		w.fanSafetyBanner.SetVisible(fanLocked)
 	}
-	if w.fanCurve != nil {
-		w.fanCurve.area.SetSensitive(!fanLocked)
-	}
-	w.saveFanBtn.SetSensitive(fanDirty && !fanLocked)
+	w.saveFanBtn.SetSensitive(fanSaveable)
 	w.resetFanBtn.SetSensitive(!fanLocked)
-	toggleMark(w.fanDirtyMark, fanDirty && !fanLocked)
+	toggleMark(w.fanDirtyMark, fanSaveable)
 
 	// Undervolt.
 	uvDirty := w.uvDirty()
@@ -709,10 +748,8 @@ func toggleMark(mark *gtk.Label, dirty bool) {
 
 // tdpDirty reports whether the TDP sliders differ from the saved state.
 func (w *Window) tdpDirty() bool {
-	pl1, pl2, pl3 := 50, 50, 50
-	if w.state != nil && w.state.TDP != nil {
-		pl1, pl2, pl3 = w.state.TDP.PL1SPL, w.state.TDP.PL2SPPT, w.state.TDP.FPPT
-	}
+	tdp := tuningTarget(w.state).tdp
+	pl1, pl2, pl3 := tdp[0], tdp[1], tdp[2]
 	if w.tdpAdvancedCheck != nil && w.tdpAdvancedCheck.Active() {
 		return int(w.tdpPL1Scale.Value()) != pl1 ||
 			int(w.tdpPL2Scale.Value()) != pl2 ||
@@ -745,10 +782,7 @@ func (w *Window) fanDirty() bool {
 	if w.fanCurve == nil {
 		return false
 	}
-	if w.state == nil || w.state.FanCurve == nil || len(w.state.FanCurve.Points) != 8 {
-		return w.fanCurve.points != defaultFanCurve()
-	}
-	return !slices.Equal(w.fanCurve.points[:], w.state.FanCurve.Points)
+	return w.fanCurve.points != tuningTarget(w.state).fan
 }
 
 // uvDirty reports whether the Curve Optimizer slider differs from the saved state.
@@ -756,11 +790,7 @@ func (w *Window) uvDirty() bool {
 	if w.uvCpuScale == nil {
 		return false
 	}
-	cur := 0
-	if w.state != nil && w.state.UndervoltActive && w.state.Undervolt != nil {
-		cur = w.state.Undervolt.CPUCO
-	}
-	return int(w.uvCpuScale.Value()) != cur
+	return int(w.uvCpuScale.Value()) != tuningTarget(w.state).cpuCO
 }
 
 // applyTempColor sets the telemetry temp label and a threshold-based color class.
@@ -937,7 +967,10 @@ func (w *Window) startTelemetryPolling() {
 
 				if customActive {
 					w.syncFanPreset()
-					w.syncTuningTelemetry(state)
+					// Picks up tuning changed underneath (automation, other
+					// clients) and refreshes Save/safety-lock state; edits in
+					// unchanged sections are kept.
+					w.syncCustomView()
 					if w.fanCurve != nil {
 						w.fanCurve.area.QueueDraw()
 					}

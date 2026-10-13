@@ -110,6 +110,8 @@ red = "#ff0000"`, []Accent{
 			{ID: "blue", Name: "Blue", Hex: "#0000ff"},
 			{ID: "red", Name: "Red", Hex: "#ff0000"},
 		}},
+		{"commented header", `[accents]  # variants
+blue = "#0000ff"`, []Accent{{ID: "blue", Name: "Blue", Hex: "#0000ff"}}},
 		{"title case", `[accents]
 deep_blue = "#0000ff"
 RED = "#ff0000"`, []Accent{

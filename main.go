@@ -93,9 +93,6 @@ func main() {
 		}
 	}
 
-	// Thaw any Steam process left frozen from a previous crash.
-	gamepad.ThawFrozen()
-
 	// Signal handler: thaw Steam before exit on SIGTERM/SIGINT.
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
@@ -133,6 +130,10 @@ func main() {
 			win.Toggle()
 			return
 		}
+		// Thaw any Steam process left frozen from a previous crash. Done here,
+		// not at startup, so a second launch that only forwards to the running
+		// instance can't unfreeze Steam while the drawer is open.
+		gamepad.ThawFrozen()
 		gui.Version = Version
 		win = gui.New(app)
 		if openOnFirstActivate {

@@ -144,6 +144,9 @@ jobs:
   docs:
     needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # gh-deploy pushes gh-pages
+      actions: write  # dispatch the Pages workflow
     if: >-
       always() &&
       (
@@ -165,3 +168,12 @@ jobs:
       - name: Deploy to GitHub Pages
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.pages }}
         run: mkdocs gh-deploy --force
+
+      # Pushes made with GITHUB_TOKEN don't trigger workflows, so the Pages
+      # workflow's `push: gh-pages` trigger never fires; dispatch it instead.
+      - name: Publish via Pages workflow
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.pages }}
+        run: gh workflow run pages.yml --ref "${{ github.event.repository.default_branch }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}

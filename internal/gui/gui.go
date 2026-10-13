@@ -163,7 +163,7 @@ type Window struct {
 	presetChipBtns         map[string]*gtk.Button
 	presetChipCols         int
 	presetEditorDirty      func() bool
-	presetDetailUsage      string     // usage text the editor was built with
+	presetDetailRefresh    func()     // updates usage-dependent editor bits in place
 	presetDraftBase        api.Preset // saved values the editor was built from
 	presetFeedbackGen      int
 	progressGen            int // guards the delayed "Working..." timer
@@ -223,6 +223,10 @@ type Window struct {
 	tdpPL2Label      *gtk.Label
 	tdpPL3Label      *gtk.Label
 	fanCurve         *fanCurveEditor
+	// tuningSynced is the daemon tuning last written into the widgets; nil
+	// forces a full rewrite. Sections whose daemon value is unchanged keep
+	// their unsaved edits.
+	tuningSynced *tuningSnapshot
 	saveTdpBtn       *gtk.Button
 	saveFanBtn       *gtk.Button
 	resetTdpBtn      *gtk.Button
@@ -416,7 +420,7 @@ func (w *Window) show() {
 	slog.Debug("show called")
 	w.visible = true
 	if w.gamepadReader != nil {
-		go w.gamepadReader.GrabAll()
+		w.gamepadReader.GrabAll() // synchronous: ordered with UngrabAll
 	}
 	if w.steamBlocker != nil {
 		w.steamPID = w.steamBlocker.BlockSteam()
@@ -448,7 +452,7 @@ func (w *Window) hide() {
 			return false
 		})
 	} else if w.gamepadReader != nil {
-		go w.gamepadReader.UngrabAll()
+		w.gamepadReader.UngrabAll()
 	}
 	w.hideGamepadFocus()
 	w.telemetryGen++ // stop any running telemetry poll
@@ -684,7 +688,10 @@ func (w *Window) applyCustomAccent(accentID string) {
 	w.themeProvider = gtk.NewCSSProvider()
 	w.themeProvider.LoadFromString(theme.BuildThemeCSS(colors, defaultThemeCSS))
 	gtk.StyleContextAddProviderForDisplay(display, w.themeProvider, gtk.STYLE_PROVIDER_PRIORITY_USER)
-	theme.SaveAppConfig(theme.AppConfig{Accent: accentID})
+	// Keep the saved built-in theme so it returns if theme.toml is removed.
+	cfg := theme.LoadAppConfig()
+	cfg.Accent = accentID
+	theme.SaveAppConfig(cfg)
 	if w.appearanceSummary != nil {
 		w.appearanceSummary.SetLabel(themeButtonLabel("", accentID, true))
 	}
