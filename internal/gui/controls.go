@@ -951,9 +951,10 @@ func (w *Window) buildRefreshRateSection() *gtk.Box {
 		row.Append(btn)
 	}
 	box.Append(row)
-	// Shown only when the daemon cannot read the panel. A pill is too narrow for a
-	// sentence and must not truncate, so the explanation gets a wrapping line instead.
-	w.refreshNote = gtk.NewLabel("The firmware does not report the current rate, so neither option is marked.")
+	// Shown once state arrives: the live rate, which display it drives, or why it is
+	// unknown. A pill is too narrow for a sentence and must not truncate, so the
+	// explanation gets a wrapping line instead.
+	w.refreshNote = gtk.NewLabel(refreshNoteText(nil, 0))
 	w.refreshNote.SetHAlign(gtk.AlignStart)
 	w.refreshNote.SetWrap(true)
 	w.refreshNote.AddCSSClass("setting-description")

@@ -167,3 +167,24 @@ func TestKernelEPP(t *testing.T) {
 		t.Fatalf("tuningStatus(dynamic) = %q", got)
 	}
 }
+
+func TestRefreshNoteText(t *testing.T) {
+	cases := []struct {
+		name  string
+		state *api.State
+		rate  int
+		want  string
+	}{
+		{"built-in only", &api.State{}, 180, "Current rate: 180 Hz"},
+		{"second screen", &api.State{ExternalDisplay: true}, 60, "Built-in panel: 60 Hz. Other displays aren't affected."},
+		{"docked, panel off", &api.State{PanelOff: true, ExternalDisplay: true}, 0, "Built-in panel is off. These buttons don't change other displays."},
+		{"unreadable", &api.State{}, 0, "The current rate can't be read, so neither option is marked."},
+		{"unreadable with external", &api.State{ExternalDisplay: true}, 0, "The current rate can't be read, so neither option is marked."},
+		{"no state yet", nil, 0, "The current rate can't be read, so neither option is marked."},
+	}
+	for _, tc := range cases {
+		if got := refreshNoteText(tc.state, tc.rate); got != tc.want {
+			t.Errorf("%s: refreshNoteText() = %q, want %q", tc.name, got, tc.want)
+		}
+	}
+}

@@ -403,6 +403,13 @@ func (w *Window) syncRefreshRate() {
 	if w.state == nil {
 		return
 	}
+	// The buttons only drive the built-in panel; while it is off they can do nothing.
+	for _, btn := range w.refreshBtns {
+		btn.SetSensitive(!w.state.PanelOff)
+	}
+	if w.state.PanelOff {
+		w.pendingRefreshRate = 0
+	}
 	if w.pendingRefreshRate != 0 {
 		if w.state.RefreshRate == w.pendingRefreshRate || time.Now().After(w.refreshPendingUntil) {
 			w.pendingRefreshRate = 0
@@ -429,14 +436,26 @@ func (w *Window) setRefreshNote(pending int) {
 	if rate == 0 && w.state != nil {
 		rate = w.state.RefreshRate
 	}
-	if _, ok := w.refreshBtns[rate]; ok {
-		w.refreshNote.SetText(fmt.Sprintf("Current rate: %d Hz", rate))
-	} else {
-		// The daemon answers refresh-rate-get with 0 when it cannot read the panel:
-		// the control still works, only the live value is unknowable.
-		w.refreshNote.SetText("The firmware does not report the current rate, so neither option is marked.")
-	}
+	w.refreshNote.SetText(refreshNoteText(w.state, rate))
 	w.refreshNote.SetVisible(true)
+}
+
+// refreshNoteText says which display the refresh buttons drive and its live rate.
+// The buttons only ever address the built-in panel, so with another display on
+// the note says so; the wording stays count-neutral for any number of monitors.
+func refreshNoteText(state *api.State, rate int) string {
+	if state != nil && state.PanelOff {
+		return "Built-in panel is off. These buttons don't change other displays."
+	}
+	if !slices.Contains(refreshRates, rate) {
+		// 0 means kscreen-doctor could not be read: the control still works,
+		// only the live value is unknown.
+		return "The current rate can't be read, so neither option is marked."
+	}
+	if state != nil && state.ExternalDisplay {
+		return fmt.Sprintf("Built-in panel: %d Hz. Other displays aren't affected.", rate)
+	}
+	return fmt.Sprintf("Current rate: %d Hz", rate)
 }
 
 // syncOverviewTelemetry populates Overview tab widgets from the live Telemetry
