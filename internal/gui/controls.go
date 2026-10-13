@@ -174,8 +174,7 @@ func (w *Window) buildRGBTab() *gtk.ScrolledWindow {
 	lighting.Append(w.buildToggle("Lighting", "Turn lighting on or off for the selected device", &w.lightingSwitch, w.setLightingEnabled))
 	inner.Append(lighting)
 
-	effect, summary := statusCard("EFFECT")
-	w.rgbEffectSummary = summary
+	effect := titledCard("EFFECT")
 	w.rgbEffectCard = effect
 	controls := gtk.NewBox(gtk.OrientationVertical, 8)
 	controls.Append(w.buildModeSection())
@@ -217,8 +216,9 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	inner.SetMarginStart(12)
 	inner.SetMarginEnd(12)
 
-	display, summary := statusCard("DISPLAY")
-	w.displaySummary = summary
+	// No summary pill on this card: the header cannot hold one at the drawer's width,
+	// and the refresh state belongs next to the control it describes (refreshNote).
+	display := titledCard("DISPLAY")
 	display.Append(w.buildRefreshRateSection())
 	display.Append(w.buildToggle("Panel Overdrive", "Enable panel overdrive for faster pixel response (may increase power use)", &w.overdriveSwitch, func(active bool) {
 		v := 0
@@ -779,6 +779,22 @@ var profiles = []string{"quiet", "balanced", "performance"}
 // speeds lists the available lighting animation speeds.
 var speeds = []string{"slow", "normal", "fast"}
 
+// titledCard is a card whose header carries no summary pill, because its own
+// controls already show the state (the highlighted mode button names the mode). The
+// pill used to sit here truncated "STATIC" to "STAT…" at the drawer's width.
+func titledCard(title string) *gtk.Box {
+	card := gtk.NewBox(gtk.OrientationVertical, 6)
+	card.AddCSSClass("card")
+	header := gtk.NewBox(gtk.OrientationHorizontal, 6)
+	label := gtk.NewLabel(title)
+	label.SetHAlign(gtk.AlignStart)
+	label.SetHExpand(true)
+	label.AddCSSClass("card-title")
+	header.Append(label)
+	card.Append(header)
+	return card
+}
+
 func statusCard(title string) (*gtk.Box, *gtk.Label) {
 	card := gtk.NewBox(gtk.OrientationVertical, 6)
 	card.AddCSSClass("card")
@@ -921,7 +937,7 @@ func (w *Window) buildRefreshRateSection() *gtk.Box {
 			}, func() {
 				if w.pendingRefreshRate != 0 {
 					setActiveButton(w.refreshBtns, w.pendingRefreshRate)
-					w.displaySummary.SetLabel(fmt.Sprintf("%d HZ", w.pendingRefreshRate))
+					w.setRefreshNote(w.pendingRefreshRate)
 				}
 			}, func(_ error) {
 				if w.pendingRefreshRate == hz {
@@ -933,6 +949,14 @@ func (w *Window) buildRefreshRateSection() *gtk.Box {
 		row.Append(btn)
 	}
 	box.Append(row)
+	// Shown only when the daemon cannot read the panel. A pill is too narrow for a
+	// sentence and must not truncate, so the explanation gets a wrapping line instead.
+	w.refreshNote = gtk.NewLabel("The firmware does not report the current rate, so neither option is marked.")
+	w.refreshNote.SetHAlign(gtk.AlignStart)
+	w.refreshNote.SetWrap(true)
+	w.refreshNote.AddCSSClass("setting-description")
+	w.refreshNote.SetVisible(false)
+	box.Append(w.refreshNote)
 	return box
 }
 

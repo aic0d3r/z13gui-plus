@@ -76,7 +76,7 @@ func (w *Window) newColorInput(initialHex, swatchName, label string) *colorInput
 	ci.row = gtk.NewBox(gtk.OrientationVertical, 4)
 	ci.row.Append(presetsGrid)
 
-	ci.customBtn = gtk.NewButtonWithLabel("Custom Color")
+	ci.customBtn = gtk.NewButtonWithLabel("Custom")
 	ci.customBtn.AddCSSClass("action-btn")
 	ci.customBtn.SetHExpand(true)
 	ci.customBtn.ConnectClicked(func() { w.showColorView(ci) })

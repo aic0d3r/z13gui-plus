@@ -61,9 +61,6 @@ func setOnOffSummary(label *gtk.Label, active bool) {
 // Safe to call at any time (including during sync).
 func (w *Window) syncModeVis() {
 	mode := activeButton(w.modeButtons, "static")
-	if w.rgbEffectSummary != nil {
-		w.rgbEffectSummary.SetLabel(strings.ToUpper(mode))
-	}
 	v := modeVisMap[mode]
 	if w.color1Box != nil {
 		w.color1Box.SetVisible(v.color1)
@@ -90,6 +87,7 @@ func (w *Window) syncState() {
 	w.syncFanPreset()
 	w.syncCPUPower()
 	w.syncRefreshRate()
+	w.refreshRateProbe()
 	w.syncOverdrive()
 	w.syncBootSound()
 	w.syncTablet()
@@ -379,6 +377,29 @@ func tuningStatus(state *api.State) string {
 	return fmt.Sprintf("%s · TDP %s · UV %s", cpu, tdp, uv)
 }
 
+// refreshRateProbe reads the live eDP-1 rate from the daemon. GetState does not carry
+// it (refresh_rate is only answered by refresh_rate_get), so without this the System tab
+// shows no active rate and a "—" pill until you tap one. Read off the GTK thread and
+// applied back on it, like every other daemon round-trip.
+func (w *Window) refreshRateProbe() {
+	go func() {
+		handled, hz, err := api.SendRefreshRateGet()
+		if err != nil || !handled || hz == 0 {
+			return // not reported by this daemon: leave the pill on its placeholder
+		}
+		glib.IdleAdd(func() {
+			if w.state == nil {
+				return
+			}
+			w.state.RefreshRate = hz
+			prev := w.syncing
+			w.syncing = true
+			w.syncRefreshRate()
+			w.syncing = prev
+		})
+	}()
+}
+
 // syncRefreshRate highlights the refresh rate button matching the daemon state.
 func (w *Window) syncRefreshRate() {
 	if w.state == nil {
@@ -389,20 +410,35 @@ func (w *Window) syncRefreshRate() {
 			w.pendingRefreshRate = 0
 		} else {
 			setActiveButton(w.refreshBtns, w.pendingRefreshRate)
-			if w.displaySummary != nil {
-				w.displaySummary.SetLabel(fmt.Sprintf("%d HZ", w.pendingRefreshRate))
-			}
+			w.setRefreshNote(w.pendingRefreshRate)
 			return
 		}
 	}
 	setActiveButton(w.refreshBtns, w.state.RefreshRate)
-	if w.displaySummary != nil {
-		if _, ok := w.refreshBtns[w.state.RefreshRate]; ok {
-			w.displaySummary.SetLabel(fmt.Sprintf("%d HZ", w.state.RefreshRate))
-		} else {
-			w.displaySummary.SetLabel("—")
-		}
+	w.setRefreshNote(0)
+}
+
+// setRefreshNote states which refresh rate is live, or why it cannot be known. A
+// caption is used rather than the card's header pill because the pill gets squeezed
+// to a few characters at the drawer's width (it truncated "STATIC" and "UNKNOWN"),
+// while a wrapping caption under the control always reads in full. Pass the pending
+// rate while a write has not landed yet; 0 means read the daemon state.
+func (w *Window) setRefreshNote(pending int) {
+	if w.refreshNote == nil {
+		return
 	}
+	rate := pending
+	if rate == 0 && w.state != nil {
+		rate = w.state.RefreshRate
+	}
+	if _, ok := w.refreshBtns[rate]; ok {
+		w.refreshNote.SetText(fmt.Sprintf("Current rate: %d Hz", rate))
+	} else {
+		// The daemon answers refresh-rate-get with 0 when it cannot read the panel:
+		// the control still works, only the live value is unknowable.
+		w.refreshNote.SetText("The firmware does not report the current rate, so neither option is marked.")
+	}
+	w.refreshNote.SetVisible(true)
 }
 
 // syncOverviewTelemetry populates Overview tab widgets from the live Telemetry

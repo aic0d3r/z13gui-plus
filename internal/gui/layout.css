@@ -144,7 +144,10 @@
 }
 
 .drawer .card.card-inactive {
-    opacity: 0.55;
+    /* Inactive must stay readable: at 0.55 the whole RGB effect card (labels, mode
+       names, hex) fell below a legible contrast while lighting was off, which is the
+       state the drawer is in most of the time. */
+    opacity: 0.75;
 }
 
 /* Card title — small caps mono */

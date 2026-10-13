@@ -76,7 +76,6 @@ type Window struct {
 	rgbControlsBox      *gtk.Box // mode-specific controls; insensitive while selected device is off
 	lightingSwitch      *gtk.Switch
 	lightingSummary     *gtk.Label
-	rgbEffectSummary    *gtk.Label
 	rgbEffectCard       *gtk.Box
 	speedBtns           map[string]*gtk.Button
 	brightBtns          map[int]*gtk.Button
@@ -99,7 +98,7 @@ type Window struct {
 	refreshPendingUntil time.Time
 	overdriveSwitch     *gtk.Switch
 	bootSoundSwitch     *gtk.Switch
-	displaySummary      *gtk.Label
+	refreshNote         *gtk.Label // shown when the firmware cannot report the live rate
 	startupSummary      *gtk.Label
 	appearanceSummary   *gtk.Label
 	presetsBtn          *gtk.Button
