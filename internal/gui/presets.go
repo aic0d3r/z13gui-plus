@@ -312,8 +312,8 @@ func (w *Window) syncPresets() {
 		w.presetReapplyBtn.SetVisible(manual)
 	}
 	if w.presetAssignments != nil {
-		w.presetACLabel.SetLabel(ac)
-		w.presetBatteryLabel.SetLabel(battery)
+		w.presetACLabel.SetLabel(automationValueLabel(ac, "PLUGGED IN"))
+		w.presetBatteryLabel.SetLabel(automationValueLabel(battery, "ON BATTERY"))
 		w.presetACDetail.SetLabel(presetDetailLine(w.state, ac))
 		w.presetBatteryDetail.SetLabel(presetDetailLine(w.state, battery))
 		for _, r := range []struct {
@@ -934,4 +934,18 @@ func (w *Window) flashStatus(message string, ms uint) {
 
 func (w *Window) showPresetFeedback(message string) {
 	w.flashStatus(message, 3000)
+}
+
+// automationValueLabel hides a preset name that only restates the row it sits under:
+// "ON BATTERY" over "On Battery" reads as a defect, and the detail line beside it
+// already says what will be applied. Any other name is shown as-is.
+func automationValueLabel(name, caption string) string {
+	norm := func(s string) string {
+		return strings.ToLower(strings.NewReplacer(" ", "", "-", "", "_", "").Replace(strings.TrimSpace(s)))
+	}
+	n, c := norm(name), norm(caption)
+	if n == "" || n == c || n == "on"+c {
+		return ""
+	}
+	return name
 }

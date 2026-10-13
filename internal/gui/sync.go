@@ -261,7 +261,15 @@ func (w *Window) syncBattery() {
 	}
 	setActiveButton(w.battPresetBtns, w.state.Battery)
 	if w.batterySummary != nil {
-		w.batterySummary.SetLabel(batteryStrategySummary(w.state.Battery))
+		// The strategy buttons carry their own number ("Max Life 60%"), so the pill
+		// would repeat the figure the highlighted button already shows; it only earns
+		// its place when the limit is custom and no button displays it.
+		shown := batteryStrategySummary(w.state.Battery)
+		if _, ok := w.battPresetBtns[w.state.Battery]; ok {
+			shown = ""
+		}
+		w.batterySummary.SetLabel(shown)
+		w.batterySummary.SetVisible(shown != "")
 	}
 }
 
