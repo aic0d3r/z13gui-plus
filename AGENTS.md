@@ -113,12 +113,17 @@ assets/
                                 sliding in from the right). Used as Icon= in the desktop
                                 entry, installed to hicolor/scalable/apps, and reused as the
                                 docs logo + favicon.
-  gen_logo.py                   Builds logo.svg from icon.svg + Inter Bold. Run after
+  gen_logo.py                   Builds logo.svg + og.png from icon.svg + Inter Bold. Run after
                                 changing the mark or the copy: `python3 assets/gen_logo.py`
-                                (needs `pip install fonttools`).
+                                (needs `pip install fonttools`; og.png also needs rsvg-convert).
   logo.svg                      GENERATED README lockup — never hand-edit.
+  og.png                        GENERATED 1200x630 share card: GitHub Settings > Social
+                                preview (uploaded by hand; PNG only, <=1 MB) and the docs
+                                og:image.
 docs/assets/icon.svg            Symlink to assets/icon.svg so mkdocs can reach it; never
                                 commit a second copy of the artwork.
+docs/assets/og.png              Symlink to assets/og.png, used by the og:image meta tag
+                                (overrides/main.html).
 contrib/
   z13gui-plus.service           systemd user service (EnvironmentFile for gamescope-session)
   io.github.aic0d3r.z13gui_plus.desktop
@@ -202,6 +207,10 @@ contrib/
   cannot load webfonts; the dark card is what lets one file work on both GitHub colour
   schemes. The README shows it above the H1 (repeating the name under the heading is
   redundant). Docs keep the square mark: the Material header is 20 px tall.
+- **Share card**: `assets/og.png` (generated, same script) is the picture link previews
+  show. The docs tag lives in `overrides/main.html` and builds its URL from
+  `config.site_url`, so changing `site_url` cannot orphan it. GitHub's own Social preview
+  image is a separate manual upload — Settings > General — and is not read from the repo.
 - **Icon naming**: the single source of truth is `assets/icon.svg`, installed as
   `hicolor/scalable/apps/io.github.aic0d3r.z13gui_plus.svg` (Makefile `install` /
   `install-desktop`, goreleaser nfpms contents). The desktop entry's `Icon=` must stay
