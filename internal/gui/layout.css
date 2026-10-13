@@ -419,11 +419,12 @@
 }
 
 .drawer .overview-metric {
-    padding: 6px 2px;
+    padding: 6px 8px;
     border-radius: 6px;
 }
 
 .drawer .overview-metric-value {
+    font-family: monospace;
     font-size: 20px;
     font-weight: 700;
     font-feature-settings: "tnum";
@@ -455,6 +456,7 @@
 }
 
 .drawer .battery-summary-value {
+    font-family: monospace;
     font-size: 20px;
     font-weight: 700;
     font-feature-settings: "tnum";

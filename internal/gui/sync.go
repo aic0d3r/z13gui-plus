@@ -626,7 +626,9 @@ func (w *Window) updateBatteryHero(b *api.BatteryState) {
 		status := b.Status
 		switch {
 		case atLimit:
-			status = fmt.Sprintf("Holding at %d%%", b.ThresholdPct)
+			// No number here: the card shows the limit large next to the "AT LIMIT"
+			// caption, so restating it read as two competing readouts.
+			status = "Holding at the limit"
 		case statusKind == "charging" && onAC:
 			status = "Charging on AC"
 		case statusKind == "charging":
