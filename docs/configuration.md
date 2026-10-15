@@ -16,6 +16,7 @@ accent = "sapphire"
 |-----|-------------|
 | `theme` | Built-in theme ID (see `z13gui-plus --list-themes` or [Theming](theming.md)) |
 | `accent` | Accent color variant for themes that support it; `""` uses the theme default |
+| `hidden` | Comma-separated card IDs switched off in **Settings → Layout**, e.g. `"overview.fans,tab.rgb"`. Cards for hardware the machine lacks are hidden automatically and are not listed here |
 
 If no config file exists, Z13GUI+ defaults to the `rog-dark` theme.
 

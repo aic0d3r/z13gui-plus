@@ -4,7 +4,7 @@
 
 </div>
 
-# Z13GUI+ — profiles, TDP, fan curves, RGB & undervolt control for the ASUS ROG Flow Z13 on Linux
+# Z13GUI+ — power, thermals & RGB control drawer for the ASUS ROG Flow Z13 and AMD Strix Halo on Linux
 
 <div align="center">
 
@@ -15,6 +15,7 @@
 [What Plus Adds](#what-plus-adds) •
 [Tablet stack](#tablet-stack) •
 [Interface](#interface) •
+[Compatibility](#compatibility) •
 [Install](#install) •
 [Quick Start](#quick-start) •
 [Upgrading from v1](#upgrading-from-v1) •
@@ -30,6 +31,11 @@ refresh rate and overdrive, and live telemetry — slid in from the screen edge 
 the Armoury Crate button. Works on KDE Plasma and other layer-shell Wayland
 desktops, and inside Steam Gaming Mode (gamescope), with touch and gamepad
 navigation.
+
+Built for the Flow Z13 and **adapts to the hardware it finds**: on an AMD Strix
+Halo machine without a battery, RGB, or ASUS firmware controls, those cards and
+tabs disappear instead of showing controls that cannot work. See
+[Compatibility](#compatibility).
 
 `Z13GUI+` is an independently named fork of
 [`dahui/z13gui`](https://github.com/dahui/z13gui) with its own command, service,
@@ -90,9 +96,30 @@ until the kit's `z13-tablet-switch` reports a heartbeat.
   </tr>
   <tr>
     <td align="center"><strong>RGB</strong><br><img src="assets/z13gui-plus-rgb.avif" alt="Z13GUI+ RGB tab"></td>
-    <td align="center"><strong>System</strong><br><img src="assets/z13gui-plus-system.avif" alt="Z13GUI+ System tab"></td>
+    <td align="center"><strong>Settings</strong><br><img src="assets/z13gui-plus-system.avif" alt="Z13GUI+ Settings tab"></td>
   </tr>
 </table>
+
+## Compatibility
+
+The drawer shows only what the [`z13ctl-plus`](https://github.com/aic0d3r/z13ctl-plus)
+daemon reports for your machine. Cards for missing hardware are hidden
+automatically, and **Settings → Layout** lets you hide any other card.
+
+| Machine | Status |
+|---------|--------|
+| ASUS ROG Flow Z13 (2025, GZ302) | **Supported** — every control |
+| Other AMD Strix Halo laptop or mini PC | **Experimental** — telemetry and CPU policy should work; fan curves, TDP, boot sound and panel overdrive need ASUS interfaces and are hidden when absent |
+| Anything else | Not supported |
+
+Without a battery, the Battery cards disappear; without RGB devices, the RGB tab
+disappears; without an internal panel, the refresh-rate control disappears. A
+daemon older than v2.5 does not report capabilities, and the drawer then shows
+everything.
+
+Running it on a non-Z13 machine? Please open a
+[compatibility report](https://github.com/aic0d3r/z13gui-plus/issues/new?template=compatibility_report.md)
+so this table can be filled in from real results.
 
 ## Install
 
