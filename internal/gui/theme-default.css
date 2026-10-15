@@ -417,6 +417,33 @@ window.z13-drawer-window {
     color: @z13-text-dim;
 }
 
+/* Tablet chip is a button, not a status badge: brighter text, accent border, pressed state. */
+.drawer .tablet-chip {
+    color: @z13-text;
+    border-color: alpha(@z13-accent, 0.6);
+}
+
+.drawer .tablet-chip:hover {
+    background: alpha(@z13-accent, 0.15);
+}
+
+.drawer .tablet-chip:active,
+.drawer .tablet-chip:checked {
+    background: alpha(@z13-accent, 0.3);
+}
+
+.drawer .tablet-chip-dot {
+    color: @z13-success;
+}
+
+.drawer .tablet-chip.warning .tablet-chip-dot {
+    color: @z13-warning;
+}
+
+.drawer .tablet-chip-arrow {
+    color: @z13-accent;
+}
+
 .drawer .pill.success {
     background: alpha(@z13-success, 0.12);
     border-color: alpha(@z13-success, 0.4);

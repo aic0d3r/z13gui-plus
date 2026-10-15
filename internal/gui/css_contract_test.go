@@ -41,10 +41,10 @@ var touchFloors = map[string]int{
 }
 
 // Tappable but deliberately under the floor, recorded so it cannot shrink quietly.
-// .tablet-chip sits inside the 40px header row: raising it would grow the header for a
-// secondary control. shortcut: recorded floor, revisit if the header layout changes.
+// .tablet-chip sits in the title row; 36px is a comfortable touch target without
+// growing that row much. shortcut: recorded floor, revisit if the header layout changes.
 var belowFloorButKnown = map[string]int{
-	".drawer .tablet-chip": 28,
+	".drawer .tablet-chip": 36,
 }
 
 var (

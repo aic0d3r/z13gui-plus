@@ -129,6 +129,8 @@ type Window struct {
 	// Optional tablet companion controls. They remain hidden until a heartbeat arrives.
 	tabletChip                *gtk.ToggleButton
 	tabletChipLabel           *gtk.Label
+	tabletChipDot             *gtk.Label
+	tabletChipArrow           *gtk.Label
 	tabletPopover             *gtk.Box
 	tabletPostureLabel        *gtk.Label
 	tabletHealthLabel         *gtk.Label

@@ -76,15 +76,28 @@ func tabletHeartbeatLabel(age int64) string {
 
 func (w *Window) buildTabletChip() *gtk.ToggleButton {
 	w.tabletChipLabel = gtk.NewLabel("Tablet")
-	w.tabletChipLabel.SetHAlign(gtk.AlignCenter)
+	w.tabletChipDot = gtk.NewLabel("●")
+	w.tabletChipDot.AddCSSClass("tablet-chip-dot")
+	w.tabletChipArrow = gtk.NewLabel("›")
+	w.tabletChipArrow.AddCSSClass("tablet-chip-arrow")
+	content := gtk.NewBox(gtk.OrientationHorizontal, 6)
+	content.SetHAlign(gtk.AlignCenter)
+	content.Append(w.tabletChipDot)
+	content.Append(w.tabletChipLabel)
+	content.Append(w.tabletChipArrow)
 
 	chip := gtk.NewToggleButton()
-	chip.SetChild(w.tabletChipLabel)
+	chip.SetChild(content)
 	chip.AddCSSClass("pill")
 	chip.AddCSSClass("tablet-chip")
 	chip.SetTooltipText("Tablet integration")
 	chip.SetVisible(false)
 	chip.ConnectToggled(func() {
+		if chip.Active() {
+			w.tabletChipArrow.SetLabel("⌄")
+		} else {
+			w.tabletChipArrow.SetLabel("›")
+		}
 		if w.tabletPopover != nil {
 			w.tabletPopover.SetVisible(chip.Visible() && chip.Active())
 		}
@@ -340,7 +353,6 @@ func (w *Window) syncTablet() {
 	chipLabel := presentation.posture
 	w.tabletChip.RemoveCSSClass("warning")
 	if presentation.warning {
-		chipLabel += " - Warning"
 		w.tabletChip.AddCSSClass("warning")
 		w.tabletChip.SetTooltipText(presentation.reason)
 	} else {

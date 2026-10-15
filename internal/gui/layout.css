@@ -198,8 +198,17 @@
 
 /* Optional tablet companion chip and its inline, gamescope-safe popover. */
 .drawer .tablet-chip {
-    min-height: 28px;
-    padding: 2px 8px;
+    min-height: 36px;
+    padding: 2px 12px;
+}
+
+.drawer .tablet-chip-dot {
+    font-size: 8px;
+}
+
+.drawer .tablet-chip-arrow {
+    font-size: 14px;
+    font-weight: 700;
 }
 
 .drawer .tablet-popover {
