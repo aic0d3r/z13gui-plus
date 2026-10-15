@@ -127,10 +127,16 @@ func (w *Window) syncCPUPower() {
 	if w.cpuBoostRow != nil {
 		w.cpuBoostRow.SetVisible(state.CPUPower != nil)
 	}
-	if state.CPUPower == nil || w.cpuMinScale == nil {
+	if state.CPUPower == nil {
 		return
 	}
 	cpu := state.CPUPower
+	if w.cpuBoostSwitch != nil {
+		syncSwitch(w.cpuBoostSwitch, cpu.Boost)
+	}
+	if w.cpuMinScale == nil { // CPU page is built lazily with the tuning view
+		return
+	}
 	w.cpuMinScale.SetRange(float64(cpu.MinLimitKHz)/1000, float64(cpu.MaxLimitKHz)/1000)
 	w.cpuMinScale.SetValue(float64(cpu.MinFrequencyKHz) / 1000)
 	// amd-pstate-epp only accepts the EPP values the current governor advertises
@@ -140,9 +146,6 @@ func (w *Window) syncCPUPower() {
 		btn.SetVisible(eppSupported(cpu.EPPChoices, value))
 	}
 	setActiveButton(w.cpuEPPBtns, kernelEPP(cpu.EPP))
-	if w.cpuBoostSwitch != nil {
-		syncSwitch(w.cpuBoostSwitch, cpu.Boost)
-	}
 }
 
 // kernelEPP strips the effective-value suffix the 7.3+ kernel appends in

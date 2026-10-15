@@ -145,8 +145,10 @@ func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
 	inner.SetMarginStart(12)
 	inner.SetMarginEnd(12)
 
+	// Quick controls first (changed mid-session), then automation, then drill-downs.
 	inner.Append(w.buildProfileSection())
 	inner.Append(w.buildFanPresetSection())
+	inner.Append(w.buildBoostRow())
 	inner.Append(w.buildPresetEntrySection())
 	inner.Append(w.buildBatterySection())
 	inner.Append(w.buildAdvancedTuningSection())
@@ -609,10 +611,10 @@ func (w *Window) showCustomView() {
 	}
 	if w.customScroll == nil {
 		w.viewStack.AddNamed(w.buildCustomView(), "custom")
-		w.buildCustomFocusList()
 	}
 	w.tuningSynced = nil // opening the view always shows the saved values
 	w.syncCustomView()
+	w.buildCustomFocusList() // after sync: UV availability decides which tabs exist
 	w.viewStack.SetVisibleChildName("custom")
 	w.swapFocusList(w.customFocusItems)
 	w.startTelemetryPolling()
@@ -1082,13 +1084,52 @@ var cpuEPPs = []struct {
 }
 
 func (w *Window) buildAdvancedTuningSection() *gtk.Box {
-	content := gtk.NewBox(gtk.OrientationVertical, 6)
-	detail := gtk.NewLabel("CPU behavior and independent TDP, fan curve, and undervolt overrides")
-	detail.SetHAlign(gtk.AlignStart)
-	detail.SetWrap(true)
-	detail.AddCSSClass("card-sub")
-	content.Append(detail)
+	box := gtk.NewBox(gtk.OrientationVertical, 0)
+	box.AddCSSClass("card")
+	w.tuningSummary = gtk.NewLabel("CPU — · TDP FIRMWARE · UV STOCK")
+	w.tuningSummary.SetHAlign(gtk.AlignStart)
+	w.tuningSummary.SetXAlign(0)
+	w.tuningSummary.SetWrap(true)
+	w.tuningSummary.AddCSSClass("section-collapse-summary")
+	title := gtk.NewLabel("POWER TUNING")
+	title.SetHAlign(gtk.AlignStart)
+	title.AddCSSClass("section-collapse-label")
+	text := gtk.NewBox(gtk.OrientationVertical, 2)
+	text.SetHExpand(true)
+	text.Append(title)
+	text.Append(w.tuningSummary)
+	row := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	row.Append(text)
+	chevron := gtk.NewImageFromIconName("pan-end-symbolic")
+	chevron.AddCSSClass("disclosure-icon")
+	row.Append(chevron)
+	// Single summary row: the CPU floor/EPP, TDP, fan curve and undervolt live
+	// in the tuning view, so this card never expands in place.
+	w.tuningBtn = gtk.NewButton()
+	w.tuningBtn.SetChild(row)
+	w.tuningBtn.AddCSSClass("section-collapse")
+	w.tuningBtn.SetTooltipText("TDP, fan curve, undervolt, and CPU limits")
+	w.tuningBtn.ConnectClicked(func() { w.showCustomView() })
+	box.Append(w.tuningBtn)
+	return box
+}
 
+// buildBoostRow is the always-visible CPU Boost switch (one tap, no drill-down).
+func (w *Window) buildBoostRow() *gtk.Box {
+	card := gtk.NewBox(gtk.OrientationVertical, 0)
+	card.AddCSSClass("card")
+	card.Append(w.buildToggle("CPU Boost", "Allow frequencies above the nominal maximum: higher peak performance, more power and heat", &w.cpuBoostSwitch, func(enabled bool) {
+		w.runStateAction("set CPU boost", func() (bool, error) { return api.SendCPUBoostSet(enabled) })
+	}))
+	// Hidden when the daemon reports no cpu_power.
+	w.cpuBoostRow = card
+	return card
+}
+
+// buildCPUTuningBox holds the rarely used CPU frequency floor and energy
+// preference; it lives on the CPU page of the tuning view.
+func (w *Window) buildCPUTuningBox() *gtk.Box {
+	content := gtk.NewBox(gtk.OrientationVertical, 6)
 	minLabel := gtk.NewLabel("MINIMUM CPU FREQUENCY (MHz)")
 	minLabel.SetHAlign(gtk.AlignStart)
 	minLabel.AddCSSClass("scale-name")
@@ -1120,39 +1161,7 @@ func (w *Window) buildAdvancedTuningSection() *gtk.Box {
 		grid.Attach(btn, i%2, i/2, 1, 1)
 	}
 	content.Append(grid)
-	content.Append(gtk.NewSeparator(gtk.OrientationHorizontal))
-	w.tuningBtn = gtk.NewButtonWithLabel("Open Power Tuning")
-	w.tuningBtn.AddCSSClass("action-btn")
-	w.tuningBtn.ConnectClicked(func() { w.showCustomView() })
-	content.Append(w.tuningBtn)
-	box := gtk.NewBox(gtk.OrientationVertical, 6)
-	box.AddCSSClass("card")
-	w.tuningSummary = gtk.NewLabel("CPU — · TDP FIRMWARE · UV STOCK")
-	w.tuningSummary.SetHAlign(gtk.AlignStart)
-	w.tuningSummary.SetWrap(true)
-	w.tuningSummary.AddCSSClass("section-collapse-summary")
-	header := newCollapsibleHeader("CPU & POWER TUNING", w.tuningSummary, false)
-	box.Append(header)
-	// CPU Boost lives outside the collapsible body so it is reachable without
-	// expanding the card.
-	boostRow := w.buildToggle("CPU Boost", "Allow frequencies above the nominal maximum", &w.cpuBoostSwitch, func(enabled bool) {
-		w.runStateAction("set CPU boost", func() (bool, error) { return api.SendCPUBoostSet(enabled) })
-	})
-	boostDetail := gtk.NewLabel("Higher peak performance with increased power use and heat")
-	boostDetail.SetHAlign(gtk.AlignStart)
-	boostDetail.SetWrap(true)
-	boostDetail.AddCSSClass("setting-description")
-	// Row and caption hide together when the daemon reports no cpu_power.
-	boostBox := gtk.NewBox(gtk.OrientationVertical, 0)
-	boostBox.Append(boostRow)
-	boostBox.Append(boostDetail)
-	box.Append(boostBox)
-	w.cpuBoostRow = boostBox
-	content.SetVisible(false)
-	header.ConnectToggled(func() { content.SetVisible(header.Active()) })
-	box.Append(content)
-	w.tuningHeader = header
-	return box
+	return content
 }
 
 // colorSubBox wraps a section label + content widget into a single Box,
@@ -1268,6 +1277,17 @@ func (w *Window) powerTabFocusItems() []focusItem {
 	}
 	row++
 
+	if w.cpuBoostSwitch != nil {
+		sw := w.cpuBoostSwitch
+		items = append(items, focusItem{
+			widget: sw, row: row, col: 0,
+			section:    "boost",
+			isVisible:  func() bool { return w.cpuBoostRow == nil || w.cpuBoostRow.IsVisible() },
+			onActivate: func() { sw.SetActive(!sw.Active()) },
+		})
+		row++
+	}
+
 	if w.automationSwitch != nil {
 		sw := w.automationSwitch
 		items = append(items, focusItem{
@@ -1310,47 +1330,11 @@ func (w *Window) powerTabFocusItems() []focusItem {
 	}
 	row++
 
-	if w.tuningHeader != nil {
-		btn := w.tuningHeader
-		items = append(items, focusItem{
-			widget: btn, row: row, col: 0,
-			section:    "tuning",
-			onActivate: func() { btn.SetActive(!btn.Active()) },
-		})
-		row++
-	}
-	if w.cpuBoostSwitch != nil {
-		items = append(items, focusItem{
-			widget: w.cpuBoostSwitch, row: row, col: 0,
-			section:    "tuning",
-			onActivate: func() { w.cpuBoostSwitch.SetActive(!w.cpuBoostSwitch.Active()) },
-		})
-		row++
-	}
-	tuningVisible := func() bool { return w.tuningHeader != nil && w.tuningHeader.Active() }
-	if w.cpuMinScale != nil {
-		left, right, get, set := scaleAdjust(w.cpuMinScale, 25)
-		items = append(items, focusItem{
-			widget: w.cpuMinScale, row: row, col: 0,
-			section: "tuning", isVisible: tuningVisible, editable: true,
-			onLeft: left, onRight: right, getValue: get, setValue: set,
-		})
-		row++
-	}
-	for i, option := range cpuEPPs {
-		btn := w.cpuEPPBtns[option.value]
-		items = append(items, focusItem{
-			widget: btn, row: row + i/2, col: i % 2,
-			section: "tuning", isVisible: tuningVisible,
-			onActivate: func() { btn.Activate() },
-		})
-	}
-	row += (len(cpuEPPs) + 1) / 2
 	if w.tuningBtn != nil {
 		btn := w.tuningBtn
 		items = append(items, focusItem{
 			widget: btn, row: row, col: 0,
-			section: "tuning", isVisible: tuningVisible,
+			section:    "tuning",
 			onActivate: func() { btn.Activate() },
 		})
 	}

@@ -408,11 +408,17 @@ func (w *Window) buildCustomView() *gtk.Box {
 	telemetry.Append(w.telemetryFanLabel)
 	view.Append(telemetry)
 
-	content := gtk.NewBox(gtk.OrientationVertical, 8)
-	content.SetMarginTop(4)
-	content.SetMarginBottom(12)
-	content.SetMarginStart(12)
-	content.SetMarginEnd(12)
+	// One page per tuning area; only one is on screen so nothing needs a long scroll.
+	newPage := func() *gtk.Box {
+		b := gtk.NewBox(gtk.OrientationVertical, 8)
+		b.SetMarginTop(4)
+		b.SetMarginBottom(8)
+		b.SetMarginStart(12)
+		b.SetMarginEnd(16) // clear the overlay scrollbar
+		return b
+	}
+	content, uvPage, fanPage := newPage(), newPage(), newPage()
+	cpuPage := newPage()
 
 	// --- TDP ---
 	tdpHdr, tdpMark := sectionHeader("TDP")
@@ -450,11 +456,14 @@ func (w *Window) buildCustomView() *gtk.Box {
 	w.tdpAdvancedBox = gtk.NewBox(gtk.OrientationVertical, 4)
 	w.tdpAdvancedBox.SetVisible(false)
 
-	tdpWarningLabel := gtk.NewLabel("Values above 75W may throttle or damage hardware. Use caution.")
-	tdpWarningLabel.SetWrap(true)
-	tdpWarningLabel.SetHAlign(gtk.AlignStart)
-	tdpWarningLabel.AddCSSClass("tdp-warning")
-	w.tdpAdvancedBox.Append(tdpWarningLabel)
+	// Shown only while a limit is above 75 W (refreshTuningDirty), so the one
+	// real danger is the only red on the page.
+	w.tdpWarnLabel = gtk.NewLabel("Values above 75W may throttle or damage hardware. Use caution.")
+	w.tdpWarnLabel.SetWrap(true)
+	w.tdpWarnLabel.SetHAlign(gtk.AlignStart)
+	w.tdpWarnLabel.AddCSSClass("tdp-warning")
+	w.tdpWarnLabel.SetVisible(false)
+	w.tdpAdvancedBox.Append(w.tdpWarnLabel)
 
 	w.tdpPL1Scale, w.tdpPL1Label = w.buildTdpScale("PL1 (SPL)", "Sustained power limit — the long-term average power the CPU targets.")
 	w.tdpPL2Scale, w.tdpPL2Label = w.buildTdpScale("PL2 (SPPT)", "Short boost — maximum power during brief burst workloads.")
@@ -478,10 +487,8 @@ func (w *Window) buildCustomView() *gtk.Box {
 		}
 	})
 
-	// TDP inline actions.
-	content.Append(w.tuningActionRow(&w.saveTdpBtn, "Save TDP", w.saveCustomTdp, &w.resetTdpBtn, "Reset TDP", w.resetTdp))
-
-	content.Append(gtk.NewSeparator(gtk.OrientationHorizontal))
+	// Actions are pinned under each page, outside its scroll.
+	tdpActions := w.tuningActionRow(&w.saveTdpBtn, "Save TDP", w.saveCustomTdp, &w.resetTdpBtn, "Reset TDP", w.resetTdp)
 
 	// --- UNDERVOLT (own section; hidden when unavailable) ---
 	w.uvBox = gtk.NewBox(gtk.OrientationVertical, 4)
@@ -495,10 +502,8 @@ func (w *Window) buildCustomView() *gtk.Box {
 	uvWarn.AddCSSClass("tdp-warning")
 	w.uvBox.Append(uvWarn)
 	w.uvCpuScale, w.uvCpuLabel = w.buildUvScale("CPU Curve Optimizer", -40, 0)
-	w.uvBox.Append(w.tuningActionRow(&w.saveUvBtn, "Save UV", w.saveUndervolt, &w.resetUvBtn, "Reset UV", w.resetUndervolt))
-	content.Append(w.uvBox)
-
-	content.Append(gtk.NewSeparator(gtk.OrientationHorizontal))
+	uvActions := w.tuningActionRow(&w.saveUvBtn, "Save UV", w.saveUndervolt, &w.resetUvBtn, "Reset UV", w.resetUndervolt)
+	uvPage.Append(w.uvBox)
 
 	// --- FAN CURVE ---
 	fanHdr, fanMark := sectionHeader("FAN CURVE")
@@ -507,18 +512,21 @@ func (w *Window) buildCustomView() *gtk.Box {
 	w.fanModeLabel.SetVAlign(gtk.AlignCenter)
 	w.fanModeLabel.AddCSSClass("pill")
 	fanHdr.Append(w.fanModeLabel)
-	content.Append(fanHdr)
+	fanPage.Append(fanHdr)
 
 	w.fanSafetyBanner = gtk.NewLabel("Above 75 W the safety fan curve runs. To use your own, keep every point at 50% or higher.")
 	w.fanSafetyBanner.SetWrap(true)
 	w.fanSafetyBanner.SetHAlign(gtk.AlignStart)
 	w.fanSafetyBanner.AddCSSClass("tdp-warning")
 	w.fanSafetyBanner.SetVisible(false)
-	content.Append(w.fanSafetyBanner)
+	fanPage.Append(w.fanSafetyBanner)
 
 	w.fanCurve = w.newFanCurveEditor()
-	content.Append(w.fanCurve.area)
-	content.Append(w.tuningActionRow(&w.saveFanBtn, "Save Fan Curve", w.saveCustomFanCurve, &w.resetFanBtn, "Reset Fan Curve", w.resetFanCurve))
+	fanPage.Append(w.fanCurve.area)
+	fanActions := w.tuningActionRow(&w.saveFanBtn, "Save Fan Curve", w.saveCustomFanCurve, &w.resetFanBtn, "Reset Fan Curve", w.resetFanCurve)
+
+	// --- CPU (rarely used) ---
+	cpuPage.Append(w.buildCPUTuningBox())
 
 	w.resetAllBtn = gtk.NewButtonWithLabel("Reset All Overrides")
 	w.resetAllBtn.AddCSSClass("action-btn")
@@ -532,16 +540,66 @@ func (w *Window) buildCustomView() *gtk.Box {
 			func() { w.runStateAction("reset all tuning overrides", api.SendTuningReset) },
 		)
 	})
-	content.Append(w.resetAllBtn)
+	cpuPage.Append(w.resetAllBtn)
 
-	scroll := gtk.NewScrolledWindow()
-	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
-	scroll.SetVExpand(true)
-	scroll.SetChild(content)
-	w.customScroll = scroll
-	view.Append(scroll)
+	tabRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	tabRow.SetMarginStart(12)
+	tabRow.SetMarginEnd(12)
+	tabRow.SetMarginBottom(4)
+	tabRow.AddCSSClass("main-tab-row")
+	view.Append(tabRow)
+
+	w.tuningStack = gtk.NewStack()
+	w.tuningStack.SetTransitionType(gtk.StackTransitionTypeNone)
+	w.tuningStack.SetVExpand(true)
+	for _, p := range []struct {
+		name, label string
+		body        *gtk.Box
+		actions     gtk.Widgetter
+	}{
+		{"tdp", "TDP", content, tdpActions},
+		{"fan", "Fan", fanPage, fanActions},
+		{"uv", "UV", uvPage, uvActions},
+		{"cpu", "CPU", cpuPage, nil},
+	} {
+		scroll := gtk.NewScrolledWindow()
+		scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
+		scroll.SetVExpand(true)
+		scroll.SetChild(p.body)
+		page := gtk.NewBox(gtk.OrientationVertical, 0)
+		page.Append(scroll)
+		if p.actions != nil {
+			page.Append(p.actions)
+		}
+		w.tuningScrolls[p.name] = scroll
+		w.tuningStack.AddNamed(page, p.name)
+
+		btn := gtk.NewButtonWithLabel(p.label)
+		btn.SetHExpand(true)
+		name := p.name
+		btn.ConnectClicked(func() { w.switchTuningTab(name) })
+		w.tuningTabBtns[name] = btn
+		tabRow.Append(btn)
+	}
+	view.Append(w.tuningStack)
+	w.customScroll = w.tuningScrolls[w.tuningTab]
+	w.tuningStack.SetVisibleChildName(w.tuningTab)
+	setActiveButton(w.tuningTabBtns, w.tuningTab)
 
 	return view
+}
+
+// switchTuningTab shows one tuning page and rebuilds the gamepad focus list.
+func (w *Window) switchTuningTab(name string) {
+	if w.tuningStack == nil {
+		return
+	}
+	w.tuningTab = name
+	w.tuningStack.SetVisibleChildName(name)
+	w.customScroll = w.tuningScrolls[name]
+	setActiveButton(w.tuningTabBtns, name)
+	w.buildCustomFocusList()
+	w.swapFocusList(w.customFocusItems)
 }
 
 // buildTdpScale creates a labeled TDP slider (5–93W) and appends it to the
@@ -694,6 +752,15 @@ func (w *Window) syncCustomView() {
 	// Undervolt (own section now; visibility is independent of the Advanced checkbox).
 	if w.uvBox != nil {
 		w.uvBox.SetVisible(w.state.UndervoltAvailable)
+		if btn := w.tuningTabBtns["uv"]; btn != nil {
+			btn.SetVisible(w.state.UndervoltAvailable)
+		}
+		if !w.state.UndervoltAvailable && w.tuningTab == "uv" {
+			w.tuningTab = "tdp"
+			w.tuningStack.SetVisibleChildName("tdp")
+			w.customScroll = w.tuningScrolls["tdp"]
+			setActiveButton(w.tuningTabBtns, "tdp")
+		}
 	}
 	if w.uvCpuScale != nil && (last == nil || last.cpuCO != t.cpuCO) {
 		w.uvCpuScale.SetValue(float64(t.cpuCO))
@@ -701,6 +768,7 @@ func (w *Window) syncCustomView() {
 	}
 
 	w.syncTuningTelemetry(w.state)
+	w.syncCPUPower() // CPU page widgets exist only once this view is built
 
 	// Refresh Save sensitivity, dirty markers, and conditional banners.
 	w.refreshTuningDirty()
@@ -721,6 +789,10 @@ func (w *Window) refreshTuningDirty() {
 	}
 	w.saveTdpBtn.SetSensitive(tdpDirty && !clamped)
 	toggleMark(w.tdpDirtyMark, tdpDirty && !clamped)
+	if w.tdpWarnLabel != nil {
+		high := w.tdpPL1Scale.Value() > 75 || w.tdpPL2Scale.Value() > 75 || w.tdpPL3Scale.Value() > 75
+		w.tdpWarnLabel.SetVisible(high)
+	}
 
 	// Fan.
 	// Under the high-TDP safety lock the daemon still honours a user curve
@@ -738,6 +810,17 @@ func (w *Window) refreshTuningDirty() {
 	uvDirty := w.uvDirty()
 	w.saveUvBtn.SetSensitive(uvDirty)
 	toggleMark(w.uvDirtyMark, uvDirty)
+
+	// A dot on the tab names pages with unsaved edits, even when another page is open.
+	for name, dirty := range map[string]bool{"tdp": tdpDirty && !clamped, "fan": fanSaveable, "uv": uvDirty} {
+		if btn := w.tuningTabBtns[name]; btn != nil {
+			label := map[string]string{"tdp": "TDP", "fan": "Fan", "uv": "UV"}[name]
+			if dirty {
+				label += " ●"
+			}
+			btn.SetLabel(label)
+		}
+	}
 }
 
 func toggleMark(mark *gtk.Label, dirty bool) {
@@ -992,98 +1075,115 @@ func (w *Window) buildCustomFocusList() {
 		onActivate: func() { w.showMainView() },
 	})
 
-	// Row 1: basic TDP slider.
-	if w.tdpBasicScale != nil {
-		oL, oR, gV, sV := scaleAdjust(w.tdpBasicScale, 5)
+	// Row 1: sub-tab buttons (hidden ones are skipped via isVisible).
+	for col, name := range []string{"tdp", "fan", "uv", "cpu"} {
+		btn := w.tuningTabBtns[name]
+		if btn == nil {
+			continue
+		}
 		items = append(items, focusItem{
-			widget: w.tdpBasicScale, row: 1, col: 0,
-			section:  "tdp",
-			editable: true,
-			onLeft:   oL, onRight: oR,
-			getValue: gV, setValue: sV,
-			isVisible: func() bool { return w.tdpBasicScale.IsVisible() },
+			widget: btn, row: 1, col: col,
+			section:    "tuning-tabs",
+			isVisible:  btn.IsVisible,
+			onActivate: func() { btn.Activate() },
 		})
 	}
 
-	// Row 2: advanced checkbox.
-	if w.tdpAdvancedCheck != nil {
+	// Page contents. Each page lists only its own widgets from row 2 down; the
+	// focus list is rebuilt on every sub-tab switch.
+	switch w.tuningTab {
+	case "tdp":
+		if w.tdpBasicScale != nil {
+			oL, oR, gV, sV := scaleAdjust(w.tdpBasicScale, 5)
+			items = append(items, focusItem{
+				widget: w.tdpBasicScale, row: 2, col: 0,
+				section:  "tdp",
+				editable: true,
+				onLeft:   oL, onRight: oR,
+				getValue: gV, setValue: sV,
+				isVisible: func() bool { return w.tdpBasicScale.IsVisible() },
+			})
+		}
+		if w.tdpAdvancedCheck != nil {
+			items = append(items, focusItem{
+				widget: w.tdpAdvancedCheck, row: 3, col: 0,
+				section:    "tdp",
+				onActivate: func() { w.tdpAdvancedCheck.SetActive(!w.tdpAdvancedCheck.Active()) },
+			})
+		}
+		advVis := func() bool { return w.tdpAdvancedBox.IsVisible() }
+		for i, sc := range []*gtk.Scale{w.tdpPL1Scale, w.tdpPL2Scale, w.tdpPL3Scale} {
+			oL, oR, gV, sV := scaleAdjust(sc, 1)
+			items = append(items, focusItem{
+				widget: sc, row: 4 + i, col: 0,
+				section:   "tdp",
+				editable:  true,
+				isVisible: advVis,
+				onLeft:    oL, onRight: oR,
+				getValue: gV, setValue: sV,
+			})
+		}
 		items = append(items, focusItem{
-			widget: w.tdpAdvancedCheck, row: 2, col: 0,
-			section:    "tdp",
-			onActivate: func() { w.tdpAdvancedCheck.SetActive(!w.tdpAdvancedCheck.Active()) },
+			widget: w.saveTdpBtn, row: 7, col: 0,
+			section: "tdp", onActivate: func() { w.saveTdpBtn.Activate() },
+		}, focusItem{
+			widget: w.resetTdpBtn, row: 7, col: 1,
+			section: "tdp", onActivate: func() { w.resetTdpBtn.Activate() },
+		})
+	case "uv":
+		if w.uvCpuScale != nil {
+			oL, oR, gV, sV := scaleAdjust(w.uvCpuScale, 1)
+			items = append(items, focusItem{
+				widget: w.uvCpuScale, row: 2, col: 0,
+				section: "undervolt", editable: true,
+				onLeft: oL, onRight: oR, getValue: gV, setValue: sV,
+			})
+		}
+		items = append(items, focusItem{
+			widget: w.saveUvBtn, row: 3, col: 0,
+			section: "undervolt", onActivate: func() { w.saveUvBtn.Activate() },
+		}, focusItem{
+			widget: w.resetUvBtn, row: 3, col: 1,
+			section: "undervolt", onActivate: func() { w.resetUvBtn.Activate() },
+		})
+	case "fan":
+		if w.fanCurve != nil {
+			// Navigable but not editable via gamepad; touch/mouse drag edits.
+			items = append(items, focusItem{widget: w.fanCurve.area, row: 2, col: 0, section: "fan"})
+		}
+		items = append(items, focusItem{
+			widget: w.saveFanBtn, row: 3, col: 0,
+			section: "fan", onActivate: func() { w.saveFanBtn.Activate() },
+		}, focusItem{
+			widget: w.resetFanBtn, row: 3, col: 1,
+			section: "fan", onActivate: func() { w.resetFanBtn.Activate() },
+		})
+	case "cpu":
+		row := 2
+		if w.cpuMinScale != nil {
+			left, right, get, set := scaleAdjust(w.cpuMinScale, 25)
+			items = append(items, focusItem{
+				widget: w.cpuMinScale, row: row, col: 0,
+				section: "cpu", editable: true,
+				onLeft: left, onRight: right, getValue: get, setValue: set,
+			})
+			row++
+		}
+		for i, option := range cpuEPPs {
+			btn := w.cpuEPPBtns[option.value]
+			items = append(items, focusItem{
+				widget: btn, row: row + i/2, col: i % 2,
+				section:    "cpu",
+				isVisible:  btn.IsVisible,
+				onActivate: func() { btn.Activate() },
+			})
+		}
+		row += (len(cpuEPPs) + 1) / 2
+		items = append(items, focusItem{
+			widget: w.resetAllBtn, row: row, col: 0,
+			section: "actions", onActivate: func() { w.resetAllBtn.Activate() },
 		})
 	}
-
-	// Rows 3-5: PL1/PL2/PL3 sliders.
-	advVis := func() bool { return w.tdpAdvancedBox.IsVisible() }
-	for i, sc := range []*gtk.Scale{w.tdpPL1Scale, w.tdpPL2Scale, w.tdpPL3Scale} {
-		oL, oR, gV, sV := scaleAdjust(sc, 1)
-		items = append(items, focusItem{
-			widget: sc, row: 3 + i, col: 0,
-			section:   "tdp",
-			editable:  true,
-			isVisible: advVis,
-			onLeft:    oL, onRight: oR,
-			getValue: gV, setValue: sV,
-		})
-	}
-
-	// Row 6: TDP save/reset (inline).
-	items = append(items, focusItem{
-		widget: w.saveTdpBtn, row: 6, col: 0,
-		section: "tdp", onActivate: func() { w.saveTdpBtn.Activate() },
-	})
-	items = append(items, focusItem{
-		widget: w.resetTdpBtn, row: 6, col: 1,
-		section: "tdp", onActivate: func() { w.resetTdpBtn.Activate() },
-	})
-
-	// Rows 7-8: undervolt (own section; visible only when available).
-	uvVis := func() bool { return w.uvBox != nil && w.uvBox.IsVisible() }
-	if w.uvCpuScale != nil {
-		oL, oR, gV, sV := scaleAdjust(w.uvCpuScale, 1)
-		items = append(items, focusItem{
-			widget: w.uvCpuScale, row: 7, col: 0,
-			section: "undervolt", editable: true, isVisible: uvVis,
-			onLeft: oL, onRight: oR, getValue: gV, setValue: sV,
-		})
-	}
-	items = append(items, focusItem{
-		widget: w.saveUvBtn, row: 8, col: 0,
-		section: "undervolt", isVisible: uvVis,
-		onActivate: func() { w.saveUvBtn.Activate() },
-	})
-	items = append(items, focusItem{
-		widget: w.resetUvBtn, row: 8, col: 1,
-		section: "undervolt", isVisible: uvVis,
-		onActivate: func() { w.resetUvBtn.Activate() },
-	})
-
-	// Row 9: fan curve.
-	if w.fanCurve != nil {
-		items = append(items, focusItem{
-			widget: w.fanCurve.area, row: 9, col: 0,
-			section: "fan",
-			// Fan curve is navigable but not editable via gamepad in this first pass.
-			// Touch/mouse drag handles interaction.
-		})
-	}
-
-	// Row 10: fan save/reset (inline).
-	items = append(items, focusItem{
-		widget: w.saveFanBtn, row: 10, col: 0,
-		section: "fan", onActivate: func() { w.saveFanBtn.Activate() },
-	})
-	items = append(items, focusItem{
-		widget: w.resetFanBtn, row: 10, col: 1,
-		section: "fan", onActivate: func() { w.resetFanBtn.Activate() },
-	})
-
-	// Row 11: reset all.
-	items = append(items, focusItem{
-		widget: w.resetAllBtn, row: 11, col: 0,
-		section: "actions", onActivate: func() { w.resetAllBtn.Activate() },
-	})
 
 	w.customFocusItems = items
 }

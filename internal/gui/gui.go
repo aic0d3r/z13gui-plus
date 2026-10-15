@@ -80,7 +80,6 @@ type Window struct {
 	speedBtns           map[string]*gtk.Button
 	brightBtns          map[int]*gtk.Button
 	profileBtns         map[string]*gtk.Button
-	tuningHeader        *gtk.ToggleButton
 	tuningSummary       *gtk.Label
 	tuningBtn           *gtk.Button
 	cpuMinScale         *gtk.Scale
@@ -211,7 +210,12 @@ type Window struct {
 	overviewMemClock   *gtk.Label       // "425 MHz"
 
 	// Advanced tuning view.
-	customScroll     *gtk.ScrolledWindow
+	customScroll     *gtk.ScrolledWindow // scroll of the visible tuning page
+	tuningStack      *gtk.Stack          // TDP / Fan / Undervolt / CPU pages
+	tuningTabBtns    map[string]*gtk.Button
+	tuningScrolls    map[string]*gtk.ScrolledWindow
+	tuningTab        string
+	tdpWarnLabel     *gtk.Label // >75 W caution, shown only when it applies
 	customBackBtn    *gtk.Button
 	tdpBasicScale    *gtk.Scale
 	tdpBasicLabel    *gtk.Label
@@ -312,6 +316,9 @@ func New(app *gtk.Application) *Window {
 		battPresetBtns: make(map[int]*gtk.Button),
 		fanPresetBtns:  make(map[string]*gtk.Button),
 		cpuEPPBtns:     make(map[string]*gtk.Button),
+		tuningTabBtns:  make(map[string]*gtk.Button),
+		tuningScrolls:  make(map[string]*gtk.ScrolledWindow),
+		tuningTab:      "tdp",
 		refreshBtns:    make(map[int]*gtk.Button),
 	}
 
