@@ -98,10 +98,7 @@ func (w *Window) syncState() {
 	if w.state.BatteryDetail != nil {
 		w.updateBatteryHero(w.state.BatteryDetail)
 	}
-	// No battery (desktop Strix Halo): hide the card instead of showing dashes.
-	if w.battCard != nil {
-		w.battCard.SetVisible(w.state.BatteryDetail != nil)
-	}
+	w.applyLayout() // hides cards for absent hardware (no battery / RGB) and user-hidden cards
 	// Overview tab — populate from initial state so it isn't blank for 1 s.
 	w.syncOverviewTelemetry()
 }
@@ -127,10 +124,8 @@ func (w *Window) syncCPUPower() {
 	}
 	state := w.state
 	// The daemon omits cpu_power when cpufreq is unreadable; without it the
-	// switch can only show a state the hardware never had.
-	if w.cpuBoostRow != nil {
-		w.cpuBoostRow.SetVisible(state.CPUPower != nil)
-	}
+	// switch can only show a state the hardware never had. applyLayout hides it.
+	w.applyLayout()
 	if state.CPUPower == nil {
 		return
 	}

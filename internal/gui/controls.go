@@ -54,6 +54,7 @@ func (w *Window) buildContent() gtk.Widgetter {
 
 	// Main tab row — Overview / Power / RGB / System. Active tab persists across drawer opens.
 	tabRow := w.buildMainTabRow()
+	w.registerCard("tab.rgb", w.mainTabBtns["rgb"])
 
 	// Tab content stack — each tab has its own scroll area.
 	w.tabStack = gtk.NewStack()
@@ -94,6 +95,7 @@ func (w *Window) buildContent() gtk.Widgetter {
 	w.statusLine.AddCSSClass("drawer-status")
 	outer.Append(w.statusLine)
 
+	w.applyLayout()
 	w.buildMainFocusList()
 	w.focusItems = w.mainFocusItems
 
@@ -112,7 +114,7 @@ func (w *Window) buildMainTabRow() *gtk.Box {
 		{"overview", "Overview"},
 		{"power", "Power"},
 		{"rgb", "RGB"},
-		{"system", "System"},
+		{"system", "Settings"},
 	}
 	for _, t := range tabs {
 		btn := gtk.NewButtonWithLabel(t.label)
@@ -147,11 +149,19 @@ func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
 
 	// Quick controls first (changed mid-session), then automation, then drill-downs.
 	inner.Append(w.buildProfileSection())
-	inner.Append(w.buildFanPresetSection())
-	inner.Append(w.buildBoostRow())
-	inner.Append(w.buildPresetEntrySection())
-	inner.Append(w.buildBatterySection())
-	inner.Append(w.buildAdvancedTuningSection())
+	for _, c := range []struct {
+		id   string
+		card *gtk.Box
+	}{
+		{"power.fan", w.buildFanPresetSection()},
+		{"power.boost", w.buildBoostRow()},
+		{"power.presets", w.buildPresetEntrySection()},
+		{"power.battery", w.buildBatterySection()},
+		{"power.tuning", w.buildAdvancedTuningSection()},
+	} {
+		w.registerCard(c.id, c.card)
+		inner.Append(c.card)
+	}
 
 	scroll := gtk.NewScrolledWindow()
 	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
@@ -260,6 +270,7 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	}))
 	inner.Append(startup)
 	inner.Append(w.buildAppearanceSection())
+	inner.Append(w.buildLayoutSection())
 	inner.Append(w.buildVersionSection())
 
 	scroll := gtk.NewScrolledWindow()
@@ -1460,6 +1471,24 @@ func (w *Window) systemTabFocusItems() []focusItem {
 			section:    "appearance",
 			onActivate: func() { btn.Activate() },
 		})
+		row++
+	}
+	if h := w.layoutHeader; h != nil {
+		items = append(items, focusItem{
+			widget: h, row: row, col: 0,
+			section:    "layout",
+			onActivate: func() { h.SetActive(!h.Active()) },
+		})
+		row++
+	}
+	for _, c := range layoutCards {
+		sw := w.layoutSwitches[c.id]
+		items = append(items, focusItem{
+			widget: sw, row: row, col: 0,
+			section:    "layout",
+			onActivate: func() { sw.SetActive(!sw.Active()) },
+		})
+		row++
 	}
 	return items
 }

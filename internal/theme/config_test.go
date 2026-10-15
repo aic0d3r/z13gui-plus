@@ -14,6 +14,7 @@ func TestLoadAppConfig(t *testing.T) {
 		{"missing", "", AppConfig{Theme: "rog-dark"}},
 		{"theme and accent", "theme = \"nord\"\naccent = \"blue\"\n", AppConfig{Theme: "nord", Accent: "blue"}},
 		{"comments", "# config file\ntheme = \"gruvbox-dark\" # nice theme\n", AppConfig{Theme: "gruvbox-dark"}},
+		{"hidden cards", "theme = \"nord\"\nhidden = \"overview.fans,tab.rgb\"\n", AppConfig{Theme: "nord", Hidden: "overview.fans,tab.rgb"}},
 		{"empty theme", "theme = \"\"\n", AppConfig{Theme: "rog-dark"}},
 	}
 	for _, tt := range tests {
@@ -40,6 +41,7 @@ func TestSaveAppConfig(t *testing.T) {
 	for _, want := range []AppConfig{
 		{Theme: "catppuccin-mocha", Accent: "sapphire"},
 		{Theme: "nord"},
+		{Theme: "nord", Hidden: "power.fan,tab.rgb"},
 	} {
 		t.Run(want.Theme, func(t *testing.T) {
 			tmp := t.TempDir()

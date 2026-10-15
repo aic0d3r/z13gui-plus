@@ -216,6 +216,10 @@ type Window struct {
 	tuningTabBtns    map[string]*gtk.Button
 	tuningScrolls    map[string]*gtk.ScrolledWindow
 	tuningTab        string
+	layoutWidgets    map[string]gtk.Widgetter // hideable cards by ID (layout.go)
+	layoutSwitches   map[string]*gtk.Switch
+	layoutSummary    *gtk.Label
+	layoutHeader     *gtk.ToggleButton
 	tdpWarnLabel     *gtk.Label // >75 W caution, shown only when it applies
 	customBackBtn    *gtk.Button
 	tdpBasicScale    *gtk.Scale
@@ -319,6 +323,8 @@ func New(app *gtk.Application) *Window {
 		cpuEPPBtns:     make(map[string]*gtk.Button),
 		tuningTabBtns:  make(map[string]*gtk.Button),
 		tuningScrolls:  make(map[string]*gtk.ScrolledWindow),
+		layoutWidgets:  make(map[string]gtk.Widgetter),
+		layoutSwitches: make(map[string]*gtk.Switch),
 		tuningTab:      "tdp",
 		refreshBtns:    make(map[int]*gtk.Button),
 	}
@@ -671,7 +677,9 @@ func (w *Window) applyTheme(id, accentID string) {
 	}
 	w.themeProvider.LoadFromString(theme.BuildThemeCSS(colors, defaultThemeCSS))
 	gtk.StyleContextAddProviderForDisplay(display, w.themeProvider, gtk.STYLE_PROVIDER_PRIORITY_USER)
-	theme.SaveAppConfig(theme.AppConfig{Theme: id, Accent: accentID})
+	cfg := theme.LoadAppConfig() // keep the saved layout choices
+	cfg.Theme, cfg.Accent = id, accentID
+	theme.SaveAppConfig(cfg)
 	w.isCustomTheme = false
 	if w.appearanceSummary != nil {
 		w.appearanceSummary.SetLabel(themeButtonLabel(id, accentID, false))

@@ -31,11 +31,16 @@ func (w *Window) buildOverviewTab() *gtk.ScrolledWindow {
 	// Tier 1 (above DETAILS) answers "am I throttling or too hot?" at a glance;
 	// tier 2 is the long tail for advanced users. Each sensor appears once.
 	inner.Append(w.buildOverviewHero())
-	inner.Append(w.buildOverviewPower())
-	inner.Append(w.buildOverviewFans())
-	inner.Append(sectionLabel("DETAILS"))
-	inner.Append(w.buildOverviewMetrics())
+	power, fans, memory := w.buildOverviewPower(), w.buildOverviewFans(), w.buildOverviewMetrics()
 	w.battCard = w.buildBatteryHero()
+	w.registerCard("overview.power", power)
+	w.registerCard("overview.fans", fans)
+	w.registerCard("overview.memory", memory)
+	w.registerCard("overview.battery", w.battCard)
+	inner.Append(power)
+	inner.Append(fans)
+	inner.Append(sectionLabel("DETAILS"))
+	inner.Append(memory)
 	inner.Append(w.battCard)
 
 	scroll := gtk.NewScrolledWindow()

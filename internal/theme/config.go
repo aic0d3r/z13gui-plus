@@ -13,6 +13,9 @@ import (
 type AppConfig struct {
 	Theme  string // built-in theme ID; empty = use default
 	Accent string // accent ID within the theme; "" = use theme default
+	// Hidden is a comma-separated list of card IDs the user switched off in
+	// Settings > Layout. A string (not a slice) keeps AppConfig comparable.
+	Hidden string
 }
 
 // LoadAppConfig reads config.toml from the z13gui-plus config directory.
@@ -45,6 +48,8 @@ func LoadAppConfig() AppConfig {
 			}
 		case "accent":
 			cfg.Accent = v
+		case "hidden":
+			cfg.Hidden = v
 		}
 	}
 	return cfg
@@ -60,6 +65,9 @@ func SaveAppConfig(cfg AppConfig) {
 	content := "# Z13GUI+ app configuration\ntheme = \"" + cfg.Theme + "\"\n"
 	if cfg.Accent != "" {
 		content += "accent = \"" + cfg.Accent + "\"\n"
+	}
+	if cfg.Hidden != "" {
+		content += "hidden = \"" + cfg.Hidden + "\"\n"
 	}
 	// Write-then-rename so a crash mid-write can't leave an empty config.
 	path := filepath.Join(dir, "config.toml")
