@@ -213,6 +213,7 @@ func (w *Window) buildOverviewMetrics() *gtk.Box {
 	card.Append(memoryRow)
 
 	clocks := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	clocks.AddCSSClass("overview-clock-row")
 	clocks.SetHomogeneous(true)
 	for _, m := range []struct {
 		label string

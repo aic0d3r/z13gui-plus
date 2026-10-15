@@ -66,6 +66,22 @@ window.z13-drawer-window {
     font-family: "Cantarell", sans-serif;
 }
 
+/* ROG display face for everything you tap or scan as a label: angular, wide,
+   legible at 13px. Body copy and live numerals keep their own faces. */
+.drawer button,
+.drawer checkbutton,
+.drawer .card-title,
+.drawer .section-label,
+.drawer .section-collapse-label,
+.drawer .pill,
+.drawer .toggle-label,
+.drawer .overview-metric-label,
+.drawer .battery-metric-label,
+.drawer .scale-name {
+    font-family: "Chakra Petch", "Cantarell", sans-serif;
+    font-weight: 600;
+}
+
 /* Drawer title — small caps, dim */
 .drawer-title {
     color: @z13-text-faint;
@@ -307,6 +323,11 @@ window.z13-drawer-window {
 /* Hero card title */
 .drawer .card-title {
     color: alpha(@z13-text, 0.85);
+}
+
+/* Details clocks are reference values, not glance values: quieter than the tiles. */
+.drawer .overview-clock-row .overview-metric-value {
+    color: alpha(@z13-text, 0.82);
 }
 
 /* Hero card secondary row */

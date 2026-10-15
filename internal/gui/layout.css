@@ -487,6 +487,20 @@
 	font-size: 16px;
 }
 
+/* Clocks sit under DETAILS: smaller than the thermal tiles and the power row. */
+.drawer .overview-clock-row {
+	padding: 0;
+}
+
+.drawer .overview-clock-row .overview-metric-value {
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.drawer .overview-clock-row .overview-metric-label {
+	font-size: 10px;
+}
+
 .drawer .battery-summary-value {
     font-family: monospace;
     font-size: 20px;

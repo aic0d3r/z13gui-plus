@@ -1,4 +1,4 @@
-// Package fonts embeds the Inter typeface and registers it with fontconfig
+// Package fonts embeds the Inter and Chakra Petch typefaces and registers them with fontconfig
 // at application startup so the drawer renders identically across desktop
 // (KDE/Wayland) and gamescope (Steam Gaming Mode) environments.
 package fonts
@@ -23,6 +23,12 @@ var interRegular []byte
 
 //go:embed Inter-Bold.ttf
 var interBold []byte
+
+// Chakra Petch SemiBold (SIL OFL, see OFL-ChakraPetch.txt) is the display face for
+// buttons, tabs and labels: angular and wide, readable at 13px.
+//
+//go:embed ChakraPetch-SemiBold.ttf
+var chakraPetchSemiBold []byte
 
 // Register writes the embedded Inter font files to a runtime directory and
 // registers them with fontconfig via FcConfigAppFontAddFile. This makes the
@@ -50,6 +56,7 @@ func Register() {
 	}{
 		{"Inter-Regular.ttf", interRegular},
 		{"Inter-Bold.ttf", interBold},
+		{"ChakraPetch-SemiBold.ttf", chakraPetchSemiBold},
 	} {
 		path := filepath.Join(dir, f.name)
 		// Skip write if file already exists with correct size.

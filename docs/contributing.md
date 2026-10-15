@@ -20,7 +20,7 @@ remove the replacement.
 | `internal/gui/gamescope` | X11 overlay backend for Steam Gaming Mode |
 | `internal/gui/gamepad` | Linux evdev gamepad reader |
 | `internal/gui/gamepad/hidblocker` | BPF LSM hidraw blocker (blocks PS/Nintendo controller reads) |
-| `internal/gui/fonts` | Embedded Inter font registration |
+| `internal/gui/fonts` | Embedded Inter and Chakra Petch (OFL) font registration |
 | `internal/theme` | Color definitions, TOML parsing, CSS generation — pure Go |
 
 ---
