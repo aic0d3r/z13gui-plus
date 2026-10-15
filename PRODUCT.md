@@ -59,7 +59,8 @@ overrides.
   custom curve), power automation with named presets and an inline preset
   editor, CPU min frequency/EPP/boost, TDP, undervolt, battery charge limit,
   refresh rate and panel overdrive, RGB keyboard/lightbar, tablet settings,
-  live telemetry Overview.
+  live telemetry Overview. Cards for hardware the machine lacks (battery, RGB,
+  ASUS-only controls) hide automatically, and Settings > Layout hides any card.
 - **Input parity**: every control must be reachable by touch, gamepad D-pad
   focus, and pointer; touch targets at least 40 px.
 - **No popovers, dropdowns, or separate windows**: gamescope does not composite
@@ -96,7 +97,7 @@ overrides.
 3. **One way, every input.** A control that only works with a mouse is broken.
 4. **Depth on request.** Advanced tuning stays one level away, never in the
    quick path, and never hidden when it is the cause of current state.
-5. **Honest about hardware.** Name side effects (fan locks, applies now) at the
+5. **Honest about hardware.** Show only controls the machine has. Name side effects (fan locks, applies now) at the
    moment of the change.
 
 ## Accessibility & Inclusion
