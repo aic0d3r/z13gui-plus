@@ -274,8 +274,9 @@ func (w *Window) newFanCurveEditor() *fanCurveEditor {
 
 	fc.area = gtk.NewDrawingArea()
 	fc.area.AddCSSClass("fan-curve-area")
-	fc.area.SetSizeRequest(-1, 280)
-	fc.area.SetVExpand(true) // the Fan page has the whole height to itself
+	// Compact on purpose: the Fan page (header, safety banner, graph) must fit
+	// without scrolling on short displays, and 8 points need little height.
+	fc.area.SetSizeRequest(-1, 200)
 	fc.area.SetDrawFunc(func(_ *gtk.DrawingArea, cr *cairo.Context, width, height int) {
 		fc.draw(cr, width, height)
 	})
@@ -673,10 +674,10 @@ func (w *Window) buildUvScale(label string, lo, hi float64) (*gtk.Scale, *gtk.La
 	sc.SetDrawValue(false)
 	sc.SetValue(0)
 	sc.SetFocusable(false)
-	valLabel := gtk.NewLabel(uvLabel(label, 0))
+	valLabel := gtk.NewLabel(uvValue(0))
 	valLabel.AddCSSClass("scale-value")
 	sc.ConnectValueChanged(func() {
-		valLabel.SetLabel(uvLabel(label, int(sc.Value())))
+		valLabel.SetLabel(uvValue(int(sc.Value())))
 		if !w.syncing {
 			w.refreshTuningDirty()
 		}
@@ -685,6 +686,14 @@ func (w *Window) buildUvScale(label string, lo, hi float64) (*gtk.Scale, *gtk.La
 	header.Append(valLabel)
 	w.uvBox.Append(sc)
 	return sc, valLabel
+}
+
+// uvValue is the value alone, for rows whose name already sits beside it.
+func uvValue(val int) string {
+	if val == 0 {
+		return "0 (stock)"
+	}
+	return fmt.Sprintf("%d", val)
 }
 
 // uvLabel formats an undervolt value label, e.g. "CPU Curve Optimizer: -20" or "... 0 (stock)".
@@ -795,7 +804,7 @@ func (w *Window) syncCustomView() {
 	}
 	if w.uvCpuScale != nil && (last == nil || last.cpuCO != t.cpuCO) {
 		w.uvCpuScale.SetValue(float64(t.cpuCO))
-		w.uvCpuLabel.SetLabel(uvLabel("CPU Curve Optimizer", t.cpuCO))
+		w.uvCpuLabel.SetLabel(uvValue(t.cpuCO))
 	}
 
 	w.syncTuningTelemetry(w.state)
