@@ -114,7 +114,7 @@ automatically, and **Settings → Layout** lets you hide any other card.
 
 Without a battery, the Battery cards disappear; without RGB devices, the RGB tab
 disappears; without an internal panel, the refresh-rate control disappears. A
-daemon older than v2.5 does not report capabilities, and the drawer then shows
+daemon older than v2.5.0 does not report capabilities, and the drawer then shows
 everything.
 
 Running it on a non-Z13 machine? Please open a
@@ -134,8 +134,8 @@ sudo apt install ./z13gui-plus_*.deb
 sudo dnf install ./z13gui-plus_*.rpm
 
 # Manual (from release tarball)
-wget https://github.com/aic0d3r/z13gui-plus/releases/download/v2.2.1/z13gui-plus_2.2.1_linux_amd64.tar.gz
-tar xzf z13gui-plus_2.2.1_linux_amd64.tar.gz
+wget https://github.com/aic0d3r/z13gui-plus/releases/download/v2.6.0/z13gui-plus_2.6.0_linux_amd64.tar.gz
+tar xzf z13gui-plus_2.6.0_linux_amd64.tar.gz
 sudo install -Dm755 z13gui-plus /usr/local/bin/z13gui-plus
 
 # With z13ctl-plus set up
@@ -158,10 +158,12 @@ systemctl --user enable --now z13ctl-plus.socket z13ctl-plus.service
 systemctl --user enable --now z13gui-plus.service
 ```
 
-The **Overview** shows live system state; **Power** contains automation, CPU policy,
-battery strategy, and advanced tuning; **RGB** drives the keyboard and lightbar;
-**System** covers refresh rate, overdrive, boot sound, and tablet options.
-Hardware-control changes are sent to the `z13ctl-plus` daemon.
+The **Overview** shows live system state, with temperatures, power and fans first and
+details below; **Power** holds profile, fan mode, CPU Boost, automation, battery
+strategy, and a **Power tuning** view (TDP, fan curve, undervolt, CPU limits);
+**RGB** drives the keyboard and lightbar; **Settings** covers refresh rate, overdrive,
+boot sound, theme, and which cards to show. Hardware-control changes are sent to the
+`z13ctl-plus` daemon.
 
 ## Upgrading from v1
 

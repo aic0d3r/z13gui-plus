@@ -3,6 +3,28 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## v2.6.0 (2026-10-16)
+
+Hardware hiding needs z13ctl-plus v2.5.0 (API v1.9.0); older daemons keep
+showing every control.
+
+- Power tab reordered: Profile, Fan mode, a one-tap CPU Boost row, Power
+  automation, Battery strategy, then a single Power tuning row.
+- Power tuning is split into TDP, Fan, UV and CPU pages with pinned Save and
+  Reset, a Simple/Advanced TDP control, compact slider rows, a compact fan
+  graph, and warnings shown only when they apply. Minimum frequency and
+  energy preference moved to the CPU page.
+- Overview is tiered: status strip, thermals and load, APU power against
+  PL1, and fans, then Details with memory, clocks and a compact battery card
+  that shows capacity left.
+- Settings (renamed from System): Boot Sound joins Display, and a folded
+  Layout card hides any card. Battery, RGB, CPU Boost, fan, TDP and display
+  controls hide automatically when the machine lacks the hardware.
+- RGB device picker is a segmented control; the Effect card hides while
+  lighting is off. The tab bar uses an underline for the active tab.
+- Chakra Petch (SIL OFL) is embedded as the display face for buttons, tabs and
+  labels.
+
 ## v2.5.0 (2026-10-13)
 
 The new display notes need z13ctl-plus v2.4.0; older daemons keep the

@@ -13,11 +13,11 @@ Press it again, click anywhere outside the drawer, or press **Escape** to close 
 
 | Section | What it does |
 |---------|-------------|
-| **Overview** | Monitor CPU, GPU, NPU, memory, battery, power, clocks, temperatures, and fan speed. |
+| **Overview** | Status, temperatures and load, APU power against the sustained limit, and fans, then memory, clocks, and battery under Details. |
 | **Profile** | Switch between quiet, balanced, and performance hardware profiles. |
 | **Power Automation** | Assign named presets to plugged-in and battery operation. Each row shows what the preset sets. Tap a preset chip to apply it now; a **MANUAL** badge and **Reapply** button appear after manual changes. **Manage Presets** lists every preset with Apply, Edit, and Plugged In / On Battery assignment buttons, plus **Save Current Settings** (named automatically; rename in Edit). The editor covers name, profile, TDP, undervolt, CPU behavior, refresh rate, and overdrive. Fan mode is never part of a preset. |
-| **CPU Power** | Set the CPU minimum frequency, AMD energy performance preference (EPP), and CPU boost without changing GPU clocks. |
-| **Power Tuning** | Open independent TDP, fan-curve, and undervolt overrides. |
+| **CPU Boost** | One-tap switch on the Power tab. |
+| **Power Tuning** | Open the tuning view: TDP (Simple or Advanced PL1/PL2/PL3), fan curve, undervolt, and CPU (minimum frequency and EPP) pages, each with its own Save and Reset. |
 | **Fan Mode** | Select firmware Auto or the Balanced and Turbo curve presets. |
 | **Battery Limit** | Set the charge cap (40–100%). Changes persist across reboots. |
 | **Refresh Rate** | Switch the internal display between 60 Hz and 180 Hz. |
@@ -25,7 +25,8 @@ Press it again, click anywhere outside the drawer, or press **Escape** to close 
 | **Mode** | Lighting effect: static, breathe, cycle, rainbow, strobe, or off |
 | **Color 1 / Color 2** | Pick from 8 presets or open the custom color picker |
 | **Speed** | Animation speed for modes that support it: slow, normal, fast |
-| **Brightness** | Lighting brightness: 0–3 |
+| **Brightness** | Lighting brightness: low, medium, or high |
+| **Layout** | In Settings, hide cards you do not need. Cards for hardware the machine lacks are hidden automatically. |
 | **Panel Overdrive** | Toggle faster pixel response (may cause slight ghosting) |
 | **Boot Sound** | Enable or disable the startup POST sound |
 | **Tablet kit chip** | When the optional tablet companion is detected, open its posture, health, touchscreen, touchpad, and scrolling controls. |
