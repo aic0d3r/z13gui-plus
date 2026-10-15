@@ -2,10 +2,11 @@ package gui
 
 // overview.go — Overview tab: a live telemetry dashboard for the Strix Halo SoC.
 //
-// Layout (top-to-bottom, all on a single screen with no scroll at native res):
-//   - THERMALS: CPU/GPU temperature and load tiles, plus NPU state and power
-//   - BATTERY: charge, source, draw, health, and active strategy
-//   - SYSTEM: unified memory, memory clock, fans, and CPU/GPU clocks
+// Layout (top-to-bottom). Everything above DETAILS fits one screen:
+//   - status strip: health pill, profile, power source, sustained limit
+//   - THERMALS & LOAD: CPU/GPU temperature and load tiles
+//   - APU POWER vs the sustained limit, plus GPU/NPU power and NPU load; fans
+//   - DETAILS: unified memory + clocks, then the compact battery card
 //
 // All values are populated by syncOverviewTelemetry() in sync.go, driven from
 // the 1-second telemetry poll in tdp.go. When api.State.Telemetry is nil
@@ -16,6 +17,7 @@ import (
 	"math"
 
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+	"github.com/diamondburned/gotk4/pkg/pango"
 )
 
 // buildOverviewTab constructs the Overview tab content + scroll container.
@@ -26,9 +28,15 @@ func (w *Window) buildOverviewTab() *gtk.ScrolledWindow {
 	inner.SetMarginStart(12)
 	inner.SetMarginEnd(12)
 
+	// Tier 1 (above DETAILS) answers "am I throttling or too hot?" at a glance;
+	// tier 2 is the long tail for advanced users. Each sensor appears once.
 	inner.Append(w.buildOverviewHero())
-	inner.Append(w.buildBatteryHero())
+	inner.Append(w.buildOverviewPower())
+	inner.Append(w.buildOverviewFans())
+	inner.Append(sectionLabel("DETAILS"))
 	inner.Append(w.buildOverviewMetrics())
+	w.battCard = w.buildBatteryHero()
+	inner.Append(w.battCard)
 
 	scroll := gtk.NewScrolledWindow()
 	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
@@ -38,71 +46,105 @@ func (w *Window) buildOverviewTab() *gtk.ScrolledWindow {
 	return scroll
 }
 
-// buildOverviewHero constructs the hero card: status, metrics, and trend.
+// buildOverviewHero is the status strip (health pill + context) and the four
+// thermal/load tiles.
 func (w *Window) buildOverviewHero() *gtk.Box {
-	box := gtk.NewBox(gtk.OrientationVertical, 4)
+	box := gtk.NewBox(gtk.OrientationVertical, 6)
 
-	card := gtk.NewBox(gtk.OrientationVertical, 6)
+	strip := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	strip.AddCSSClass("card")
+	w.overviewStatus = gtk.NewLabel("NORMAL")
+	w.overviewStatus.AddCSSClass("pill")
+	strip.Append(w.overviewStatus)
+	w.overviewContext = gtk.NewLabel("—")
+	w.overviewContext.SetHAlign(gtk.AlignStart)
+	w.overviewContext.SetHExpand(true)
+	w.overviewContext.SetEllipsize(pango.EllipsizeEnd)
+	w.overviewContext.AddCSSClass("card-sub")
+	strip.Append(w.overviewContext)
+	w.overviewFreshness = gtk.NewLabel("")
+	w.overviewFreshness.AddCSSClass("overview-stale")
+	w.overviewFreshness.SetVisible(false)
+	strip.Append(w.overviewFreshness)
+	box.Append(strip)
+
+	box.Append(sectionLabel("THERMALS & LOAD"))
+	metricRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	metricRow.SetHomogeneous(true)
+	for _, m := range []struct {
+		label string
+		dst   **gtk.Label
+	}{
+		{"CPU TEMP", &w.cpuTempValue},
+		{"GPU TEMP", &w.gpuTempValue},
+		{"CPU LOAD", &w.cpuUtilValue},
+		{"GPU LOAD", &w.gpuUtilValue},
+	} {
+		metric, value := overviewMetric(m.label)
+		*m.dst = value
+		metricRow.Append(metric)
+	}
+	box.Append(metricRow)
+	return box
+}
+
+// buildOverviewPower shows APU power against the sustained limit, with the
+// other power/NPU readings underneath.
+func (w *Window) buildOverviewPower() *gtk.Box {
+	card := gtk.NewBox(gtk.OrientationVertical, 4)
 	card.AddCSSClass("card")
 
 	header := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	title := gtk.NewLabel("THERMALS & LOAD")
+	title := gtk.NewLabel("APU POWER")
 	title.SetHAlign(gtk.AlignStart)
 	title.SetHExpand(true)
 	title.AddCSSClass("card-title")
 	header.Append(title)
-	w.overviewStatus = gtk.NewLabel("NORMAL")
-	w.overviewStatus.AddCSSClass("pill")
-	header.Append(w.overviewStatus)
+	w.overviewAPUPower = gtk.NewLabel("—")
+	w.overviewAPUPower.AddCSSClass("battery-summary-value")
+	header.Append(w.overviewAPUPower)
 	card.Append(header)
 
-	contextRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	w.overviewContext = gtk.NewLabel("—")
-	w.overviewContext.SetHAlign(gtk.AlignStart)
-	w.overviewContext.SetHExpand(true)
-	w.overviewContext.AddCSSClass("card-sub")
-	contextRow.Append(w.overviewContext)
-	w.overviewFreshness = gtk.NewLabel("")
-	w.overviewFreshness.AddCSSClass("overview-stale")
-	w.overviewFreshness.SetVisible(false)
-	contextRow.Append(w.overviewFreshness)
-	card.Append(contextRow)
-
-	metricRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	metricRow.SetHomogeneous(true)
-	metric, value := overviewMetric("CPU TEMP")
-	w.cpuTempValue = value
-	metricRow.Append(metric)
-	metric, value = overviewMetric("GPU TEMP")
-	w.gpuTempValue = value
-	metricRow.Append(metric)
-	metric, value = overviewMetric("CPU LOAD")
-	w.cpuUtilValue = value
-	metricRow.Append(metric)
-	metric, value = overviewMetric("GPU LOAD")
-	w.gpuUtilValue = value
-	metricRow.Append(metric)
-	card.Append(metricRow)
+	w.overviewPowerBar = gtk.NewProgressBar()
+	w.overviewPowerBar.SetHExpand(true)
+	w.overviewPowerBar.AddCSSClass("memory-bar")
+	card.Append(w.overviewPowerBar)
+	w.overviewPowerLimit = gtk.NewLabel("")
+	w.overviewPowerLimit.SetHAlign(gtk.AlignEnd)
+	w.overviewPowerLimit.AddCSSClass("card-sub")
+	card.Append(w.overviewPowerLimit)
 
 	powerRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	powerRow.AddCSSClass("overview-power-row")
 	powerRow.SetHomogeneous(true)
-	metric, value = overviewMetric("APU")
-	w.overviewAPUPower = value
-	powerRow.Append(metric)
-	metric, value = overviewMetric("GPU")
-	w.overviewGPUPower = value
-	powerRow.Append(metric)
-	metric, value = overviewMetric("NPU")
-	w.overviewNPUPower = value
-	powerRow.Append(metric)
-	metric, value = overviewMetric("NPU LOAD")
-	w.overviewNPUUtil = value
-	powerRow.Append(metric)
+	for _, m := range []struct {
+		label string
+		dst   **gtk.Label
+	}{
+		{"GPU", &w.overviewGPUPower},
+		{"NPU", &w.overviewNPUPower},
+		{"NPU LOAD", &w.overviewNPUUtil},
+	} {
+		metric, value := overviewMetric(m.label)
+		*m.dst = value
+		powerRow.Append(metric)
+	}
 	card.Append(powerRow)
+	return card
+}
 
-	box.Append(card)
-	return box
+// buildOverviewFans is the CPU/GPU fan card; fan speed is part of "am I throttling".
+func (w *Window) buildOverviewFans() *gtk.Box {
+	card := gtk.NewBox(gtk.OrientationHorizontal, 12)
+	card.AddCSSClass("card")
+	card.SetHomogeneous(true)
+	row, lbl := metricRow("CPU FAN")
+	card.Append(row)
+	w.cpuFanLabel = lbl
+	row, lbl = metricRow("GPU FAN")
+	card.Append(row)
+	w.gpuFanLabel = lbl
+	return card
 }
 
 func overviewMetric(label string) (*gtk.Box, *gtk.Label) {
@@ -147,11 +189,6 @@ func (w *Window) buildOverviewMetrics() *gtk.Box {
 	card.AddCSSClass("card")
 	card.AddCSSClass("overview-system-card")
 
-	title := gtk.NewLabel("HARDWARE")
-	title.SetHAlign(gtk.AlignStart)
-	title.AddCSSClass("card-title")
-	card.Append(title)
-
 	memoryRow := gtk.NewBox(gtk.OrientationVertical, 2)
 	memoryHeader := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	memoryTitle := gtk.NewLabel("UNIFIED MEMORY")
@@ -170,32 +207,21 @@ func (w *Window) buildOverviewMetrics() *gtk.Box {
 	memoryRow.Append(w.overviewMemoryBar)
 	card.Append(memoryRow)
 
-	row, lbl := metricRow("MEMORY CLOCK")
-	row.AddCSSClass("secondary-metric")
-	card.Append(row)
-	w.overviewMemClock = lbl
-
-	grid := gtk.NewBox(gtk.OrientationHorizontal, 12)
-	grid.SetHomogeneous(true)
-	leftCol := gtk.NewBox(gtk.OrientationVertical, 4)
-	rightCol := gtk.NewBox(gtk.OrientationVertical, 4)
-
-	row, lbl = metricRow("CPU FAN")
-	leftCol.Append(row)
-	w.cpuFanLabel = lbl
-	row, lbl = metricRow("GPU FAN")
-	leftCol.Append(row)
-	w.gpuFanLabel = lbl
-	row, lbl = metricRow("CPU CLOCK")
-	rightCol.Append(row)
-	w.overviewCPUClock = lbl
-	row, lbl = metricRow("GPU CLOCK")
-	rightCol.Append(row)
-	w.overviewGPUClock = lbl
-
-	grid.Append(leftCol)
-	grid.Append(rightCol)
-	card.Append(grid)
+	clocks := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	clocks.SetHomogeneous(true)
+	for _, m := range []struct {
+		label string
+		dst   **gtk.Label
+	}{
+		{"CPU CLOCK", &w.overviewCPUClock},
+		{"GPU CLOCK", &w.overviewGPUClock},
+		{"MEM CLOCK", &w.overviewMemClock},
+	} {
+		metric, value := overviewMetric(m.label)
+		*m.dst = value
+		clocks.Append(metric)
+	}
+	card.Append(clocks)
 
 	return card
 }

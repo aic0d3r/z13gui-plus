@@ -98,6 +98,10 @@ func (w *Window) syncState() {
 	if w.state.BatteryDetail != nil {
 		w.updateBatteryHero(w.state.BatteryDetail)
 	}
+	// No battery (desktop Strix Halo): hide the card instead of showing dashes.
+	if w.battCard != nil {
+		w.battCard.SetVisible(w.state.BatteryDetail != nil)
+	}
 	// Overview tab — populate from initial state so it isn't blank for 1 s.
 	w.syncOverviewTelemetry()
 }
@@ -530,6 +534,9 @@ func (w *Window) syncOverviewTelemetry() {
 		if w.state.PowerSource != "" {
 			parts = append(parts, strings.ToUpper(w.state.PowerSource))
 		}
+		if tdp := w.state.TDP; w.state.TDPActive && tdp != nil && tdp.PL1SPL > 0 {
+			parts = append(parts, fmt.Sprintf("PL1 %d W", tdp.PL1SPL))
+		}
 		if len(parts) == 0 {
 			parts = append(parts, "—")
 		}
@@ -541,6 +548,20 @@ func (w *Window) syncOverviewTelemetry() {
 			value = fmt.Sprintf("%.1f W", t.APUPowerW)
 		}
 		w.overviewAPUPower.SetLabel(value)
+	}
+	if w.overviewPowerBar != nil {
+		// Bar and caption need a known sustained limit; without one they stay hidden.
+		limit := 0
+		if w.state.TDP != nil && w.state.TDPActive {
+			limit = w.state.TDP.PL1SPL
+		}
+		show := limit > 0 && t.APUPowerAvailable
+		w.overviewPowerBar.SetVisible(show)
+		w.overviewPowerLimit.SetVisible(show)
+		if show {
+			w.overviewPowerBar.SetFraction(min(1, t.APUPowerW/float64(limit)))
+			w.overviewPowerLimit.SetLabel(fmt.Sprintf("limit %d W", limit))
+		}
 	}
 	if w.overviewGPUPower != nil {
 		value := "—"
@@ -665,20 +686,11 @@ func (w *Window) updateBatteryHero(b *api.BatteryState) {
 		w.battStatusLabel.SetLabel(status)
 	}
 	if w.battHealthLabel != nil {
-		w.battHealthLabel.SetLabel(fmt.Sprintf("%d%%", b.HealthPct))
+		w.battHealthLabel.SetLabel(fmt.Sprintf("health %d%% of %.0f Wh design", b.HealthPct, b.EnergyDesignWh))
+		w.battHealthLabel.SetTooltipText(fmt.Sprintf("%s V terminal voltage", formatBatteryDecimal(b.VoltageVolts)))
 	}
 	if w.battEnergyLabel != nil {
 		w.battEnergyLabel.SetLabel(fmt.Sprintf("%.1f / %.1f Wh", b.EnergyNowWh, b.EnergyFullWh))
-	}
-	if w.battVoltageLabel != nil {
-		voltage := formatBatteryDecimal(b.VoltageVolts)
-		if voltage != "—" {
-			voltage += " V"
-		}
-		w.battVoltageLabel.SetLabel(voltage)
-	}
-	if w.battDesignLabel != nil {
-		w.battDesignLabel.SetLabel(fmt.Sprintf("%.1f Wh", b.EnergyDesignWh))
 	}
 
 	draw, timeCaption, timeValue := "—", "REMAINING", "—"

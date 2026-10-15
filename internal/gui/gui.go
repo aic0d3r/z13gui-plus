@@ -179,8 +179,6 @@ type Window struct {
 	battProgress      *gtk.ProgressBar // current charge percentage
 	battHealthLabel   *gtk.Label       // battery health percentage
 	battEnergyLabel   *gtk.Label       // current / usable full charge
-	battVoltageLabel  *gtk.Label       // current battery voltage
-	battDesignLabel   *gtk.Label       // design capacity
 	battDrawMetric    *gtk.Box         // system draw metric, visible only on battery
 	battDrawLabel     *gtk.Label       // whole-system draw while discharging
 	battTimeCaption   *gtk.Label       // REMAINING / TO FULL / AT LIMIT / STATUS
@@ -208,6 +206,9 @@ type Window struct {
 	overviewMemoryBar  *gtk.ProgressBar // unified memory usage bar (0..1)
 	overviewMemoryLbl  *gtk.Label       // "18.4 / 128 GB"
 	overviewMemClock   *gtk.Label       // "425 MHz"
+	overviewPowerBar   *gtk.ProgressBar // APU power vs sustained limit
+	overviewPowerLimit *gtk.Label       // "limit 70 W"
+	battCard           *gtk.Box         // Overview battery card; hidden on machines without a battery
 
 	// Advanced tuning view.
 	customScroll     *gtk.ScrolledWindow // scroll of the visible tuning page

@@ -978,11 +978,9 @@ func (w *Window) buildRefreshRateSection() *gtk.Box {
 	return box
 }
 
-// buildBatteryHero builds the Overview battery card with capacity, status,
-// battery power flow, health, and threshold.
+// buildBatteryHero builds the compact Overview battery card: capacity, bar,
+// status + strategy pill, one metric row, and a health line.
 func (w *Window) buildBatteryHero() *gtk.Box {
-	box := gtk.NewBox(gtk.OrientationVertical, 4)
-
 	card := gtk.NewBox(gtk.OrientationVertical, 5)
 	card.AddCSSClass("card")
 	card.AddCSSClass("battery-summary")
@@ -998,63 +996,46 @@ func (w *Window) buildBatteryHero() *gtk.Box {
 	header.Append(w.battCapacityLabel)
 	card.Append(header)
 
-	w.battStatusLabel = gtk.NewLabel("—")
-	w.battStatusLabel.AddCSSClass("card-sub")
-	w.battStatusLabel.AddCSSClass("battery-status")
-	w.battStatusLabel.SetHAlign(gtk.AlignStart)
-	card.Append(w.battStatusLabel)
-
 	w.battProgress = gtk.NewProgressBar()
 	w.battProgress.SetHExpand(true)
 	w.battProgress.AddCSSClass("battery-bar")
 	card.Append(w.battProgress)
 
-	powerRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
-	powerRow.SetHomogeneous(true)
+	statusRow := gtk.NewBox(gtk.OrientationHorizontal, 6)
+	w.battStatusLabel = gtk.NewLabel("—")
+	w.battStatusLabel.AddCSSClass("card-sub")
+	w.battStatusLabel.AddCSSClass("battery-status")
+	w.battStatusLabel.SetHAlign(gtk.AlignStart)
+	w.battStatusLabel.SetHExpand(true)
+	statusRow.Append(w.battStatusLabel)
+	w.battPill = gtk.NewLabel("—")
+	w.battPill.AddCSSClass("pill")
+	statusRow.Append(w.battPill)
+	card.Append(statusRow)
+
+	metrics := gtk.NewBox(gtk.OrientationHorizontal, 8)
+	metrics.SetHomogeneous(true)
 	metric, caption, value := batteryMetric("REMAINING")
 	metric.AddCSSClass("battery-time-metric")
 	w.battTimeCaption = caption
 	w.battTimeLabel = value
-	powerRow.Append(metric)
+	metrics.Append(metric)
 	metric, _, value = batteryMetric("DRAW")
 	w.battDrawMetric = metric
 	w.battDrawLabel = value
-	powerRow.Append(metric)
-	card.Append(powerRow)
-
-	strategyRow := gtk.NewBox(gtk.OrientationHorizontal, 6)
-	stratCaption := gtk.NewLabel("STRATEGY")
-	stratCaption.SetHAlign(gtk.AlignStart)
-	stratCaption.SetHExpand(true)
-	stratCaption.AddCSSClass("battery-metric-label")
-	strategyRow.Append(stratCaption)
-	w.battPill = gtk.NewLabel("—")
-	w.battPill.AddCSSClass("pill")
-	strategyRow.Append(w.battPill)
-	card.Append(strategyRow)
-
-	energyRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
-	energyRow.SetHomogeneous(true)
-	metric, _, value = batteryMetric("CHARGE")
+	metrics.Append(metric)
+	// Current charge over what the pack can hold today; the full-charge figure
+	// shrinks with wear, so this is the planning number.
+	metric, _, value = batteryMetric("CAPACITY LEFT")
 	w.battEnergyLabel = value
-	energyRow.Append(metric)
-	metric, _, value = batteryMetric("VOLTAGE")
-	w.battVoltageLabel = value
-	energyRow.Append(metric)
-	card.Append(energyRow)
+	metrics.Append(metric)
+	card.Append(metrics)
 
-	capacityRow := gtk.NewBox(gtk.OrientationHorizontal, 8)
-	capacityRow.SetHomogeneous(true)
-	metric, _, value = batteryMetric("HEALTH")
-	w.battHealthLabel = value
-	capacityRow.Append(metric)
-	metric, _, value = batteryMetric("DESIGN")
-	w.battDesignLabel = value
-	capacityRow.Append(metric)
-	card.Append(capacityRow)
-
-	box.Append(card)
-	return box
+	w.battHealthLabel = gtk.NewLabel("—")
+	w.battHealthLabel.SetHAlign(gtk.AlignEnd)
+	w.battHealthLabel.AddCSSClass("card-sub")
+	card.Append(w.battHealthLabel)
+	return card
 }
 
 func batteryMetric(label string) (box *gtk.Box, caption, value *gtk.Label) {
