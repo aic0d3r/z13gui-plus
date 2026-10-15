@@ -51,18 +51,6 @@ func (w *Window) buildPresetEntrySection() *gtk.Box {
 	w.presetChips.AddCSSClass("btn-group")
 	card.Append(w.presetChips)
 
-	// Shown while a manual change overrides the assigned preset.
-	w.presetReapplyBtn = gtk.NewButtonWithLabel("Reapply")
-	w.presetReapplyBtn.AddCSSClass("outline-btn")
-	w.presetReapplyBtn.SetHAlign(gtk.AlignStart)
-	w.presetReapplyBtn.SetVisible(false)
-	w.presetReapplyBtn.ConnectClicked(func() {
-		if name, _ := automationCurrent(w.state); name != "" {
-			w.applyPresetNow(name)
-		}
-	})
-	card.Append(w.presetReapplyBtn)
-
 	w.presetsBtn = gtk.NewButtonWithLabel("Manage Presets")
 	w.presetsBtn.AddCSSClass("action-btn")
 	w.presetsBtn.ConnectClicked(func() { w.showPresetsView() })
@@ -308,8 +296,6 @@ func (w *Window) syncPresets() {
 		}
 		w.automationHint.SetLabel(hint)
 		w.automationHint.SetVisible(hint != "")
-		w.presetReapplyBtn.SetLabel("Reapply " + current)
-		w.presetReapplyBtn.SetVisible(manual)
 	}
 	if w.presetAssignments != nil {
 		w.presetACLabel.SetLabel(automationValueLabel(ac, "PLUGGED IN"))

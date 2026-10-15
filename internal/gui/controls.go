@@ -394,7 +394,9 @@ func (w *Window) appendThemeChoices(box *gtk.Box) {
 
 		dots := w.appendAccentDots(box, t.Accents,
 			// With a custom theme.toml, config's accent belongs to it, not to the saved built-in.
-			func(ac theme.Accent) bool { return !w.isCustomTheme && id == activeCfg.Theme && ac.ID == activeCfg.Accent },
+			func(ac theme.Accent) bool {
+				return !w.isCustomTheme && id == activeCfg.Theme && ac.ID == activeCfg.Accent
+			},
 			func(ac theme.Accent) { btn.SetActive(true); w.applyTheme(id, ac.ID) },
 		)
 		w.themeDots = append(w.themeDots, dots)
@@ -1286,17 +1288,6 @@ func (w *Window) powerTabFocusItems() []focusItem {
 		})
 	}
 	row += (len(w.presetChipNames) + cols - 1) / cols
-
-	if w.presetReapplyBtn != nil {
-		btn := w.presetReapplyBtn
-		items = append(items, focusItem{
-			widget: btn, row: row, col: 0,
-			section:    "presets",
-			isVisible:  btn.Visible,
-			onActivate: func() { btn.Activate() },
-		})
-		row++
-	}
 
 	if w.presetsBtn != nil {
 		btn := w.presetsBtn

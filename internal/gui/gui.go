@@ -168,7 +168,6 @@ type Window struct {
 	presetFeedbackGen      int
 	progressGen            int // guards the delayed "Working..." timer
 	automationHint         *gtk.Label
-	presetReapplyBtn       *gtk.Button
 	presetACDetail         *gtk.Label
 	presetBatteryDetail    *gtk.Label
 
@@ -227,16 +226,16 @@ type Window struct {
 	// forces a full rewrite. Sections whose daemon value is unchanged keep
 	// their unsaved edits.
 	tuningSynced *tuningSnapshot
-	saveTdpBtn       *gtk.Button
-	saveFanBtn       *gtk.Button
-	resetTdpBtn      *gtk.Button
-	resetFanBtn      *gtk.Button
-	resetAllBtn      *gtk.Button
-	uvBox            *gtk.Box // undervolt container, hidden when unavailable
-	uvCpuScale       *gtk.Scale
-	uvCpuLabel       *gtk.Label
-	saveUvBtn        *gtk.Button
-	resetUvBtn       *gtk.Button
+	saveTdpBtn   *gtk.Button
+	saveFanBtn   *gtk.Button
+	resetTdpBtn  *gtk.Button
+	resetFanBtn  *gtk.Button
+	resetAllBtn  *gtk.Button
+	uvBox        *gtk.Box // undervolt container, hidden when unavailable
+	uvCpuScale   *gtk.Scale
+	uvCpuLabel   *gtk.Label
+	saveUvBtn    *gtk.Button
+	resetUvBtn   *gtk.Button
 	// tuning dirty-state UI: markers + conditional banners
 	tdpDirtyMark        *gtk.Label
 	fanDirtyMark        *gtk.Label
