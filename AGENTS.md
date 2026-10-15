@@ -444,5 +444,11 @@ Feature-complete for both KDE and gamescope modes:
   heartbeat; stale after 75 s) with toggles for desktop touch policy,
   two-finger-hold context menu, folio touchpad opt-in, and scroll sensitivity/speed
   1–5 — persisted via `z13ctl-plus`, applied live by the kit.
+- Adaptive layout (`internal/gui/layout.go`): cards are registered by ID and hidden when the
+  hardware is absent (`State.Capabilities`, `DevicePresence`, `BatteryDetail`, `CPUPower`,
+  `UndervoltAvailable`; a nil `Capabilities` from an older daemon means everything is present)
+  or when the user switches them off in Settings > Layout (`hidden = "..."` in config.toml).
+  Risk guards (status strip, fan safety banner, 75 W caution) are never hideable. `Capabilities`
+  needs a `z13ctl-plus` api tag newer than v1.8.0.
 - goreleaser + GitHub Actions release pipeline (current release **v2.1.0**)
 - systemd user service with optional gamescope-environment loading

@@ -39,6 +39,38 @@ func TestCardUnavailable(t *testing.T) {
 	}
 }
 
+func TestCardUnavailableFromCapabilities(t *testing.T) {
+	w := &Window{state: &api.State{
+		BatteryDetail: &api.BatteryState{},
+		CPUPower:      &api.CPUPowerState{},
+		Capabilities:  &api.Capabilities{},
+	}}
+	// A machine with none of the ASUS interfaces: everything ASUS-specific goes.
+	for _, id := range []string{"power.profile", "power.fan", "power.battery", "set.refresh", "set.overdrive", "set.bootsound", "set.display"} {
+		if !w.cardUnavailable(id) {
+			t.Errorf("%s should be hidden when its capability is false", id)
+		}
+	}
+	// CPU policy still works without ASUS interfaces, so tuning stays.
+	if w.cardUnavailable("power.tuning") {
+		t.Error("power.tuning must stay while cpu_power is readable")
+	}
+	w.state.CPUPower = nil
+	if !w.cardUnavailable("power.tuning") {
+		t.Error("power.tuning should hide when nothing can be tuned")
+	}
+	// Display card survives if any one control exists.
+	w.state.Capabilities = &api.Capabilities{BootSound: true}
+	if w.cardUnavailable("set.display") || w.cardUnavailable("set.bootsound") || !w.cardUnavailable("set.refresh") {
+		t.Error("display card must follow its remaining controls")
+	}
+	// Older daemon: no capabilities means everything is present.
+	w.state.Capabilities = nil
+	if w.cardUnavailable("power.fan") || w.cardUnavailable("set.display") {
+		t.Error("missing capabilities must read as all present")
+	}
+}
+
 func TestLayoutCardIDsUnique(t *testing.T) {
 	seen := map[string]bool{}
 	for _, c := range layoutCards {

@@ -614,6 +614,33 @@ func (w *Window) buildCustomView() *gtk.Box {
 	return view
 }
 
+// syncTuningTabs hides sub-tabs for controls this machine lacks (TDP and fan
+// curve need ASUS interfaces, undervolt needs ryzen_smu) and moves off a hidden one.
+func (w *Window) syncTuningTabs() {
+	s := w.state
+	show := map[string]bool{
+		"tdp": s.Capabilities == nil || s.Capabilities.TDP,
+		"fan": s.Capabilities == nil || s.Capabilities.FanCurve,
+		"uv":  s.UndervoltAvailable,
+		"cpu": true, // also holds Reset All, so it stays reachable
+	}
+	for name, btn := range w.tuningTabBtns {
+		btn.SetVisible(show[name])
+	}
+	if show[w.tuningTab] {
+		return
+	}
+	for _, name := range []string{"tdp", "fan", "uv", "cpu"} {
+		if show[name] {
+			w.tuningTab = name
+			w.tuningStack.SetVisibleChildName(name)
+			w.customScroll = w.tuningScrolls[name]
+			setActiveButton(w.tuningTabBtns, name)
+			return
+		}
+	}
+}
+
 // switchTuningTab shows one tuning page and rebuilds the gamepad focus list.
 func (w *Window) switchTuningTab(name string) {
 	if w.tuningStack == nil {
@@ -792,15 +819,7 @@ func (w *Window) syncCustomView() {
 	// Undervolt (own section now; visibility is independent of the Advanced checkbox).
 	if w.uvBox != nil {
 		w.uvBox.SetVisible(w.state.UndervoltAvailable)
-		if btn := w.tuningTabBtns["uv"]; btn != nil {
-			btn.SetVisible(w.state.UndervoltAvailable)
-		}
-		if !w.state.UndervoltAvailable && w.tuningTab == "uv" {
-			w.tuningTab = "tdp"
-			w.tuningStack.SetVisibleChildName("tdp")
-			w.customScroll = w.tuningScrolls["tdp"]
-			setActiveButton(w.tuningTabBtns, "tdp")
-		}
+		w.syncTuningTabs()
 	}
 	if w.uvCpuScale != nil && (last == nil || last.cpuCO != t.cpuCO) {
 		w.uvCpuScale.SetValue(float64(t.cpuCO))

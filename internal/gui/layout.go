@@ -50,14 +50,33 @@ func hiddenCards(list string) map[string]bool {
 }
 
 // cardUnavailable reports hardware that is absent. Unknown state counts as present.
+// IDs missing from layoutCards (power.profile, set.*) are hidden only by hardware.
 func (w *Window) cardUnavailable(id string) bool {
 	s := w.state
 	if s == nil {
 		return false
 	}
+	// Older daemons send no capabilities: treat every control as present.
+	c := s.Capabilities
 	switch id {
-	case "overview.battery", "power.battery":
+	case "overview.battery":
 		return s.BatteryDetail == nil
+	case "power.battery":
+		return s.BatteryDetail == nil || (c != nil && !c.BatteryLimit)
+	case "power.profile":
+		return c != nil && !c.Profile
+	case "power.fan":
+		return c != nil && !c.FanCurve
+	case "power.tuning":
+		return c != nil && !c.TDP && !c.FanCurve && !s.UndervoltAvailable && s.CPUPower == nil
+	case "set.refresh":
+		return c != nil && !c.Display
+	case "set.overdrive":
+		return c != nil && !c.PanelOverdrive
+	case "set.bootsound":
+		return c != nil && !c.BootSound
+	case "set.display":
+		return c != nil && !c.Display && !c.PanelOverdrive && !c.BootSound
 	case "power.boost":
 		return s.CPUPower == nil
 	case "tab.rgb":

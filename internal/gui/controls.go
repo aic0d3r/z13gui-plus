@@ -148,7 +148,9 @@ func (w *Window) buildPowerTab() *gtk.ScrolledWindow {
 	inner.SetMarginEnd(12)
 
 	// Quick controls first (changed mid-session), then automation, then drill-downs.
-	inner.Append(w.buildProfileSection())
+	profile := w.buildProfileSection()
+	w.registerCard("power.profile", profile)
+	inner.Append(profile)
 	for _, c := range []struct {
 		id   string
 		card *gtk.Box
@@ -231,8 +233,13 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	// No summary pill on this card: the header cannot hold one at the drawer's width,
 	// and the refresh state belongs next to the control it describes (refreshNote).
 	display := titledCard("DISPLAY")
-	display.Append(w.buildRefreshRateSection())
-	display.Append(w.buildToggle("Panel Overdrive", "Enable panel overdrive for faster pixel response (may increase power use)", &w.overdriveSwitch, func(active bool) {
+	// The three display controls and the card itself are auto-hidden (layout.go)
+	// when the daemon reports no internal panel or no ASUS firmware attribute.
+	refresh := w.buildRefreshRateSection()
+	w.registerCard("set.refresh", refresh)
+	display.Append(refresh)
+	overdrive := gtk.NewBox(gtk.OrientationVertical, 0)
+	overdrive.Append(w.buildToggle("Panel Overdrive", "Enable panel overdrive for faster pixel response (may increase power use)", &w.overdriveSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
@@ -249,10 +256,12 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	overdriveDetail.SetHAlign(gtk.AlignStart)
 	overdriveDetail.SetWrap(true)
 	overdriveDetail.AddCSSClass("setting-description")
-	display.Append(overdriveDetail)
+	overdrive.Append(overdriveDetail)
+	w.registerCard("set.overdrive", overdrive)
+	display.Append(overdrive)
 	// Boot sound is one switch, so it lives with the display toggles instead of
 	// getting its own card.
-	display.Append(w.buildToggle("Boot Sound", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
+	bootRow := w.buildToggle("Boot Sound", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
@@ -264,7 +273,10 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 				w.state.BootSound = v
 			}
 		}, nil)
-	}))
+	})
+	w.registerCard("set.bootsound", bootRow)
+	display.Append(bootRow)
+	w.registerCard("set.display", display)
 	inner.Append(display)
 	inner.Append(w.buildAppearanceSection())
 	inner.Append(w.buildLayoutSection())
