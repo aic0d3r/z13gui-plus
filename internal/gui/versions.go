@@ -53,9 +53,11 @@ func runVersion(name string, args ...string) string {
 
 // daemonVersion parses "z13ctl-plus version X" from the installed daemon binary.
 func daemonVersion() string {
-	out := runVersion("z13ctl-plus", "--version")
-	if f := strings.Fields(out); len(f) > 0 {
+	if f := strings.Fields(runVersion("z13ctl-plus", "--version")); len(f) > 0 {
 		return f[len(f)-1]
+	}
+	if _, err := exec.LookPath("z13ctl-plus"); err == nil {
+		return "unknown"
 	}
 	return "not installed"
 }

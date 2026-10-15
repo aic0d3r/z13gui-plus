@@ -216,6 +216,7 @@ type Window struct {
 	tuningScrolls    map[string]*gtk.ScrolledWindow
 	tuningTab        string
 	layoutWidgets    map[string]gtk.Widgetter // hideable cards by ID (layout.go)
+	hiddenCache      map[string]bool          // parsed config.toml hidden list; nil = reload
 	layoutSwitches   map[string]*gtk.Switch
 	layoutSummary    *gtk.Label
 	layoutHeader     *gtk.ToggleButton

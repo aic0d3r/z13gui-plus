@@ -125,7 +125,7 @@ func (b *bpfBlocker) BlockSteam() int {
 		return 0
 	}
 	slog.Info("steam: BPF blocked", "pid", pid)
-	for _, child := range findChildren(pid) {
+	for _, child := range findDescendants(pid) {
 		if err := b.hb.Block(child); err != nil {
 			slog.Warn("steam: BPF block child failed", "pid", child, "err", err)
 		} else {
@@ -171,20 +171,17 @@ func (s *sigstopBlocker) UnblockSteam(pid int) {
 	}
 }
 
-// findChildren returns PIDs of all direct child processes of ppid.
-func findChildren(ppid int) []int {
+// findDescendants returns PIDs of all processes below root (children, games
+// started through Steam's reaper, ...), from one pass over /proc.
+func findDescendants(root int) []int {
 	entries, err := os.ReadDir("/proc")
 	if err != nil {
 		return nil
 	}
-	ppidStr := strconv.Itoa(ppid)
-	var children []int
+	kids := map[int][]int{}
 	for _, e := range entries {
-		if !e.IsDir() {
-			continue
-		}
 		pid, err := strconv.Atoi(e.Name())
-		if err != nil || pid == ppid {
+		if err != nil {
 			continue
 		}
 		data, err := os.ReadFile("/proc/" + e.Name() + "/status")
@@ -192,13 +189,18 @@ func findChildren(ppid int) []int {
 			continue
 		}
 		for _, line := range strings.Split(string(data), "\n") {
-			if strings.HasPrefix(line, "PPid:\t") {
-				if strings.TrimPrefix(line, "PPid:\t") == ppidStr {
-					children = append(children, pid)
+			if v, ok := strings.CutPrefix(line, "PPid:\t"); ok {
+				if ppid, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+					kids[ppid] = append(kids[ppid], pid)
 				}
 				break
 			}
 		}
 	}
-	return children
+	var out []int
+	for queue := kids[root]; len(queue) > 0; queue = queue[1:] {
+		out = append(out, queue[0])
+		queue = append(queue, kids[queue[0]]...)
+	}
+	return out
 }

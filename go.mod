@@ -10,7 +10,7 @@ require (
 	github.com/holoplot/go-evdev v0.0.0-20260504100651-66d1748fe847
 )
 
-replace github.com/dahui/z13ctl/api => github.com/aic0d3r/z13ctl-plus/api v1.8.0
+replace github.com/dahui/z13ctl/api => github.com/aic0d3r/z13ctl-plus/api v1.9.0
 
 require (
 	github.com/KarpelesLab/weak v0.1.1 // indirect

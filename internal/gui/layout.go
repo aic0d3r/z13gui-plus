@@ -93,7 +93,10 @@ func (w *Window) cardUnavailable(id string) bool {
 // applyLayout shows each registered card unless it is hidden or unavailable and
 // syncs the Settings switches. Safe to call often.
 func (w *Window) applyLayout() {
-	hidden := hiddenCards(theme.LoadAppConfig().Hidden)
+	if w.hiddenCache == nil {
+		w.hiddenCache = hiddenCards(theme.LoadAppConfig().Hidden)
+	}
+	hidden := w.hiddenCache
 	prev := w.syncing
 	w.syncing = true
 	defer func() { w.syncing = prev }()
@@ -138,6 +141,7 @@ func (w *Window) setCardHidden(id string, hide bool) {
 	}
 	cfg.Hidden = strings.Join(ids, ",")
 	theme.SaveAppConfig(cfg)
+	w.hiddenCache = nil
 	w.applyLayout()
 }
 
@@ -176,6 +180,7 @@ func (w *Window) buildLayoutSection() *gtk.Box {
 		cfg := theme.LoadAppConfig()
 		cfg.Hidden = ""
 		theme.SaveAppConfig(cfg)
+		w.hiddenCache = nil
 		w.applyLayout()
 	})
 	box.Append(reset)

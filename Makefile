@@ -13,6 +13,7 @@ build:
 
 ## test: run unit tests (pure Go; no GTK4 headers required)
 test:
+	GOWORK=off go build ./...
 	go test ./internal/theme/... ./internal/togglegate/... ./internal/gui/gamepad/...
 
 ## cover: run tests with coverage report

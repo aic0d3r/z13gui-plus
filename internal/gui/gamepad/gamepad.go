@@ -300,15 +300,21 @@ func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
 	var repeatMu sync.Mutex
 	var repeatTimer *time.Timer
 	var repeatGen int // bumped on every start/stop; stale ticks don't reschedule
+	var repeatAct Action
 
-	stopRepeat := func() {
+	// stopRepeat stops auto-repeat. With actions given, only if the repeating one
+	// is among them, so releasing Up doesn't cancel a still-held Right.
+	stopRepeat := func(only ...Action) {
 		repeatMu.Lock()
+		defer repeatMu.Unlock()
+		if len(only) > 0 && !slices.Contains(only, repeatAct) {
+			return
+		}
 		repeatGen++
 		if repeatTimer != nil {
 			repeatTimer.Stop()
 			repeatTimer = nil
 		}
-		repeatMu.Unlock()
 	}
 	defer stopRepeat()
 
@@ -318,9 +324,17 @@ func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
 			repeatTimer.Stop()
 		}
 		repeatGen++
+		repeatAct = a
 		gen := repeatGen
 		var tick func()
 		tick = func() {
+			// After ungrab the key-up goes to the game, so we would repeat forever.
+			r.mu.Lock()
+			grabbed := r.grabbed
+			r.mu.Unlock()
+			if !grabbed {
+				return
+			}
 			r.emit(a)
 			repeatMu.Lock()
 			if repeatGen == gen {
@@ -351,7 +365,7 @@ func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
 			case 0: // key up
 				if a, ok := buttonToAction(ev.Code); ok {
 					if isDirectional(a) {
-						stopRepeat()
+						stopRepeat(a)
 					}
 				}
 			}
@@ -367,7 +381,7 @@ func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
 					r.emit(ActionDown)
 					startRepeat(ActionDown)
 				default:
-					stopRepeat()
+					stopRepeat(ActionUp, ActionDown)
 				}
 			case evdev.ABS_HAT0X:
 				switch {
@@ -378,7 +392,7 @@ func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
 					r.emit(ActionRight)
 					startRepeat(ActionRight)
 				default:
-					stopRepeat()
+					stopRepeat(ActionLeft, ActionRight)
 				}
 			}
 		}
