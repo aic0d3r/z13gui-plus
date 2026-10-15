@@ -230,6 +230,11 @@
 }
 
 /* Custom view action buttons — 40px touch floor, slimmer padding */
+/* Pinned under each tuning page: keep clear of the drawer edge and scrollbar. */
+.custom-actions {
+    margin: 6px 12px 10px 12px;
+}
+
 .custom-actions button {
     min-height: 40px;
     padding: 4px 8px;
@@ -247,6 +252,24 @@
 .tab-btn {
     -gtk-icon-size: 0;  /* hide the checkbox indicator */
     min-height: 40px;
+}
+
+/* Segmented control: no radio dot, label centered (set in buildTabRow). */
+.drawer checkbutton.tab-btn check,
+.drawer checkbutton.tab-btn radio {
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    box-shadow: none;
+    opacity: 0;
+}
+
+.drawer checkbutton.tab-btn label {
+    padding: 0;
+    font-weight: 600;
 }
 
 

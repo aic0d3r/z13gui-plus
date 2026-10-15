@@ -250,11 +250,9 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	overdriveDetail.SetWrap(true)
 	overdriveDetail.AddCSSClass("setting-description")
 	display.Append(overdriveDetail)
-	inner.Append(display)
-
-	startup, summary := statusCard("STARTUP")
-	w.startupSummary = summary
-	startup.Append(w.buildToggle("Boot Sound", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
+	// Boot sound is one switch, so it lives with the display toggles instead of
+	// getting its own card.
+	display.Append(w.buildToggle("Boot Sound", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
@@ -265,10 +263,9 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 			if w.state != nil {
 				w.state.BootSound = v
 			}
-			setOnOffSummary(w.startupSummary, active)
 		}, nil)
 	}))
-	inner.Append(startup)
+	inner.Append(display)
 	inner.Append(w.buildAppearanceSection())
 	inner.Append(w.buildLayoutSection())
 	inner.Append(w.buildVersionSection())
@@ -653,9 +650,18 @@ func (w *Window) showThemeView() {
 func (w *Window) buildTabRow() *gtk.Box {
 	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
 
-	kb := gtk.NewCheckButtonWithLabel("Keyboard")
+	// Segmented look: the radio indicator is hidden in CSS and the label is
+	// centered. Still a radio group, so the sync and focus code is unchanged.
+	segment := func(label string) *gtk.CheckButton {
+		b := gtk.NewCheckButton()
+		l := gtk.NewLabel(label)
+		l.SetHExpand(true)
+		b.SetChild(l)
+		return b
+	}
+	kb := segment("Keyboard")
 	kb.SetActive(true)
-	lb := gtk.NewCheckButtonWithLabel("Lightbar")
+	lb := segment("Lightbar")
 	lb.SetGroup(kb)
 
 	kb.AddCSSClass("tab-btn")
@@ -794,7 +800,7 @@ func (w *Window) buildBrightnessBox() *gtk.Box {
 }
 
 func brightnessLabel(level int) string {
-	labels := [...]string{"▂ LOW", "▂▄ MEDIUM", "▂▄▆ HIGH"}
+	labels := [...]string{"Low", "Medium", "High"}
 	level = min(max(level, 1), len(labels))
 	return labels[level-1]
 }
@@ -1077,7 +1083,6 @@ var cpuEPPs = []struct {
 
 func (w *Window) buildAdvancedTuningSection() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 0)
-	box.AddCSSClass("card")
 	w.tuningSummary = gtk.NewLabel("CPU — · TDP FIRMWARE · UV STOCK")
 	w.tuningSummary.SetHAlign(gtk.AlignStart)
 	w.tuningSummary.SetXAlign(0)
@@ -1108,8 +1113,9 @@ func (w *Window) buildAdvancedTuningSection() *gtk.Box {
 
 // buildBoostRow is the always-visible CPU Boost switch (one tap, no drill-down).
 func (w *Window) buildBoostRow() *gtk.Box {
+	// No wrapping card: the switch row is already a surface, and a card around it
+	// read as a box inside a box.
 	card := gtk.NewBox(gtk.OrientationVertical, 0)
-	card.AddCSSClass("card")
 	card.Append(w.buildToggle("CPU Boost", "Allow frequencies above the nominal maximum: higher peak performance, more power and heat", &w.cpuBoostSwitch, func(enabled bool) {
 		w.runStateAction("set CPU boost", func() (bool, error) { return api.SendCPUBoostSet(enabled) })
 	}))

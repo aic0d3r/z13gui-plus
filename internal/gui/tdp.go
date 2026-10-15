@@ -274,7 +274,8 @@ func (w *Window) newFanCurveEditor() *fanCurveEditor {
 
 	fc.area = gtk.NewDrawingArea()
 	fc.area.AddCSSClass("fan-curve-area")
-	fc.area.SetSizeRequest(-1, 240)
+	fc.area.SetSizeRequest(-1, 280)
+	fc.area.SetVExpand(true) // the Fan page has the whole height to itself
 	fc.area.SetDrawFunc(func(_ *gtk.DrawingArea, cr *cairo.Context, width, height int) {
 		fc.draw(cr, width, height)
 	})
@@ -425,13 +426,28 @@ func (w *Window) buildCustomView() *gtk.Box {
 	w.tdpDirtyMark = tdpMark
 	content.Append(tdpHdr)
 
-	// Advanced checkbox — swaps basic/advanced sliders in-place.
-	w.tdpAdvancedCheck = gtk.NewCheckButtonWithLabel("Advanced (PL1 / PL2 / PL3)")
-	w.tdpAdvancedCheck.AddCSSClass("advanced-check")
-	if w.gamescope {
-		addTouchActivate(w.tdpAdvancedCheck, func() { w.tdpAdvancedCheck.SetActive(!w.tdpAdvancedCheck.Active()) })
+	// Simple / Advanced segmented control (a radio pair styled like the RGB device
+	// picker). Advanced swaps the single slider for PL1/PL2/PL3 in place.
+	modeRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	segment := func(label string) *gtk.CheckButton {
+		b := gtk.NewCheckButton()
+		l := gtk.NewLabel(label)
+		l.SetHExpand(true)
+		b.SetChild(l)
+		b.AddCSSClass("tab-btn")
+		b.SetHExpand(true)
+		modeRow.Append(b)
+		return b
 	}
-	content.Append(w.tdpAdvancedCheck)
+	w.tdpSimpleCheck = segment("Simple")
+	w.tdpSimpleCheck.SetActive(true)
+	w.tdpAdvancedCheck = segment("Advanced (PL1/2/3)")
+	w.tdpAdvancedCheck.SetGroup(w.tdpSimpleCheck)
+	if w.gamescope {
+		addTouchActivate(w.tdpSimpleCheck, func() { w.tdpSimpleCheck.SetActive(true) })
+		addTouchActivate(w.tdpAdvancedCheck, func() { w.tdpAdvancedCheck.SetActive(true) })
+	}
+	content.Append(modeRow)
 
 	// Basic TDP box (visible by default).
 	tdpBasicBox := gtk.NewBox(gtk.OrientationVertical, 4)
@@ -448,8 +464,16 @@ func (w *Window) buildCustomView() *gtk.Box {
 			w.refreshTuningDirty()
 		}
 	})
+	basicName := gtk.NewLabel("TDP")
+	basicName.SetHAlign(gtk.AlignStart)
+	basicName.SetHExpand(true)
+	basicName.AddCSSClass("scale-name")
+	w.tdpBasicLabel.SetHAlign(gtk.AlignEnd)
+	basicHeader := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	basicHeader.Append(basicName)
+	basicHeader.Append(w.tdpBasicLabel)
+	tdpBasicBox.Append(basicHeader)
 	tdpBasicBox.Append(w.tdpBasicScale)
-	tdpBasicBox.Append(w.tdpBasicLabel)
 	content.Append(tdpBasicBox)
 
 	// Advanced box (hidden by default) — replaces basic slider in-place.
@@ -605,15 +629,17 @@ func (w *Window) switchTuningTab(name string) {
 // buildTdpScale creates a labeled TDP slider (5–93W) and appends it to the
 // advanced box. Returns the scale and value label.
 func (w *Window) buildTdpScale(label, desc string) (*gtk.Scale, *gtk.Label) {
+	// One header line: name left, live value right. The long description moves
+	// to the tooltip, saving about 55px per slider.
 	nameLabel := gtk.NewLabel(label)
 	nameLabel.SetHAlign(gtk.AlignStart)
+	nameLabel.SetHExpand(true)
 	nameLabel.AddCSSClass("scale-name")
-	w.tdpAdvancedBox.Append(nameLabel)
-	descLabel := gtk.NewLabel(desc)
-	descLabel.SetHAlign(gtk.AlignStart)
-	descLabel.SetWrap(true)
-	descLabel.AddCSSClass("scale-desc")
-	w.tdpAdvancedBox.Append(descLabel)
+	nameLabel.SetTooltipText(desc)
+	header := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	header.SetTooltipText(desc)
+	header.Append(nameLabel)
+	w.tdpAdvancedBox.Append(header)
 	sc := gtk.NewScaleWithRange(gtk.OrientationHorizontal, tdpMin, tdpMaxAdvanced, 1)
 	sc.SetDigits(0)
 	sc.SetDrawValue(false)
@@ -627,8 +653,9 @@ func (w *Window) buildTdpScale(label, desc string) (*gtk.Scale, *gtk.Label) {
 			w.refreshTuningDirty()
 		}
 	})
+	valLabel.SetHAlign(gtk.AlignEnd)
+	header.Append(valLabel)
 	w.tdpAdvancedBox.Append(sc)
-	w.tdpAdvancedBox.Append(valLabel)
 	return sc, valLabel
 }
 
@@ -636,8 +663,11 @@ func (w *Window) buildTdpScale(label, desc string) (*gtk.Scale, *gtk.Label) {
 func (w *Window) buildUvScale(label string, lo, hi float64) (*gtk.Scale, *gtk.Label) {
 	nameLabel := gtk.NewLabel(label)
 	nameLabel.SetHAlign(gtk.AlignStart)
+	nameLabel.SetHExpand(true)
 	nameLabel.AddCSSClass("scale-name")
-	w.uvBox.Append(nameLabel)
+	header := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	header.Append(nameLabel)
+	w.uvBox.Append(header)
 	sc := gtk.NewScaleWithRange(gtk.OrientationHorizontal, lo, hi, 1)
 	sc.SetDigits(0)
 	sc.SetDrawValue(false)
@@ -651,8 +681,9 @@ func (w *Window) buildUvScale(label string, lo, hi float64) (*gtk.Scale, *gtk.La
 			w.refreshTuningDirty()
 		}
 	})
+	valLabel.SetHAlign(gtk.AlignEnd)
+	header.Append(valLabel)
 	w.uvBox.Append(sc)
-	w.uvBox.Append(valLabel)
 	return sc, valLabel
 }
 
@@ -1096,7 +1127,7 @@ func (w *Window) buildCustomFocusList() {
 		if w.tdpBasicScale != nil {
 			oL, oR, gV, sV := scaleAdjust(w.tdpBasicScale, 5)
 			items = append(items, focusItem{
-				widget: w.tdpBasicScale, row: 2, col: 0,
+				widget: w.tdpBasicScale, row: 3, col: 0,
 				section:  "tdp",
 				editable: true,
 				onLeft:   oL, onRight: oR,
@@ -1106,9 +1137,13 @@ func (w *Window) buildCustomFocusList() {
 		}
 		if w.tdpAdvancedCheck != nil {
 			items = append(items, focusItem{
-				widget: w.tdpAdvancedCheck, row: 3, col: 0,
+				widget: w.tdpSimpleCheck, row: 2, col: 0,
 				section:    "tdp",
-				onActivate: func() { w.tdpAdvancedCheck.SetActive(!w.tdpAdvancedCheck.Active()) },
+				onActivate: func() { w.tdpSimpleCheck.SetActive(true) },
+			}, focusItem{
+				widget: w.tdpAdvancedCheck, row: 2, col: 1,
+				section:    "tdp",
+				onActivate: func() { w.tdpAdvancedCheck.SetActive(true) },
 			})
 		}
 		advVis := func() bool { return w.tdpAdvancedBox.IsVisible() }

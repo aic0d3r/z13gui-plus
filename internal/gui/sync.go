@@ -217,11 +217,7 @@ func (w *Window) syncLightingSection() {
 		w.rgbControlsBox.SetSensitive(enabled)
 	}
 	if w.rgbEffectCard != nil {
-		if enabled {
-			w.rgbEffectCard.RemoveCSSClass("card-inactive")
-		} else {
-			w.rgbEffectCard.AddCSSClass("card-inactive")
-		}
+		w.rgbEffectCard.SetVisible(enabled) // nothing to tune while the device is off
 	}
 	if w.color1 != nil && ls.Color != "" {
 		w.color1.hex = strings.ToUpper(ls.Color)
@@ -801,11 +797,7 @@ func (w *Window) setLightingEnabled(enabled bool) {
 	}
 	setOnOffSummary(w.lightingSummary, enabled)
 	if w.rgbEffectCard != nil {
-		if enabled {
-			w.rgbEffectCard.RemoveCSSClass("card-inactive")
-		} else {
-			w.rgbEffectCard.AddCSSClass("card-inactive")
-		}
+		w.rgbEffectCard.SetVisible(enabled) // nothing to tune while the device is off
 	}
 	if enabled {
 		setActiveButton(w.modeButtons, activeButton(w.modeButtons, defaultMode))
@@ -862,7 +854,6 @@ func (w *Window) syncBootSound() {
 		return
 	}
 	syncSwitch(w.bootSoundSwitch, w.state.BootSound != 0)
-	setOnOffSummary(w.startupSummary, w.state.BootSound != 0)
 }
 
 // fanPresetPoints returns the named preset encoded as the wire-format curve

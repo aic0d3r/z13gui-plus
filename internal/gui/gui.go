@@ -97,7 +97,6 @@ type Window struct {
 	overdriveSwitch     *gtk.Switch
 	bootSoundSwitch     *gtk.Switch
 	refreshNote         *gtk.Label // shown when the firmware cannot report the live rate
-	startupSummary      *gtk.Label
 	appearanceSummary   *gtk.Label
 	presetsBtn          *gtk.Button
 	presetAssignments   *gtk.Box
@@ -224,7 +223,8 @@ type Window struct {
 	customBackBtn    *gtk.Button
 	tdpBasicScale    *gtk.Scale
 	tdpBasicLabel    *gtk.Label
-	tdpAdvancedCheck *gtk.CheckButton
+	tdpAdvancedCheck *gtk.CheckButton // Advanced radio of the Simple/Advanced pair
+	tdpSimpleCheck   *gtk.CheckButton
 	tdpAdvancedBox   *gtk.Box
 	tdpPL1Scale      *gtk.Scale
 	tdpPL2Scale      *gtk.Scale

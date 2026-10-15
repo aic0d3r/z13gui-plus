@@ -262,7 +262,7 @@ window.z13-drawer-window {
 }
 
 .drawer .main-tab-row button.active {
-    background: alpha(@z13-surface-hi, 0.45);
+    background: transparent; /* underline only, no filled pill */
     color: @z13-text;
     border-color: transparent;
     box-shadow: inset 0 -2px 0 @z13-accent;
@@ -621,6 +621,14 @@ window.z13-drawer-window {
 
 .drawer button.suggested-action:hover {
     background: linear-gradient(180deg, shade(@z13-accent, 1.1), @z13-accent);
+}
+
+/* Nothing to apply: neutral, not a dim red that reads as half-active. */
+.drawer button.suggested-action:disabled {
+    background: @z13-surface;
+    color: @z13-text-faint;
+    border-color: @z13-border;
+    box-shadow: none;
 }
 
 /* Destructive action — danger tint (Delete, destructive confirms). */
