@@ -289,6 +289,13 @@ window.z13-drawer-window {
     outline-offset: 2px;
 }
 
+/* One ring only: while focused (keyboard or gamepad), the ring replaces the
+   active underline, which otherwise reads as a second inner red border. */
+.drawer .main-tab-row button.active:focus-visible,
+.drawer .main-tab-row button.active.gamepad-focus {
+    box-shadow: none;
+}
+
 /* Device tab buttons (Keyboard / Lightbar CheckButton) */
 .drawer checkbutton {
     background: @z13-surface;
