@@ -3,6 +3,11 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## v2.6.1 (2026-10-16)
+
+- Fix the double red border on a focused active tab: the focus ring now
+  replaces the active underline instead of drawing over it.
+
 ## v2.6.0 (2026-10-16)
 
 Hardware hiding needs z13ctl-plus v2.5.0 (API v1.9.0); older daemons keep

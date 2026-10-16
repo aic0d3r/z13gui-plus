@@ -450,5 +450,5 @@ Feature-complete for both KDE and gamescope modes:
   or when the user switches them off in Settings > Layout (`hidden = "..."` in config.toml).
   Risk guards (status strip, fan safety banner, 75 W caution) are never hideable. `Capabilities`
   needs a `z13ctl-plus` api tag newer than v1.8.0.
-- goreleaser + GitHub Actions release pipeline (current release **v2.6.0**)
+- goreleaser + GitHub Actions release pipeline (current release **v2.6.1**)
 - systemd user service with optional gamescope-environment loading
