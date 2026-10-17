@@ -3,6 +3,18 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## v2.6.2 (2026-10-17)
+
+- Tablet Kit panel: each toggle's description is now shown under it (tooltips
+  never appear on touch), and the two-finger hold text sits under its own
+  toggle.
+- "Keep my display scale" is renamed "Keep scale across postures".
+- The separate Touchscreen, Touch scrolling and Touchpad status rows are
+  merged into notes under the related settings.
+- Scroll sliders gain 1 to 5 tick marks and dim while touch scrolling is off;
+  Reset Scroll Defaults is disabled when already at the defaults.
+- Health reads "Healthy · 36 seconds ago".
+
 ## v2.6.1 (2026-10-16)
 
 - Fix the double red border on a focused active tab: the focus ring now
