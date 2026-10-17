@@ -133,10 +133,9 @@ type Window struct {
 	tabletPostureLabel        *gtk.Label
 	tabletHealthLabel         *gtk.Label
 	tabletFolioLabel          *gtk.Label
-	tabletTouchscreenLabel    *gtk.Label
-	tabletTouchScrollLabel    *gtk.Label
-	tabletTouchpadStatusRow   *gtk.Box
-	tabletTouchpadStatus      *gtk.Label
+	tabletDesktopNote         *gtk.Label
+	tabletTouchpadNote        *gtk.Label
+	tabletScrollNote          *gtk.Label
 	tabletDesktopSwitch       *gtk.Switch
 	tabletTwoFingerHoldSwitch *gtk.Switch
 	tabletKeepScaleSwitch     *gtk.Switch

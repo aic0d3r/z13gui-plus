@@ -274,6 +274,10 @@
 
 
 /* Sliders — fat touch targets */
+.drawer scale:disabled {
+    opacity: 0.4;
+}
+
 .drawer scale slider {
     min-width: 22px;
     min-height: 22px;

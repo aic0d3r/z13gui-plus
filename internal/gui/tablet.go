@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dahui/z13ctl/api"
@@ -129,15 +130,9 @@ func (w *Window) buildTabletPopover() *gtk.Box {
 	panel.Append(row)
 	row, w.tabletFolioLabel = tabletDetailRow("Keyboard folio")
 	panel.Append(row)
-	row, w.tabletTouchscreenLabel = tabletDetailRow("Touchscreen")
-	panel.Append(row)
-	row, w.tabletTouchScrollLabel = tabletDetailRow("Touch scrolling")
-	panel.Append(row)
-	w.tabletTouchpadStatusRow, w.tabletTouchpadStatus = tabletDetailRow("Touchpad")
-	panel.Append(w.tabletTouchpadStatusRow)
 
 	panel.Append(gtk.NewSeparator(gtk.OrientationHorizontal))
-	panel.Append(w.buildToggle(
+	desktop, desktopNote := w.buildTabletToggle(
 		"Disable touchscreen on desktop",
 		"Automatically disable the touchscreen while the Z13 is in desktop posture",
 		&w.tabletDesktopSwitch,
@@ -146,19 +141,22 @@ func (w *Window) buildTabletPopover() *gtk.Box {
 				settings.DisableTouchscreenInDesktop = disabled
 			})
 		},
-	))
-	panel.Append(w.buildToggle(
+	)
+	w.tabletDesktopNote = desktopNote
+	panel.Append(desktop)
+	twoFinger, _ := w.buildTabletToggle(
 		"Two-finger hold context menu",
-		"Hold two stationary fingers to open the context menu; moving fingers scrolls and cancels",
+		"Hold two stationary fingers about 650 ms to open the context menu. Moving fingers scrolls and cancels.",
 		&w.tabletTwoFingerHoldSwitch,
 		func(enabled bool) {
 			w.changeTabletSettings(func(settings *api.TabletSettings) {
 				settings.TwoFingerHoldContextMenu = enabled
 			})
 		},
-	))
-	panel.Append(w.buildToggle(
-		"Keep my display scale",
+	)
+	panel.Append(twoFinger)
+	keepScale, _ := w.buildTabletToggle(
+		"Keep scale across postures",
 		"Never change the screen scale when the posture changes",
 		&w.tabletKeepScaleSwitch,
 		func(keep bool) {
@@ -166,18 +164,16 @@ func (w *Window) buildTabletPopover() *gtk.Box {
 				settings.KeepDisplayScale = keep
 			})
 		},
-	))
-	twoFingerDetail := gtk.NewLabel("Holding two stationary fingers about 650 ms opens the context menu. Moving fingers scrolls and cancels.")
-	twoFingerDetail.SetHAlign(gtk.AlignStart)
-	twoFingerDetail.SetWrap(true)
-	twoFingerDetail.SetMaxWidthChars(30)
-	twoFingerDetail.AddCSSClass("setting-description")
-	panel.Append(twoFingerDetail)
+	)
+	panel.Append(keepScale)
 
 	w.tabletTouchpadRow = w.buildTabletTouchpadToggle()
 	panel.Append(w.tabletTouchpadRow)
 	panel.Append(w.buildTabletTouchpadConfirmation())
 
+	w.tabletScrollNote = tabletDescription("")
+	w.tabletScrollNote.SetMarginTop(10)
+	panel.Append(w.tabletScrollNote)
 	panel.Append(w.buildTabletLevel(
 		"SCROLL SENSITIVITY",
 		"How readily a touch drag begins scrolling",
@@ -223,6 +219,24 @@ func (w *Window) buildTabletPopover() *gtk.Box {
 	return panel
 }
 
+// buildTabletToggle shows the description under the row: tooltips are invisible on touch.
+func (w *Window) buildTabletToggle(label, description string, sw **gtk.Switch, onChange func(bool)) (*gtk.Box, *gtk.Label) {
+	box := gtk.NewBox(gtk.OrientationVertical, 0)
+	box.Append(w.buildToggle(label, description, sw, onChange))
+	note := tabletDescription(description)
+	box.Append(note)
+	return box, note
+}
+
+func tabletDescription(text string) *gtk.Label {
+	l := gtk.NewLabel(text)
+	l.SetHAlign(gtk.AlignStart)
+	l.SetWrap(true)
+	l.SetMaxWidthChars(30)
+	l.AddCSSClass("setting-description")
+	return l
+}
+
 func tabletDetailRow(name string) (*gtk.Box, *gtk.Label) {
 	row := gtk.NewBox(gtk.OrientationHorizontal, 6)
 	nameLabel := gtk.NewLabel(name)
@@ -239,6 +253,7 @@ func tabletDetailRow(name string) (*gtk.Box, *gtk.Label) {
 }
 
 func (w *Window) buildTabletTouchpadToggle() *gtk.Box {
+	wrapper := gtk.NewBox(gtk.OrientationVertical, 0)
 	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	row.AddCSSClass("settings-row")
 	row.SetTooltipText("Enable the keyboard folio touchpad")
@@ -266,7 +281,10 @@ func (w *Window) buildTabletTouchpadToggle() *gtk.Box {
 		addTouchActivate(w.tabletTouchpadSwitch, w.toggleTabletTouchpad)
 	}
 	row.Append(w.tabletTouchpadSwitch)
-	return row
+	wrapper.Append(row)
+	w.tabletTouchpadNote = tabletDescription("")
+	wrapper.Append(w.tabletTouchpadNote)
+	return wrapper
 }
 
 func (w *Window) buildTabletTouchpadConfirmation() *gtk.Box {
@@ -314,6 +332,9 @@ func (w *Window) buildTabletLevel(title, description string, scale **gtk.Scale, 
 	sc.SetRoundDigits(0)
 	sc.SetHExpand(true)
 	sc.SetFocusable(true)
+	for i := 1; i <= 5; i++ {
+		sc.AddMark(float64(i), gtk.PosBottom, "")
+	}
 	sc.SetTooltipText(title + ", level 1 through 5")
 	label.SetMnemonicWidget(sc)
 	sc.ConnectValueChanged(func() {
@@ -368,14 +389,16 @@ func (w *Window) syncTablet() {
 		w.tabletHealthLabel.SetTooltipText(presentation.reason)
 		w.tabletHealthLabel.AddCSSClass("warning")
 	} else {
-		w.tabletHealthLabel.SetLabel("Healthy - " + presentation.heartbeat)
+		w.tabletHealthLabel.SetLabel("Healthy \u00b7 " + strings.TrimPrefix(presentation.heartbeat, "Heartbeat "))
 		w.tabletHealthLabel.SetTooltipText("")
 	}
 	w.tabletFolioLabel.SetLabel(enabledLabel(status.FolioPresent, "Attached", "Detached"))
-	w.tabletTouchscreenLabel.SetLabel(enabledLabel(status.TouchscreenEnabled, "Enabled", "Disabled"))
-	w.tabletTouchScrollLabel.SetLabel(enabledLabel(status.TouchScrollEnabled, "Enabled", "Disabled"))
-	w.tabletTouchpadStatus.SetLabel(enabledLabel(status.TouchpadEnabled, "Enabled", "Disabled"))
-	w.tabletTouchpadStatusRow.SetVisible(status.FolioPresent)
+	w.tabletDesktopNote.SetLabel("Touchscreen is " + enabledLabel(status.TouchscreenEnabled, "on", "off") + " right now")
+	w.tabletTouchpadNote.SetLabel("Touchpad is " + enabledLabel(status.TouchpadEnabled, "on", "off"))
+	// Always visible so toggling never shifts the layout below it.
+	w.tabletScrollNote.SetLabel(enabledLabel(status.TouchScrollEnabled, "Touch scrolling is on", "Touch scrolling is off, so these are inactive"))
+	w.tabletSensitivityScale.SetSensitive(status.TouchScrollEnabled)
+	w.tabletSpeedScale.SetSensitive(status.TouchScrollEnabled)
 	w.tabletTouchpadRow.SetVisible(status.FolioPresent)
 	if !status.FolioPresent {
 		w.tabletTouchpadConfirm.SetVisible(false)
@@ -397,6 +420,7 @@ func (w *Window) syncTablet() {
 	syncSwitch(w.tabletTouchpadSwitch, settings.TouchpadEnabled)
 	w.tabletSensitivityScale.SetValue(float64(settings.ScrollSensitivity))
 	w.tabletSpeedScale.SetValue(float64(settings.ScrollSpeed))
+	w.tabletResetBtn.SetSensitive(settings.ScrollSensitivity != defaultScrollSensitivity || settings.ScrollSpeed != defaultScrollSpeed)
 }
 
 func enabledLabel(enabled bool, yes, no string) string {
@@ -478,6 +502,9 @@ func (w *Window) tabletFocusItems() []focusItem {
 		return nil
 	}
 	panelVisible := func() bool { return w.tabletChip.Visible() && w.tabletChip.Active() }
+	scrollVisible := func() bool {
+		return panelVisible() && w.state != nil && w.state.TabletIntegration != nil && w.state.TabletIntegration.TouchScrollEnabled
+	}
 	touchpadVisible := func() bool { return panelVisible() && w.tabletFolioPresent() }
 	confirmVisible := func() bool { return touchpadVisible() && w.tabletTouchpadConfirm.Visible() }
 	sensitivityLeft, sensitivityRight, sensitivityGet, sensitivitySet := scaleAdjust(w.tabletSensitivityScale, 1)
@@ -491,11 +518,11 @@ func (w *Window) tabletFocusItems() []focusItem {
 		{widget: w.tabletConfirmCancel, row: -7, col: 0, section: "tablet-confirm", isVisible: confirmVisible, onActivate: func() { w.tabletConfirmCancel.Activate() }},
 		{widget: w.tabletConfirmEnable, row: -7, col: 1, section: "tablet-confirm", isVisible: confirmVisible, onActivate: func() { w.tabletConfirmEnable.Activate() }},
 		{
-			widget: w.tabletSensitivityScale, row: -6, col: 0, section: "tablet-sensitivity", isVisible: panelVisible, editable: true,
+			widget: w.tabletSensitivityScale, row: -6, col: 0, section: "tablet-sensitivity", isVisible: scrollVisible, editable: true,
 			onLeft: sensitivityLeft, onRight: sensitivityRight, getValue: sensitivityGet, setValue: sensitivitySet,
 		},
 		{
-			widget: w.tabletSpeedScale, row: -5, col: 0, section: "tablet-speed", isVisible: panelVisible, editable: true,
+			widget: w.tabletSpeedScale, row: -5, col: 0, section: "tablet-speed", isVisible: scrollVisible, editable: true,
 			onLeft: speedLeft, onRight: speedRight, getValue: speedGet, setValue: speedSet,
 		},
 		{widget: w.tabletResetBtn, row: -4, col: 0, section: "tablet", isVisible: panelVisible, onActivate: func() { w.tabletResetBtn.Activate() }},
