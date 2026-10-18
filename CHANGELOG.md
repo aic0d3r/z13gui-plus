@@ -3,7 +3,7 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
-## Unreleased
+## v2.7.0 (2026-10-18)
 
 - **GNOME support (beta, untested).** On Wayland compositors without
   layer-shell, such as GNOME/Mutter, the drawer now opens through a transparent
