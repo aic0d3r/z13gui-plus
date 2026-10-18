@@ -15,6 +15,7 @@ import (
 	"github.com/aic0d3r/z13gui-plus/internal/gui/gamepad"
 	"github.com/aic0d3r/z13gui-plus/internal/gui/gamescope"
 	"github.com/aic0d3r/z13gui-plus/internal/gui/layershell"
+	"github.com/aic0d3r/z13gui-plus/internal/gui/overlay"
 	"github.com/aic0d3r/z13gui-plus/internal/theme"
 	"github.com/aic0d3r/z13gui-plus/internal/togglegate"
 	"github.com/dahui/z13ctl/api"
@@ -333,11 +334,21 @@ func New(app *gtk.Application) *Window {
 	w.win.AddCSSClass("z13-drawer-window")
 	gtkWin := &w.win.Window
 
-	// Select display backend.
-	if w.gamescope {
+	// Select display backend. gtk4-layer-shell is a wlroots extension, and
+	// Mutter does not implement it: InitForWindow only logs a warning and every
+	// anchor call afterwards silently no-ops, which leaves an unanchored 320 px
+	// window. Ask before using it and fall back to the overlay backend.
+	switch {
+	case w.gamescope:
 		w.backend = gamescope.New(w.win, drawerWidth)
-	} else {
+	case layerShellUsable():
 		w.backend = layershell.New(w.win, drawerWidth)
+	default:
+		slog.Info("layer-shell unavailable, using the overlay backend "+
+			"(the drawer is drawn in a transparent click-through window instead of "+
+			"anchored to the screen edge)",
+			"desktop", os.Getenv("XDG_CURRENT_DESKTOP"), "session", os.Getenv("XDG_SESSION_TYPE"))
+		w.backend = overlay.New(w.win, gtkWin, drawerWidth)
 	}
 
 	w.backend.Configure(func() bool { return w.visible }, w.hide)

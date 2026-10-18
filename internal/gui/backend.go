@@ -1,10 +1,14 @@
 package gui
 
-import "github.com/diamondburned/gotk4/pkg/gtk/v4"
+import (
+	"github.com/diamondburned/gotk4-layer-shell/pkg/gtk4layershell"
+	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+)
 
 // Backend abstracts display-mode-specific window management.
-// Implementations: layershell.Backend (Wayland compositors) and
-// gamescope.Backend (X11 overlay for Steam Gaming Mode).
+// Implementations: layershell.Backend (compositors with zwlr_layer_shell_v1),
+// overlay.Backend (fullscreen transparent window elsewhere, GNOME included)
+// and gamescope.Backend (X11 overlay for Steam Gaming Mode).
 type Backend interface {
 	// Configure sets up the window for this display mode. Must be called
 	// before the window is realized.
@@ -23,4 +27,9 @@ type Backend interface {
 
 	// Hide hides the drawer (animation, atom toggle, etc).
 	Hide()
+}
+
+// layerShellUsable reports whether the compositor implements zwlr_layer_shell_v1.
+func layerShellUsable() bool {
+	return gtk4layershell.IsSupported()
 }
