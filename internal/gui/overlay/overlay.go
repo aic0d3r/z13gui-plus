@@ -103,7 +103,7 @@ func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 	// priority. background-image is cleared too: themes may paint a gradient on
 	// the window node.
 	b.appWin.AddCSSClass("z13-overlay")
-	transparent.LoadFromData(
+	transparent.LoadFromString(
 		"window.z13-drawer-window.z13-overlay { background-color: transparent; background-image: none; }")
 	gtk.StyleContextAddProviderForDisplay(
 		gdk.DisplayGetDefault(),

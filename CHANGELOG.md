@@ -3,6 +3,14 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## Unreleased
+
+- **GNOME support (beta, untested).** On Wayland compositors without
+  layer-shell, such as GNOME/Mutter, the drawer now opens through a transparent
+  click-through overlay instead of a stuck window in the middle of the screen.
+  Ported from upstream z13gui by @Cyb3rDudu (#2). Not yet confirmed on real
+  GNOME hardware; reports welcome. X11 sessions keep the previous behaviour.
+
 ## v2.6.2 (2026-10-17)
 
 - Tablet Kit panel: each toggle's description is now shown under it (tooltips

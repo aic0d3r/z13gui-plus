@@ -341,12 +341,12 @@ func New(app *gtk.Application) *Window {
 	switch {
 	case w.gamescope:
 		w.backend = gamescope.New(w.win, drawerWidth)
-	case layerShellUsable():
+	case layerShellUsable() || !waylandDisplay():
 		w.backend = layershell.New(w.win, drawerWidth)
 	default:
-		slog.Info("layer-shell unavailable, using the overlay backend "+
-			"(the drawer is drawn in a transparent click-through window instead of "+
-			"anchored to the screen edge)",
+		slog.Warn("layer-shell unavailable, using the overlay backend "+
+			"(BETA, untested on GNOME: please report issues at "+
+			"https://github.com/aic0d3r/z13gui-plus/issues)",
 			"desktop", os.Getenv("XDG_CURRENT_DESKTOP"), "session", os.Getenv("XDG_SESSION_TYPE"))
 		w.backend = overlay.New(w.win, gtkWin, drawerWidth)
 	}

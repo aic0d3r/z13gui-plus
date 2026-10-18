@@ -10,9 +10,18 @@ not runtime-name compatibility. It slides in from the right edge of the screen
 when the Armoury Crate button (KEY_PROG3) is pressed. The daemon broadcasts
 `gui-toggle` events over a subscribe socket; this GUI listens for them.
 
-It has two display backends:
+It has three display backends:
 - **Layer-shell** (KDE/Wayland): margin-based slide animation
 - **Gamescope** (Steam Gaming Mode): X11 overlay via `STEAM_OVERLAY` atom
+- **Overlay** (GNOME/Mutter and other Wayland compositors without
+  `zwlr_layer_shell_v1`): **BETA, untested by the maintainer** — keep it labelled
+  beta (log line, README, docs, CHANGELOG) until the contributor of PR #2 confirms it
+  works on GNOME. Selection in `gui.New`: gamescope → layer-shell if
+  `gtk4layershell.IsSupported()` or the GDK display is not Wayland → overlay.
+  Ported from upstream `dahui/z13gui` with three fork-only fixes in `overlay.go`
+  (the theme paints the window opaque, so a `.z13-overlay` CSS override; the stale
+  opaque region is cleared; the window is sized to the monitor, not fullscreened,
+  to stay off Mutter's direct-scanout path). Keep them when syncing upstream.
 
 - Module: `github.com/aic0d3r/z13gui-plus`
 - Binary: `z13gui-plus`
@@ -101,6 +110,11 @@ internal/gui/gamepad/hidblocker/
   vmlinux.h                     Generated kernel BTF header (gitignored, machine-specific)
 internal/gui/gamescope/
   gamescope.go                  Gamescope X11 overlay backend (Steam Gaming Mode)
+internal/gui/overlay/
+  overlay.go                    BETA overlay backend: transparent monitor-sized window,
+                                click-through outside the drawer (GNOME/Mutter)
+internal/panelgeom/
+  panelgeom.go                  Pure-Go panel rectangle + slide easing for the overlay
 internal/theme/
   theme.go                      Theme types, TOML parsing, CSS generation, config persistence
   builtins.go                   15 built-in themes (8 dark, 7 light) with accent variants
@@ -240,7 +254,9 @@ contrib/
   If pointer is outside, user clicked elsewhere → dismiss after 200ms confirmation delay.
   Do NOT add a `focusedSinceShow` guard — it causes first-show dismiss regression on KDE
   where the compositor drops focus during keyboard-mode transition and never re-grants it.
-  Escape key also dismisses in both backends.
+  Escape key also dismisses in both backends. The overlay backend is the exception: it
+  is a plain toplevel with no keyboard-mode transition, so its `focusedSinceShow` guard
+  is intentional — do not copy it to layer-shell, and do not remove it there.
 - **GTK_A11Y=none**: set internally in `main.go` and
   `contrib/z13gui-plus.service`. Disables GTK4
   AT-SPI accessibility bridge, which sends D-Bus events on every widget state change.

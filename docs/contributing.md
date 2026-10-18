@@ -18,6 +18,8 @@ remove the replacement.
 | `internal/gui` | Main Window type, daemon subscription, gamepad navigation |
 | `internal/gui/layershell` | Wayland layer-shell display backend |
 | `internal/gui/gamescope` | X11 overlay backend for Steam Gaming Mode |
+| `internal/gui/overlay` | Beta overlay backend for Wayland without layer-shell (GNOME) |
+| `internal/panelgeom` | Overlay panel geometry and slide easing — pure Go |
 | `internal/gui/gamepad` | Linux evdev gamepad reader |
 | `internal/gui/gamepad/hidblocker` | BPF LSM hidraw blocker (blocks PS/Nintendo controller reads) |
 | `internal/gui/fonts` | Embedded Inter and Chakra Petch (OFL) font registration |
@@ -96,8 +98,9 @@ and should include tests for any changes to the pure-Go packages.
   config persistence, and all 78 built-in theme/accent combinations
 - `internal/togglegate` — pure debounce helper for duplicate `gui-toggle` bursts
 - `internal/gui` — requires GTK4; integration-tested manually against hardware
-- Display backends (layershell, gamescope) — require a compositor or gamescope;
-  no automated tests
+- `internal/panelgeom` — pure Go; covers the overlay panel rectangle and slide
+- Display backends (layershell, gamescope, overlay) — require a compositor or
+  gamescope; no automated tests
 
 ---
 

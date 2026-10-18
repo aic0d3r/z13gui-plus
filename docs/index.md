@@ -40,13 +40,42 @@ Hardware-control changes are sent through the `z13ctl-plus` daemon.
 
 ## Requirements
 
-- Wayland compositor with layer-shell support, or gamescope (Steam Gaming Mode)
+- Wayland compositor with layer-shell support, or gamescope (Steam Gaming Mode).
+  GNOME works through a [beta overlay backend](#gnome-support-beta).
 - GTK 4 and gtk4-layer-shell libraries (see [Installation](installation.md#runtime-dependencies) for distro package names)
 - [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) daemon running
 
 The Plus and upstream packages can coexist. Installation does not enable the
 GUI service or manage either controller service; explicitly enable only the GUI
 that matches your selected daemon.
+
+---
+
+## GNOME support (beta)
+
+!!! warning "Untested beta"
+
+    GNOME support has not been tested by the maintainer. It ships so GNOME
+    users can try it; please report what works and what does not in
+    [an issue](https://github.com/aic0d3r/z13gui-plus/issues).
+
+GNOME's compositor (Mutter) does not implement the layer-shell protocol the
+drawer normally uses to anchor itself to the screen edge, and installing
+`gtk4-layer-shell` cannot add it. When layer-shell is missing on a Wayland
+session, Z13GUI+ selects the **overlay backend** automatically: a transparent,
+monitor-sized window with the drawer against the right edge. Everything outside
+the drawer is click-through, so the desktop stays usable. The startup log says
+`using the overlay backend (BETA...)` when it is active.
+
+Compared with KDE Plasma, Hyprland or Sway:
+
+- The drawer is an ordinary window, so it is not drawn above fullscreen apps and
+  belongs to the current workspace.
+- It may appear in Alt-Tab while open (it is unmapped when closed).
+- There is no click-outside backdrop: dismiss with Escape, the Armoury Crate
+  button, or by clicking another window.
+
+X11 sessions are not supported by this backend.
 
 ---
 

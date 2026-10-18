@@ -30,7 +30,8 @@ CPU undervolt, RGB keyboard and lightbar lighting, battery charge limit, panel
 refresh rate and overdrive, and live telemetry — slid in from the screen edge with
 the Armoury Crate button. Works on KDE Plasma and other layer-shell Wayland
 desktops, and inside Steam Gaming Mode (gamescope), with touch and gamepad
-navigation.
+navigation. GNOME support is an **untested beta**
+([details](https://aic0d3r.github.io/z13gui-plus/#gnome-support-beta)).
 
 Built for the Flow Z13 and **adapts to the hardware it finds**: on an AMD Strix
 Halo machine without a battery, RGB, or ASUS firmware controls, those cards and

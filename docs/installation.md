@@ -3,7 +3,8 @@
 ## Prerequisites
 
 - Linux kernel (x86_64)
-- Wayland compositor with layer-shell support, or gamescope (Steam Gaming Mode)
+- Wayland compositor with layer-shell support, or gamescope (Steam Gaming Mode).
+  GNOME uses an untested [beta overlay backend](index.md#gnome-support-beta).
 - [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) installed with its Plus daemon running
 
 ### Runtime dependencies

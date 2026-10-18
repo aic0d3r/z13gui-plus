@@ -2,6 +2,8 @@ package gui
 
 import (
 	"github.com/diamondburned/gotk4-layer-shell/pkg/gtk4layershell"
+	coreglib "github.com/diamondburned/gotk4/pkg/core/glib"
+	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 )
 
@@ -32,4 +34,13 @@ type Backend interface {
 // layerShellUsable reports whether the compositor implements zwlr_layer_shell_v1.
 func layerShellUsable() bool {
 	return gtk4layershell.IsSupported()
+}
+
+// waylandDisplay reports whether GDK is running on Wayland. The overlay backend
+// needs Wayland input/opaque regions; on X11 its monitor-sized window would
+// swallow every click. Asks GDK rather than XDG_SESSION_TYPE, which a systemd
+// user service may not inherit.
+func waylandDisplay() bool {
+	d := gdk.DisplayGetDefault()
+	return d != nil && coreglib.BaseObject(d).TypeFromInstance().Name() == "GdkWaylandDisplay"
 }
