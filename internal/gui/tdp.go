@@ -631,13 +631,14 @@ func (w *Window) syncTuningTabs() {
 		return
 	}
 	for _, name := range []string{"tdp", "fan", "uv", "cpu"} {
-		if show[name] {
-			w.tuningTab = name
-			w.tuningStack.SetVisibleChildName(name)
-			w.customScroll = w.tuningScrolls[name]
-			setActiveButton(w.tuningTabBtns, name)
-			return
+		if !show[name] {
+			continue
 		}
+		w.tuningTab = name
+		w.tuningStack.SetVisibleChildName(name)
+		w.customScroll = w.tuningScrolls[name]
+		setActiveButton(w.tuningTabBtns, name)
+		return
 	}
 }
 

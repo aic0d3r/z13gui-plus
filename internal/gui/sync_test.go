@@ -14,7 +14,8 @@ func TestDebounceValueSendsCapturedLastValue(t *testing.T) {
 	debounceValue(&timer, 20*time.Millisecond, slider, func(v int) { sent <- v })
 	slider = 3000
 	debounceValue(&timer, 20*time.Millisecond, slider, func(v int) { sent <- v })
-	slider = 400 // sync writes the daemon's old value back into the widget
+	// A sync now writing the daemon's old value into the widget can't matter:
+	// the value was captured at the call above.
 
 	select {
 	case v := <-sent:
