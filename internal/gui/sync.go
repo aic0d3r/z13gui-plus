@@ -98,7 +98,7 @@ func (w *Window) syncState() {
 	if w.state.BatteryDetail != nil {
 		w.updateBatteryHero(w.state.BatteryDetail)
 	}
-	w.applyLayout() // hides cards for absent hardware (no battery / RGB) and user-hidden cards
+	// applyLayout (hides absent-hardware / user-hidden cards) already ran in syncCPUPower.
 	// Overview tab — populate from initial state so it isn't blank for 1 s.
 	w.syncOverviewTelemetry()
 }
@@ -168,12 +168,8 @@ func (w *Window) initCPUMinDebounce(scale *gtk.Scale) {
 		if w.syncing {
 			return
 		}
-		if debounce != nil {
-			debounce.Stop()
-		}
-		debounce = time.AfterFunc(200*time.Millisecond, func() {
+		debounceValue(&debounce, 200*time.Millisecond, int(scale.Value())*1000, func(khz int) {
 			glib.IdleAdd(func() bool {
-				khz := int(scale.Value()) * 1000
 				w.runStateAction("set CPU minimum frequency", func() (bool, error) {
 					return api.SendCPUMinFrequencySet(khz)
 				})
@@ -181,6 +177,16 @@ func (w *Window) initCPUMinDebounce(scale *gtk.Scale) {
 			})
 		})
 	})
+}
+
+// debounceValue restarts *t and after d calls send with v. v is captured now,
+// not when the timer fires: a telemetry sync landing in between resets the
+// widget to the daemon's old value, which must not replace the user's pick.
+func debounceValue[T any](t **time.Timer, d time.Duration, v T, send func(T)) {
+	if *t != nil {
+		(*t).Stop()
+	}
+	*t = time.AfterFunc(d, func() { send(v) })
 }
 
 // syncLightingSection updates mode, colors, speed, and brightness from the

@@ -329,11 +329,17 @@ func (w *Window) syncPresets() {
 		}
 	}
 	if w.viewStack != nil {
+		// The rows were rebuilt into a new list; keep the gamepad on the same slot
+		// instead of jumping back to the top after every applied action.
+		idx := w.focusIdx
 		switch w.viewStack.VisibleChildName() {
 		case "presets":
 			w.swapFocusList(w.presetFocusItems)
 		case "preset-detail":
 			w.swapFocusList(w.presetDetailFocusItems)
+		}
+		if w.gamepadActive && idx < len(w.focusItems) && w.focusItems[idx].visible() {
+			w.setFocusIdx(idx)
 		}
 	}
 }

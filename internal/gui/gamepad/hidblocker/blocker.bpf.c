@@ -12,7 +12,7 @@
 // blocked_pids: PIDs whose hidraw reads should return -EAGAIN.
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
-	__uint(max_entries, 64);
+	__uint(max_entries, 1024); // Steam + every descendant; Proton games spawn many
 	__type(key, __u32);
 	__type(value, __u8);
 } blocked_pids SEC(".maps");

@@ -332,9 +332,6 @@ func (w *Window) buildTabletLevel(title, description string, scale **gtk.Scale, 
 	sc.SetRoundDigits(0)
 	sc.SetHExpand(true)
 	sc.SetFocusable(true)
-	for i := 1; i <= 5; i++ {
-		sc.AddMark(float64(i), gtk.PosBottom, "")
-	}
 	sc.SetTooltipText(title + ", level 1 through 5")
 	label.SetMnemonicWidget(sc)
 	sc.ConnectValueChanged(func() {
