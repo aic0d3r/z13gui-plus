@@ -3,6 +3,20 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## v2.7.1 (2026-11-04)
+
+- The drawer now uses the full screen height on KDE Plasma, Hyprland and Sway
+  instead of leaving 5% gaps top and bottom, so Overview no longer scrolls in
+  landscape tablet mode. It still sits beside the taskbar. Steam Gaming Mode
+  is unchanged.
+- Fix the CPU minimum frequency slider occasionally sending its old value when
+  a telemetry update landed right after you moved it.
+- Gamepad focus stays in place on the Presets page after its rows refresh.
+- The hidraw blocker now tracks up to 1024 processes, so large Proton game
+  process trees are fully covered.
+- Remove tick marks from the tablet scroll sliders, which could trigger GTK
+  rendering warnings inside the animated drawer.
+
 ## v2.7.0 (2026-10-18)
 
 - **GNOME support (beta, untested).** On Wayland compositors without
