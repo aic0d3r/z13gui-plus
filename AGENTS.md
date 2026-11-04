@@ -149,8 +149,8 @@ contrib/
 
 - **Layer-shell** (KDE): `github.com/diamondburned/gotk4-layer-shell/pkg/gtk4layershell`
   (NOT `gtklayershell` which is GTK3). pkg-config name: `gtk4-layer-shell-0`.
-- **Anchor**: right + top + bottom edges. Top/bottom margins set to 5% of screen height
-  on realize. The surface is pinned to its monitor via `SetMonitor` (helps wlroots
+- **Anchor**: right + top + bottom edges. No top/bottom margin: full usable height; the
+  default exclusive zone (0) keeps it clear of the taskbar. Gamescope keeps its 5% margins. The surface is pinned to its monitor via `SetMonitor` (helps wlroots
   compositors clip overflow; KWin does NOT clip, see conditional fade below).
 - **Keyboard mode**: `LayerShellKeyboardModeOnDemand` — gets focus when visible.
 - **Animation**: layer-shell right-margin animation (`gtk4layershell.SetMargin`).

@@ -19,7 +19,6 @@ const (
 	animDuration   = 200 * time.Millisecond // slide animation duration
 	showSettleTime = 500 * time.Millisecond // ignore focus loss within this window after Show
 	focusLossDelay = 200                    // ms; confirmation delay before auto-hide
-	marginFraction = 20                     // screen height / N for 5% top/bottom margins
 )
 
 // Backend manages the layer-shell overlay drawer on Wayland compositors.
@@ -63,9 +62,10 @@ func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 	gtk4layershell.SetMargin(b.gtkWin, gtk4layershell.LayerShellEdgeRight, b.hiddenMargin)
 	b.appWin.SetSizeRequest(b.drawerWidth, -1)
 
-	// Pin the layer surface to its monitor and set top/bottom margins to
-	// 5% of screen height once the surface is realized. Pinning prevents
+	// Pin the layer surface to its monitor once realized. Pinning prevents
 	// negative right-margin hide from bleeding onto an adjacent display.
+	// No top/bottom margin: the drawer spans the usable height; the default
+	// exclusive zone (0) keeps it clear of panels that reserve space.
 	b.appWin.Connect("realize", func() {
 		surface := b.appWin.Surface()
 		if surface == nil {
@@ -77,10 +77,6 @@ func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 		}
 		gtk4layershell.SetMonitor(b.gtkWin, monitor)
 		b.monitor = monitor
-		geo := monitor.Geometry()
-		margin := geo.Height() / marginFraction
-		gtk4layershell.SetMargin(b.gtkWin, gtk4layershell.LayerShellEdgeTop, margin)
-		gtk4layershell.SetMargin(b.gtkWin, gtk4layershell.LayerShellEdgeBottom, margin)
 	})
 
 	// Keep the window surface alive at all times; "hidden" = margin off-screen.
