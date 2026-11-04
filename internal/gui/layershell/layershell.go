@@ -48,7 +48,7 @@ func New(appWin *gtk.ApplicationWindow, drawerWidth int) *Backend {
 }
 
 // Configure initializes layer-shell anchoring, margins, keyboard mode,
-// the realize handler for monitor-based vertical margins, the keep-visible
+// the realize handler that pins the surface to its monitor, the keep-visible
 // hack, and the focus-loss auto-hide handler.
 func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 	b.appWin.SetDecorated(false)
