@@ -483,5 +483,5 @@ Feature-complete for both KDE and gamescope modes:
   deauthorizes the USB camera and reapplies "off" at boot/resume. Hidden unless
   `Capabilities.Camera` (also hidden for a nil `Capabilities`, since older daemons lack
   the command). Switch on = camera on (`!State.CameraOff`).
-- goreleaser + GitHub Actions release pipeline (current release **v2.7.1**)
+- goreleaser + GitHub Actions release pipeline (current release **v2.8.0**)
 - systemd user service with optional gamescope-environment loading

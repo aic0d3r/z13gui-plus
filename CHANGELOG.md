@@ -3,6 +3,33 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## v2.8.0 (2026-11-07)
+
+- The preset editor is tabbed: Setup, Power, CPU and Display hold the fields,
+  and Save / Update from Current / Delete stay pinned at the bottom so saving
+  never needs a scroll. Each tab carries a dot while it has unsaved edits, and
+  the CPU tab hides when the daemon reports no CPU power control.
+- The Presets view header loses its automation switch, which duplicated the one
+  on the POWER AUTOMATION card. Its header is back + title again, like every
+  other sub-view.
+- Every Settings toggle now explains itself with a visible caption under the
+  row instead of a tooltip, which the touch postures never show.
+- Boot Sound moves out of the DISPLAY card into its own small SYSTEM card, and
+  the Layout list gets one shared caption instead of a tooltip per row.
+- Appearance shows the current theme in its button label, so the card no longer
+  carries a separate summary pill.
+- Dim gains a live percentage readout next to its DIM LEVEL header, and the
+  profile it installs is now removed when the drawer service stops, so a
+  leftover dimmed profile cannot outlive it.
+- The refresh-rate note for a switched-off panel no longer promises changes
+  that apply later; the buttons are disabled, so it says so.
+- Fix the fan curve editor clipping 30 °C preset points off the left of the
+  plot.
+- Fix the drawer spinning when the daemon drops the connection right after it
+  subscribes; it now backs off before retrying.
+- Saving `config.toml` keeps comments and keys this version does not know.
+- The ABOUT card gains a button that opens this repo on GitHub.
+
 ## v2.7.1 (2026-11-04)
 
 - The drawer now uses the full screen height on KDE Plasma, Hyprland and Sway
