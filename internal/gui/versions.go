@@ -34,7 +34,7 @@ func (w *Window) buildVersionSection() *gtk.Box {
 
 	// Opens the repo page; where no handler exists (Gaming Mode) it does nothing.
 	star := gtk.NewButtonWithLabel("Enjoying Z13GUI+? Star it on GitHub.")
-	star.ConnectClicked(func() { gtk.ShowURI(nil, repoURL, 0) })
+	star.ConnectClicked(func() { gtk.NewURILauncher(repoURL).Launch(context.Background(), nil, nil) })
 	starBox := gtk.NewBox(gtk.OrientationVertical, 0)
 	starBox.AddCSSClass("btn-group")
 	starBox.Append(star)
