@@ -108,7 +108,7 @@ type Window struct {
 	presetBatteryLabel  *gtk.Label
 	presetACStatus      *gtk.Label
 	presetBatteryStatus *gtk.Label
-	presetsScroll       *gtk.ScrolledWindow // scroll of the visible presets tab
+	presetsScroll       *gtk.ScrolledWindow
 	presetsBackBtn      *gtk.Button
 	presetsList         *gtk.Box
 	automationSwitch    *gtk.Switch
@@ -116,33 +116,15 @@ type Window struct {
 	presetSaveBtn       *gtk.Button
 	presetRestoreBtn    *gtk.Button
 	presetFocusItems    []focusItem
-	// Presets view tabs (Automation | Library), same pattern as the main tabs.
-	presetTabStack     *gtk.Stack
-	presetTabBtns      map[string]*gtk.Button
-	activePresetTab    string // "automation" or "library" (session-only)
-	presetAutoScroll   *gtk.ScrolledWindow
-	presetLibScroll    *gtk.ScrolledWindow
-	presetAutoAssign   *gtk.Box
-	presetAutoACRow    *gtk.Box
-	presetAutoBATRow   *gtk.Box
-	presetAutoACLabel  *gtk.Label
-	presetAutoBATLabel *gtk.Label
-	presetAutoACPill   *gtk.Label
-	presetAutoBATPill  *gtk.Label
-	presetAutoHint     *gtk.Label
-	presetLibSaveBtn   *gtk.Button
-	// per-row action buttons of the Library tab, in display order; the focus
-	// list is rebuilt from these without touching the widgets.
-	presetRowBtns     [][]*gtk.Button
-	confirmTitle      *gtk.Label
-	confirmMessage    *gtk.Label
-	confirmBtn        *gtk.Button
-	confirmFocusItems []focusItem
-	confirmReturnView string
-	confirmAction     func()
-	stateActionBusy   bool
-	stateActionQueue  []stateAction
-	stateRequestGen   uint64
+	confirmTitle        *gtk.Label
+	confirmMessage      *gtk.Label
+	confirmBtn          *gtk.Button
+	confirmFocusItems   []focusItem
+	confirmReturnView   string
+	confirmAction       func()
+	stateActionBusy     bool
+	stateActionQueue    []stateAction
+	stateRequestGen     uint64
 
 	// Dim (dim.go): software darkening below the backlight floor, Settings > Display.
 	dimSwitch    *gtk.Switch
@@ -337,24 +319,23 @@ type Window struct {
 // GTK Activate signal.
 func New(app *gtk.Application) *Window {
 	w := &Window{
-		tab:             "keyboard",
-		activeTab:       "overview",
-		activePresetTab: "automation",
-		gamescope:       os.Getenv("GAMESCOPE_WAYLAND_DISPLAY") != "",
-		modeButtons:     make(map[string]*gtk.Button),
-		speedBtns:       make(map[string]*gtk.Button),
-		brightBtns:      make(map[int]*gtk.Button),
-		profileBtns:     make(map[string]*gtk.Button),
-		mainTabBtns:     make(map[string]*gtk.Button),
-		battPresetBtns:  make(map[int]*gtk.Button),
-		fanPresetBtns:   make(map[string]*gtk.Button),
-		cpuEPPBtns:      make(map[string]*gtk.Button),
-		tuningTabBtns:   make(map[string]*gtk.Button),
-		tuningScrolls:   make(map[string]*gtk.ScrolledWindow),
-		layoutWidgets:   make(map[string]gtk.Widgetter),
-		layoutSwitches:  make(map[string]*gtk.Switch),
-		tuningTab:       "tdp",
-		refreshBtns:     make(map[int]*gtk.Button),
+		tab:            "keyboard",
+		activeTab:      "overview",
+		gamescope:      os.Getenv("GAMESCOPE_WAYLAND_DISPLAY") != "",
+		modeButtons:    make(map[string]*gtk.Button),
+		speedBtns:      make(map[string]*gtk.Button),
+		brightBtns:     make(map[int]*gtk.Button),
+		profileBtns:    make(map[string]*gtk.Button),
+		mainTabBtns:    make(map[string]*gtk.Button),
+		battPresetBtns: make(map[int]*gtk.Button),
+		fanPresetBtns:  make(map[string]*gtk.Button),
+		cpuEPPBtns:     make(map[string]*gtk.Button),
+		tuningTabBtns:  make(map[string]*gtk.Button),
+		tuningScrolls:  make(map[string]*gtk.ScrolledWindow),
+		layoutWidgets:  make(map[string]gtk.Widgetter),
+		layoutSwitches: make(map[string]*gtk.Switch),
+		tuningTab:      "tdp",
+		refreshBtns:    make(map[int]*gtk.Button),
 	}
 
 	w.win = gtk.NewApplicationWindow(app)
