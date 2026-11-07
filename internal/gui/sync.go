@@ -90,6 +90,7 @@ func (w *Window) syncState() {
 	w.refreshRateProbe()
 	w.syncOverdrive()
 	w.syncBootSound()
+	w.syncCamera()
 	w.syncTablet()
 	w.syncPresets()
 	w.syncCustomView()
@@ -860,6 +861,14 @@ func (w *Window) syncBootSound() {
 		return
 	}
 	syncSwitch(w.bootSoundSwitch, w.state.BootSound != 0)
+}
+
+// syncCamera sets the camera switch to match the daemon state (on unless off).
+func (w *Window) syncCamera() {
+	if w.state == nil || w.cameraSwitch == nil {
+		return
+	}
+	syncSwitch(w.cameraSwitch, !w.state.CameraOff)
 }
 
 // fanPresetPoints returns the named preset encoded as the wire-format curve

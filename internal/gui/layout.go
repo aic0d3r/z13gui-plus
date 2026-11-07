@@ -79,6 +79,9 @@ func (w *Window) cardUnavailable(id string) bool {
 		return c != nil && !c.PanelOverdrive
 	case "set.bootsound":
 		return c != nil && !c.BootSound
+	case "set.camera":
+		// Older daemons have no camera command, so a missing capability hides it too.
+		return c == nil || !c.Camera
 	case "set.display":
 		return c != nil && !c.Display && !c.PanelOverdrive && !c.BootSound
 	case "power.boost":

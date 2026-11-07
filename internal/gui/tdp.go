@@ -1102,6 +1102,7 @@ func (w *Window) startTelemetryPolling() {
 					w.syncRefreshRate()
 					w.syncOverdrive()
 					w.syncBootSound()
+					w.syncCamera()
 					w.syncing = false
 				}
 				if rgbActive {
