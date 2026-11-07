@@ -64,6 +64,13 @@ func TestCardUnavailableFromCapabilities(t *testing.T) {
 	if w.cardUnavailable("set.display") || !w.cardUnavailable("set.refresh") {
 		t.Error("display card must follow its remaining controls")
 	}
+	// Dim alone (kscreen-doctor) keeps the display card too.
+	w.state.Capabilities = &api.Capabilities{}
+	w.dimSupported = true
+	if w.cardUnavailable("set.display") {
+		t.Error("display card must stay while Dim is supported")
+	}
+	w.dimSupported = false
 	// Boot Sound left the display card for SYSTEM; its capability drives its own card.
 	w.state.Capabilities = &api.Capabilities{BootSound: true}
 	if w.cardUnavailable("set.bootsound") || !w.cardUnavailable("set.display") {

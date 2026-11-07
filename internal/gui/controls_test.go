@@ -177,7 +177,7 @@ func TestRefreshNoteText(t *testing.T) {
 	}{
 		{"built-in only", &api.State{}, 180, "Current rate: 180 Hz"},
 		{"second screen", &api.State{ExternalDisplay: true}, 60, "Built-in panel: 60 Hz. Other displays aren't affected."},
-		{"docked, panel off", &api.State{PanelOff: true, ExternalDisplay: true}, 0, "Built-in panel is off — changes apply when it's back."},
+		{"docked, panel off", &api.State{PanelOff: true, ExternalDisplay: true}, 0, "Built-in panel is off — refresh rate can't be changed."},
 		{"unreadable", &api.State{}, 0, "The current rate can't be read, so neither option is marked."},
 		{"unreadable with external", &api.State{ExternalDisplay: true}, 0, "The current rate can't be read, so neither option is marked."},
 		{"no state yet", nil, 0, "The current rate can't be read, so neither option is marked."},

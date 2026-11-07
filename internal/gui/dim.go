@@ -347,7 +347,7 @@ func (w *Window) buildDimRow() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 2)
 	// The caption lives directly under the toggle (buildToggleWithCaption pattern):
 	// tooltip copy must be visible without a pointer on the touch surface.
-	box.Append(w.buildToggleWithCaption("Dim", "Darkens the screen below the lowest brightness. Lower is darker. Turns off at login.", "Darken the screen below the lowest backlight level", &w.dimSwitch, func(on bool) {
+	box.Append(w.buildToggleWithCaption("Dim", "Darkens the screen below the lowest brightness. Lower is darker. Turns off at login.", &w.dimSwitch, func(on bool) {
 		if on {
 			w.requestDim(int(w.dimScale.Value()))
 		} else {

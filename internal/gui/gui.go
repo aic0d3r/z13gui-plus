@@ -129,8 +129,8 @@ type Window struct {
 	dimScale     *gtk.Scale
 	dimRow       *gtk.Box
 	dimValue     *gtk.Label // live DIM LEVEL readout, right of the section label
-	dimSupported bool     // set once kscreen-doctor detection succeeds
-	dimReq       chan int // pending level for the kscreen-doctor worker; nil = unsupported
+	dimSupported bool       // set once kscreen-doctor detection succeeds
+	dimReq       chan int   // pending level for the kscreen-doctor worker; nil = unsupported
 
 	// Optional tablet companion controls. They remain hidden until a heartbeat arrives.
 	tabletChip                *gtk.ToggleButton

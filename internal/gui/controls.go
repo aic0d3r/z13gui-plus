@@ -241,7 +241,7 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	display.Append(refresh)
 	// Captions sit under each toggle: the drawer is a touch surface, so tooltip
 	// copy must be visible without a pointer (buildToggleWithCaption).
-	overdrive := w.buildToggleWithCaption("Panel Overdrive", "Faster pixel response with slightly higher power use", "Enable panel overdrive for faster pixel response (may increase power use)", &w.overdriveSwitch, func(active bool) {
+	overdrive := w.buildToggleWithCaption("Panel Overdrive", "Faster pixel response with slightly higher power use", &w.overdriveSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
@@ -264,7 +264,7 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	// Boot sound is firmware behavior, not a display property, so it gets its own
 	// card after Privacy instead of riding along in DISPLAY.
 	system := titledCard("SYSTEM")
-	bootRow := w.buildToggleWithCaption("Boot Sound", "Play startup sound when the laptop powers on", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
+	bootRow := w.buildToggleWithCaption("Boot Sound", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
@@ -296,7 +296,7 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 // (webcam and IR) and the daemon keeps it off across reboot and resume.
 func (w *Window) buildPrivacySection() *gtk.Box {
 	card := titledCard("PRIVACY")
-	card.Append(w.buildToggleWithCaption("Camera", "Disconnects the webcam and IR camera while off, and stays off after a restart", "Turn the built-in webcam and IR camera on or off", &w.cameraSwitch, func(active bool) {
+	card.Append(w.buildToggleWithCaption("Camera", "Disconnects the webcam and IR camera while off, and stays off after a restart", &w.cameraSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
@@ -357,9 +357,9 @@ func themeButtonLabel(themeID, accentID string, custom bool) string {
 // buildToggleWithCaption pairs a settings toggle with its visible caption. The
 // drawer is a touch surface — tooltips never show without a pointer — so every
 // Settings toggle explains itself as a caption line under the row.
-func (w *Window) buildToggleWithCaption(label, caption, tooltip string, sw **gtk.Switch, onChange func(bool)) *gtk.Box {
+func (w *Window) buildToggleWithCaption(label, caption string, sw **gtk.Switch, onChange func(bool)) *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 0)
-	box.Append(w.buildToggle(label, tooltip, sw, onChange))
+	box.Append(w.buildToggle(label, caption, sw, onChange))
 	detail := gtk.NewLabel(caption)
 	detail.SetHAlign(gtk.AlignStart)
 	detail.SetWrap(true)
