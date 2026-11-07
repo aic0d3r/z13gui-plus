@@ -318,7 +318,7 @@ func (w *Window) syncPresets() {
 	w.rebuildPresetRows()
 	// Rebuilding the editor discards unsaved edits, so only do it when the
 	// preset itself changed underneath; usage (active/assigned) is updated in place.
-	if w.presetDetailName != "" && w.presetDetailContent != nil {
+	if w.presetDetailName != "" && w.presetDetailStack != nil {
 		preset, ok := w.state.Presets[w.presetDetailName]
 		base := clonePresetValue(preset)
 		base.BaseProfile = ""
@@ -503,28 +503,110 @@ func (w *Window) buildPresetDetailView() *gtk.Box {
 	w.presetDetailBackBtn = back
 	w.presetDetailTitle = title
 	view.Append(header)
-	w.presetDetailContent = gtk.NewBox(gtk.OrientationVertical, 8)
-	w.presetDetailContent.SetMarginTop(4)
-	w.presetDetailContent.SetMarginBottom(12)
-	w.presetDetailContent.SetMarginStart(12)
-	w.presetDetailContent.SetMarginEnd(12)
-	scroll := gtk.NewScrolledWindow()
-	scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
-	scroll.SetVExpand(true)
-	scroll.SetChild(w.presetDetailContent)
-	w.presetDetailScroll = scroll
-	view.Append(scroll)
+
+	// One page per area; only one is on screen so nothing needs a long scroll.
+	// Same shape as the Power Tuning view's TDP/Fan/UV/CPU pages.
+	tabRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	tabRow.SetMarginStart(12)
+	tabRow.SetMarginEnd(12)
+	tabRow.SetMarginBottom(4)
+	tabRow.AddCSSClass("main-tab-row")
+	for _, t := range []struct{ name, label string }{
+		{"setup", "Setup"}, {"power", "Power"}, {"cpu", "CPU"}, {"display", "Display"},
+	} {
+		btn := gtk.NewButtonWithLabel(t.label)
+		btn.SetHExpand(true)
+		name := t.name
+		btn.ConnectClicked(func() { w.switchPresetDetailTab(name) })
+		w.presetDetailTabBtns[name] = btn
+		tabRow.Append(btn)
+	}
+	view.Append(tabRow)
+
+	newPage := func() *gtk.Box {
+		b := gtk.NewBox(gtk.OrientationVertical, 8)
+		b.SetMarginTop(4)
+		b.SetMarginBottom(8)
+		b.SetMarginStart(12)
+		b.SetMarginEnd(16) // clear the overlay scrollbar
+		return b
+	}
+	w.presetDetailStack = gtk.NewStack()
+	w.presetDetailStack.SetTransitionType(gtk.StackTransitionTypeNone)
+	w.presetDetailStack.SetVExpand(true)
+	for _, name := range []string{"setup", "power", "cpu", "display"} {
+		body := newPage()
+		scroll := gtk.NewScrolledWindow()
+		scroll.SetPolicy(gtk.PolicyNever, gtk.PolicyAutomatic)
+		scroll.SetVExpand(true)
+		scroll.SetChild(body)
+		w.presetDetailPages[name] = body
+		w.presetDetailScrolls[name] = scroll
+		w.presetDetailStack.AddNamed(scroll, name)
+	}
+	view.Append(w.presetDetailStack)
+
+	// Save / Update / Delete stay pinned below the pages, outside their scroll,
+	// so saving never needs a scroll to the end.
+	w.presetDetailActions = gtk.NewBox(gtk.OrientationVertical, 4)
+	w.presetDetailActions.SetMarginTop(4)
+	w.presetDetailActions.SetMarginBottom(10)
+	w.presetDetailActions.SetMarginStart(12)
+	w.presetDetailActions.SetMarginEnd(12)
+	view.Append(w.presetDetailActions)
+
+	w.presetDetailScroll = w.presetDetailScrolls[w.presetDetailTab]
+	w.presetDetailStack.SetVisibleChildName(w.presetDetailTab)
+	setActiveButton(w.presetDetailTabBtns, w.presetDetailTab)
 	return view
+}
+
+// switchPresetDetailTab shows one editor page and rebuilds the gamepad focus
+// list, mirroring switchTuningTab.
+func (w *Window) switchPresetDetailTab(name string) {
+	if w.presetDetailStack == nil {
+		return
+	}
+	w.presetDetailTab = name
+	w.presetDetailStack.SetVisibleChildName(name)
+	w.presetDetailScroll = w.presetDetailScrolls[name]
+	setActiveButton(w.presetDetailTabBtns, name)
+	w.presetDetailFocusItems = w.buildPresetDetailFocusItems()
+	w.swapFocusList(w.presetDetailFocusItems)
+}
+
+// buildPresetDetailFocusItems composes the editor focus list: header, tab row,
+// the visible page's controls, then the pinned action row.
+func (w *Window) buildPresetDetailFocusItems() []focusItem {
+	items := []focusItem{
+		{widget: w.presetDetailBackBtn, row: 0, col: 0, section: "preset-detail-header", onActivate: func() { w.presetDetailBackBtn.Activate() }},
+	}
+	for col, name := range []string{"setup", "power", "cpu", "display"} {
+		btn := w.presetDetailTabBtns[name]
+		if btn == nil {
+			continue
+		}
+		tab := name
+		items = append(items, focusItem{
+			widget: btn, row: 1, col: col, section: "preset-detail-tabs",
+			isVisible:  btn.IsVisible,
+			onActivate: func() { w.switchPresetDetailTab(tab) },
+		})
+	}
+	items = append(items, w.presetEditorFocus[w.presetDetailTab]...)
+	items = append(items, w.presetEditorFocus["actions"]...)
+	return items
 }
 
 func (w *Window) showPresetDetail(name string) {
 	if w.viewStack == nil || w.state == nil {
 		return
 	}
-	if w.presetDetailContent == nil {
+	if w.presetDetailStack == nil {
 		w.viewStack.AddNamed(w.buildPresetDetailView(), "preset-detail")
 	}
 	w.presetDetailName = name
+	w.presetDetailTab = "setup"
 	w.rebuildPresetDetail()
 	w.viewStack.SetVisibleChildName("preset-detail")
 	w.swapFocusList(w.presetDetailFocusItems)

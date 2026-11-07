@@ -108,3 +108,33 @@ func TestPresetHighTDP(t *testing.T) {
 		t.Fatalf("compactPresetSummary() = %q", got)
 	}
 }
+
+func TestPresetDirtySections(t *testing.T) {
+	base := api.Preset{Profile: "balanced", RefreshRate: 60}
+	for tab, dirty := range presetDirtySections(base, base, false) {
+		if dirty {
+			t.Fatalf("clean draft reported dirty on %s", tab)
+		}
+	}
+	draft := base
+	draft.Profile = "quiet"
+	s := presetDirtySections(draft, base, false)
+	if !s["setup"] || s["power"] || s["cpu"] || s["display"] {
+		t.Fatalf("profile change marked %v, want only setup", s)
+	}
+	draft = base
+	draft.TDP = &api.TDPState{PL1SPL: 80}
+	s = presetDirtySections(draft, base, false)
+	if !s["power"] || s["setup"] || s["cpu"] || s["display"] {
+		t.Fatalf("TDP change marked %v, want only power", s)
+	}
+	draft = base
+	n := 1
+	draft.PanelOverdrive = &n
+	if !presetDirtySections(draft, base, false)["display"] {
+		t.Fatal("overdrive change not reported on display")
+	}
+	if !presetDirtySections(base, base, true)["setup"] {
+		t.Fatal("name change not reported on setup")
+	}
+}

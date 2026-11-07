@@ -116,14 +116,50 @@ func (e *presetEditor) sub() (box *gtk.Box, visible func() bool) {
 	return box, box.Visible
 }
 
+// presetDetailTabLabels is the resting label of each editor tab; dirty tabs
+// get a " ●" suffix like the tuning tabs.
+var presetDetailTabLabels = map[string]string{
+	"setup": "Setup", "power": "Power", "cpu": "CPU", "display": "Display",
+}
+
+// presetDirtySections reports which editor tabs hold unsaved edits.
+func presetDirtySections(draft, base api.Preset, nameChanged bool) map[string]bool {
+	return map[string]bool{
+		"setup":   nameChanged || draft.Profile != base.Profile,
+		"power":   !reflect.DeepEqual(draft.TDP, base.TDP) || !reflect.DeepEqual(draft.Undervolt, base.Undervolt),
+		"cpu":     !reflect.DeepEqual(draft.CPUPower, base.CPUPower),
+		"display": draft.RefreshRate != base.RefreshRate || !reflect.DeepEqual(draft.PanelOverdrive, base.PanelOverdrive),
+	}
+}
+
+// refreshPresetDetailDots marks the editor tabs whose sections have edits.
+func (w *Window) refreshPresetDetailDots(draft, base api.Preset, name, newName string) {
+	for tab, dirty := range presetDirtySections(draft, base, newName != name) {
+		btn := w.presetDetailTabBtns[tab]
+		if btn == nil {
+			continue
+		}
+		label := presetDetailTabLabels[tab]
+		if dirty {
+			label += " ●"
+		}
+		btn.SetLabel(label)
+	}
+}
+
 func (w *Window) rebuildPresetDetail() {
 	preset, ok := w.state.Presets[w.presetDetailName]
 	if !ok {
 		w.showPresetsView()
 		return
 	}
-	for child := w.presetDetailContent.FirstChild(); child != nil; child = w.presetDetailContent.FirstChild() {
-		w.presetDetailContent.Remove(child)
+	for _, page := range w.presetDetailPages {
+		for child := page.FirstChild(); child != nil; child = page.FirstChild() {
+			page.Remove(child)
+		}
+	}
+	for child := w.presetDetailActions.FirstChild(); child != nil; child = w.presetDetailActions.FirstChild() {
+		w.presetDetailActions.Remove(child)
 	}
 	name := w.presetDetailName
 	w.presetDetailTitle.SetLabel(name)
@@ -132,7 +168,8 @@ func (w *Window) rebuildPresetDetail() {
 	draft.BaseProfile = ""
 	w.presetDraftBase.BaseProfile = ""
 
-	e := &presetEditor{box: w.presetDetailContent, row: 1}
+	// --- SETUP page: usage, name, profile ---
+	e := &presetEditor{box: w.presetDetailPages["setup"], row: 2}
 	usage := gtk.NewLabel("")
 	usage.SetHAlign(gtk.AlignStart)
 	usage.AddCSSClass("card-sub")
@@ -151,10 +188,18 @@ func (w *Window) rebuildPresetDetail() {
 	safety.AddCSSClass("card-sub")
 	safety.AddCSSClass("warning")
 	newName := func() string { return strings.TrimSpace(nameEntry.Text()) }
-	w.presetEditorDirty = func() bool { return newName() != name || !reflect.DeepEqual(draft, w.presetDraftBase) }
+	w.presetEditorDirty = func() bool {
+		for _, dirty := range presetDirtySections(draft, w.presetDraftBase, newName() != name) {
+			if dirty {
+				return true
+			}
+		}
+		return false
+	}
 	changed := func() {
 		save.SetSensitive(newName() != name || !reflect.DeepEqual(draft, w.presetDraftBase))
 		safety.SetVisible(presetHighTDP(draft))
+		w.refreshPresetDetailDots(draft, w.presetDraftBase, name, newName())
 	}
 
 	e.heading("PROFILE")
@@ -162,6 +207,12 @@ func (w *Window) rebuildPresetDetail() {
 		draft.Profile = v
 		changed()
 	})
+	w.presetEditorFocus["setup"] = e.focus
+
+	// --- POWER page: TDP + undervolt ---
+	e.focus = nil
+	e.box = w.presetDetailPages["power"]
+	e.row = 2
 
 	// TDP: firmware default for the profile, or explicit PL1/PL2/PL3.
 	e.heading("TDP")
@@ -241,6 +292,12 @@ func (w *Window) rebuildPresetDetail() {
 		})
 		uvBox.SetVisible(uvMode == "custom")
 	}
+	w.presetEditorFocus["power"] = e.focus
+
+	// --- CPU page: min frequency, EPP, boost ---
+	e.focus = nil
+	e.box = w.presetDetailPages["cpu"]
+	e.row = 2
 
 	// CPU behavior: keep whatever is current, or set min frequency/EPP/boost.
 	if cpuState := w.state.CPUPower; cpuState != nil || draft.CPUPower != nil {
@@ -302,6 +359,12 @@ func (w *Window) rebuildPresetDetail() {
 		})
 		cpuBox.SetVisible(cpuMode == "set")
 	}
+	w.presetEditorFocus["cpu"] = e.focus
+
+	// --- DISPLAY page: refresh rate, panel overdrive ---
+	e.focus = nil
+	e.box = w.presetDetailPages["display"]
+	e.row = 2
 
 	e.heading("REFRESH RATE")
 	refresh := fmt.Sprint(draft.RefreshRate)
@@ -327,7 +390,9 @@ func (w *Window) rebuildPresetDetail() {
 		}
 		changed()
 	})
+	w.presetEditorFocus["display"] = e.focus
 
+	// --- pinned action row: Save / Update / Delete stay reachable from every page ---
 	save.AddCSSClass("suggested-action")
 	nameEntry.ConnectChanged(changed)
 	save.ConnectClicked(func() {
@@ -369,21 +434,13 @@ func (w *Window) rebuildPresetDetail() {
 			},
 		})
 	})
-	e.box.Append(save)
-	e.focus = append(e.focus, focusItem{widget: save, row: e.row, col: 0, section: "preset-actions", onActivate: func() { save.Activate() }})
-	e.row++
-
-	update := gtk.NewButtonWithLabel("Update from Current Settings")
+	update := gtk.NewButtonWithLabel("Update from Current")
 	update.AddCSSClass("action-btn")
 	update.ConnectClicked(func() {
 		w.showConfirmation("Update Preset", fmt.Sprintf("Replace %q with the settings active right now?", name), "Replace", "preset-detail", false, func() {
 			w.runStateAction("update preset", func() (bool, error) { return api.SendPresetSave(name) })
 		})
 	})
-	e.box.Append(update)
-	e.focus = append(e.focus, focusItem{widget: update, row: e.row, col: 0, section: "preset-actions", onActivate: func() { update.Activate() }})
-	e.row++
-
 	remove := gtk.NewButtonWithLabel("Delete Preset")
 	remove.AddCSSClass("destructive-action")
 	remove.ConnectClicked(func() {
@@ -391,13 +448,23 @@ func (w *Window) rebuildPresetDetail() {
 			w.runStateAction("delete preset", func() (bool, error) { return api.SendPresetDelete(name) })
 		})
 	})
-	e.box.Append(remove)
-	e.focus = append(e.focus, focusItem{widget: remove, row: e.row, col: 0, section: "preset-actions", onActivate: func() { remove.Activate() }})
 	hint := gtk.NewLabel("Assign another preset before deleting this one.")
 	hint.SetHAlign(gtk.AlignStart)
 	hint.SetWrap(true)
 	hint.AddCSSClass("card-sub")
-	e.box.Append(hint)
+	actionsRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	actionsRow.SetHomogeneous(true)
+	actionsRow.AddCSSClass("btn-group")
+	actionsRow.Append(save)
+	actionsRow.Append(update)
+	w.presetDetailActions.Append(actionsRow)
+	w.presetDetailActions.Append(remove)
+	w.presetDetailActions.Append(hint)
+	w.presetEditorFocus["actions"] = []focusItem{
+		{widget: save, row: 98, col: 0, section: "preset-actions", onActivate: func() { save.Activate() }},
+		{widget: update, row: 98, col: 1, section: "preset-actions", onActivate: func() { update.Activate() }},
+		{widget: remove, row: 99, col: 0, section: "preset-actions", onActivate: func() { remove.Activate() }},
+	}
 	// Usage-dependent bits; refreshed in place by syncPresets so a power
 	// source change or assignment doesn't rebuild away unsaved edits.
 	w.presetDetailRefresh = func() {
@@ -414,7 +481,17 @@ func (w *Window) rebuildPresetDetail() {
 	w.presetDetailRefresh()
 	changed()
 
-	w.presetDetailFocusItems = append([]focusItem{
-		{widget: w.presetDetailBackBtn, row: 0, col: 0, section: "preset-detail-header", onActivate: func() { w.presetDetailBackBtn.Activate() }},
-	}, e.focus...)
+	// CPU page only exists where the daemon exposes CPU power controls; hide
+	// its tab like syncTuningTabs hides unsupported tuning tabs.
+	showCpu := w.state.CPUPower != nil || draft.CPUPower != nil
+	if btn := w.presetDetailTabBtns["cpu"]; btn != nil {
+		btn.SetVisible(showCpu)
+	}
+	if !showCpu && w.presetDetailTab == "cpu" {
+		w.presetDetailTab = "setup"
+	}
+	w.presetDetailStack.SetVisibleChildName(w.presetDetailTab)
+	w.presetDetailScroll = w.presetDetailScrolls[w.presetDetailTab]
+	setActiveButton(w.presetDetailTabBtns, w.presetDetailTab)
+	w.presetDetailFocusItems = w.buildPresetDetailFocusItems()
 }

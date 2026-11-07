@@ -435,8 +435,12 @@ Feature-complete for both KDE and gamescope modes:
   "+ Save Current Settings" with an auto name (`autoPresetName`), Restore
   Recommended at the bottom. Rename happens in the editor via
   `api.SendPresetRename`, which keeps assignments.
-- Preset editor (`preset_editor.go`): direct editing of profile, TDP, undervolt,
-  CPU min/EPP/boost, refresh, overdrive via `api.SendPresetSet`; presets with
+- Preset editor (`preset_editor.go`): tabbed like the tuning view — Setup
+  (usage/name/profile), Power (TDP + undervolt), CPU (min freq/EPP/boost,
+  tab hidden when the daemon exposes no CPU power info), Display (refresh,
+  overdrive) — with Save / Update from Current / Delete pinned below the
+  pages and per-tab unsaved-edit dots (`presetDirtySections`). Editing
+  stays direct via `api.SendPresetSet`; presets with
   PL1 > 75 W get a SAFETY FANS badge/warning (no confirmation, by design).
   Sync only rebuilds the editor when the saved preset or its usage changed, so
   unsaved edits survive telemetry polls.

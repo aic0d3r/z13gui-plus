@@ -162,22 +162,30 @@ type Window struct {
 	statusLine             *gtk.Label // one fixed feedback line at the drawer bottom
 	presetDetailName       string
 	presetDetailTitle      *gtk.Label
-	presetDetailContent    *gtk.Box
 	presetDetailBackBtn    *gtk.Button
 	presetDetailFocusItems []focusItem
-	presetDetailScroll     *gtk.ScrolledWindow
-	presetChips            *gtk.Grid
-	presetChipNames        []string
-	presetChipBtns         map[string]*gtk.Button
-	presetChipCols         int
-	presetEditorDirty      func() bool
-	presetDetailRefresh    func()     // updates usage-dependent editor bits in place
-	presetDraftBase        api.Preset // saved values the editor was built from
-	presetFeedbackGen      int
-	progressGen            int // guards the delayed "Working..." timer
-	automationHint         *gtk.Label
-	presetACDetail         *gtk.Label
-	presetBatteryDetail    *gtk.Label
+	presetDetailScroll     *gtk.ScrolledWindow // scroll of the visible editor tab
+	// Preset editor sub-tabs (Setup | Power | CPU | Display), same pattern as
+	// the tuning view: one page per area, Save/Update/Delete pinned below.
+	presetDetailTab     string
+	presetDetailTabBtns map[string]*gtk.Button
+	presetDetailStack   *gtk.Stack
+	presetDetailPages   map[string]*gtk.Box
+	presetDetailScrolls map[string]*gtk.ScrolledWindow
+	presetDetailActions *gtk.Box
+	presetEditorFocus   map[string][]focusItem // per-tab gamepad focus items + "actions"
+	presetChips         *gtk.Grid
+	presetChipNames     []string
+	presetChipBtns      map[string]*gtk.Button
+	presetChipCols      int
+	presetEditorDirty   func() bool
+	presetDetailRefresh func()     // updates usage-dependent editor bits in place
+	presetDraftBase     api.Preset // saved values the editor was built from
+	presetFeedbackGen   int
+	progressGen         int // guards the delayed "Working..." timer
+	automationHint      *gtk.Label
+	presetACDetail      *gtk.Label
+	presetBatteryDetail *gtk.Label
 
 	// Premium hero widgets — battery card (Overview tab).
 	// Power tab telemetry gauges removed; live stats live on Overview tab only.
@@ -319,23 +327,28 @@ type Window struct {
 // GTK Activate signal.
 func New(app *gtk.Application) *Window {
 	w := &Window{
-		tab:            "keyboard",
-		activeTab:      "overview",
-		gamescope:      os.Getenv("GAMESCOPE_WAYLAND_DISPLAY") != "",
-		modeButtons:    make(map[string]*gtk.Button),
-		speedBtns:      make(map[string]*gtk.Button),
-		brightBtns:     make(map[int]*gtk.Button),
-		profileBtns:    make(map[string]*gtk.Button),
-		mainTabBtns:    make(map[string]*gtk.Button),
-		battPresetBtns: make(map[int]*gtk.Button),
-		fanPresetBtns:  make(map[string]*gtk.Button),
-		cpuEPPBtns:     make(map[string]*gtk.Button),
-		tuningTabBtns:  make(map[string]*gtk.Button),
-		tuningScrolls:  make(map[string]*gtk.ScrolledWindow),
-		layoutWidgets:  make(map[string]gtk.Widgetter),
-		layoutSwitches: make(map[string]*gtk.Switch),
-		tuningTab:      "tdp",
-		refreshBtns:    make(map[int]*gtk.Button),
+		tab:                 "keyboard",
+		activeTab:           "overview",
+		gamescope:           os.Getenv("GAMESCOPE_WAYLAND_DISPLAY") != "",
+		modeButtons:         make(map[string]*gtk.Button),
+		speedBtns:           make(map[string]*gtk.Button),
+		brightBtns:          make(map[int]*gtk.Button),
+		profileBtns:         make(map[string]*gtk.Button),
+		mainTabBtns:         make(map[string]*gtk.Button),
+		battPresetBtns:      make(map[int]*gtk.Button),
+		fanPresetBtns:       make(map[string]*gtk.Button),
+		cpuEPPBtns:          make(map[string]*gtk.Button),
+		tuningTabBtns:       make(map[string]*gtk.Button),
+		tuningScrolls:       make(map[string]*gtk.ScrolledWindow),
+		presetDetailTab:     "setup",
+		presetDetailTabBtns: make(map[string]*gtk.Button),
+		presetDetailPages:   make(map[string]*gtk.Box),
+		presetDetailScrolls: make(map[string]*gtk.ScrolledWindow),
+		presetEditorFocus:   make(map[string][]focusItem),
+		layoutWidgets:       make(map[string]gtk.Widgetter),
+		layoutSwitches:      make(map[string]*gtk.Switch),
+		tuningTab:           "tdp",
+		refreshBtns:         make(map[int]*gtk.Button),
 	}
 
 	w.win = gtk.NewApplicationWindow(app)
