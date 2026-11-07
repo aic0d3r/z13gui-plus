@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -16,6 +17,8 @@ type AppConfig struct {
 	// Hidden is a comma-separated list of card IDs the user switched off in
 	// Settings > Layout. A string (not a slice) keeps AppConfig comparable.
 	Hidden string
+	// DimLevel is the Dim chip's screen brightness in percent; 0 = default.
+	DimLevel int
 }
 
 // LoadAppConfig reads config.toml from the z13gui-plus config directory.
@@ -50,6 +53,8 @@ func LoadAppConfig() AppConfig {
 			cfg.Accent = v
 		case "hidden":
 			cfg.Hidden = v
+		case "dim_level":
+			cfg.DimLevel, _ = strconv.Atoi(v)
 		}
 	}
 	return cfg
@@ -68,6 +73,9 @@ func SaveAppConfig(cfg AppConfig) {
 	}
 	if cfg.Hidden != "" {
 		content += "hidden = \"" + cfg.Hidden + "\"\n"
+	}
+	if cfg.DimLevel != 0 {
+		content += "dim_level = " + strconv.Itoa(cfg.DimLevel) + "\n"
 	}
 	// Write-then-rename so a crash mid-write can't leave an empty config.
 	path := filepath.Join(dir, "config.toml")

@@ -125,6 +125,12 @@ type Window struct {
 	stateActionQueue    []stateAction
 	stateRequestGen     uint64
 
+	// Dim chip (dim.go): KWin software dimming below the backlight floor.
+	dimChip     *gtk.ToggleButton
+	dimScale    *gtk.Scale
+	dimLevelRow *gtk.Box
+	dimReq      chan int // pending level for the kscreen-doctor worker; nil = unsupported
+
 	// Optional tablet companion controls. They remain hidden until a heartbeat arrives.
 	tabletChip                *gtk.ToggleButton
 	tabletChipLabel           *gtk.Label
@@ -371,6 +377,7 @@ func New(app *gtk.Application) *Window {
 	w.syncing = true
 	w.win.SetChild(w.backend.WrapContent(w.buildContent()))
 	w.syncing = false
+	w.startDimmer()
 
 	go w.subscribeLoop()
 
