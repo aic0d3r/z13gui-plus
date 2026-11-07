@@ -99,7 +99,6 @@ type Window struct {
 	bootSoundSwitch     *gtk.Switch
 	cameraSwitch        *gtk.Switch
 	refreshNote         *gtk.Label // shown when the firmware cannot report the live rate
-	appearanceSummary   *gtk.Label
 	presetsBtn          *gtk.Button
 	presetAssignments   *gtk.Box
 	presetACRow         *gtk.Box
@@ -129,6 +128,7 @@ type Window struct {
 	dimSwitch    *gtk.Switch
 	dimScale     *gtk.Scale
 	dimRow       *gtk.Box
+	dimValue     *gtk.Label // live DIM LEVEL readout, right of the section label
 	dimSupported bool     // set once kscreen-doctor detection succeeds
 	dimReq       chan int // pending level for the kscreen-doctor worker; nil = unsupported
 
@@ -294,7 +294,7 @@ type Window struct {
 	colorLit           *gtk.Scale          // L: 0-100
 	colorHexLabel      *gtk.Label          // hex display in color view
 	colorSwatchProv    *gtk.CSSProvider    // color picker preview swatch CSS
-	paletteBtn         *gtk.Button         // theme button in bottom bar
+	paletteBtn         *gtk.Button         // Settings > Appearance: label shows the current theme
 	themeBackBtn       *gtk.Button         // back button in theme view
 	colorBackBtn       *gtk.Button         // back button in color picker view
 	colorPickerPresets []*gtk.Button       // preset buttons in color picker view
@@ -713,8 +713,8 @@ func (w *Window) applyTheme(id, accentID string) {
 	cfg.Theme, cfg.Accent = id, accentID
 	theme.SaveAppConfig(cfg)
 	w.isCustomTheme = false
-	if w.appearanceSummary != nil {
-		w.appearanceSummary.SetLabel(themeButtonLabel(id, accentID, false))
+	if w.paletteBtn != nil {
+		w.paletteBtn.SetLabel(themeButtonLabel(id, accentID, false))
 	}
 	slog.Info("theme changed", "id", id, "accent", accentID)
 }
@@ -741,8 +741,8 @@ func (w *Window) applyCustomAccent(accentID string) {
 	cfg := theme.LoadAppConfig()
 	cfg.Accent = accentID
 	theme.SaveAppConfig(cfg)
-	if w.appearanceSummary != nil {
-		w.appearanceSummary.SetLabel(themeButtonLabel("", accentID, true))
+	if w.paletteBtn != nil {
+		w.paletteBtn.SetLabel(themeButtonLabel("", accentID, true))
 	}
 }
 

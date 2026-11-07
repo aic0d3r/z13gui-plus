@@ -345,7 +345,9 @@ func (w *Window) requestDim(pct int) {
 // slider. Visibility is owned by applyLayout (card "set.dim").
 func (w *Window) buildDimRow() *gtk.Box {
 	box := gtk.NewBox(gtk.OrientationVertical, 2)
-	box.Append(w.buildToggle("Dim", "Darken the screen below the lowest backlight level", &w.dimSwitch, func(on bool) {
+	// The caption lives directly under the toggle (buildToggleWithCaption pattern):
+	// tooltip copy must be visible without a pointer on the touch surface.
+	box.Append(w.buildToggleWithCaption("Dim", "Darkens the screen below the lowest brightness. Lower is darker. Turns off at login.", "Darken the screen below the lowest backlight level", &w.dimSwitch, func(on bool) {
 		if on {
 			w.requestDim(int(w.dimScale.Value()))
 		} else {
@@ -361,22 +363,31 @@ func (w *Window) buildDimRow() *gtk.Box {
 		}
 	})
 
-	label := gtk.NewLabel("DIM LEVEL")
-	label.SetMarginTop(6)
-	label.SetHAlign(gtk.AlignStart)
-	label.AddCSSClass("scale-name")
-	box.Append(label)
+	// One header line: name left, live value right — matches the tuning sliders.
+	// GTK's drawn value is off: it floats above the slider's start and collides
+	// with the section label at this width.
+	name := gtk.NewLabel("DIM LEVEL")
+	name.SetHAlign(gtk.AlignStart)
+	name.SetHExpand(true)
+	name.AddCSSClass("scale-name")
+	w.dimValue = gtk.NewLabel(fmt.Sprintf("%d%%", clampDimLevel(theme.LoadAppConfig().DimLevel)))
+	w.dimValue.SetHAlign(gtk.AlignEnd)
+	w.dimValue.AddCSSClass("scale-value")
+	header := gtk.NewBox(gtk.OrientationHorizontal, 4)
+	header.SetMarginTop(6)
+	header.Append(name)
+	header.Append(w.dimValue)
+	box.Append(header)
 
 	sc := gtk.NewScaleWithRange(gtk.OrientationHorizontal, dimFloor, dimCeil, 5)
 	sc.SetValue(float64(clampDimLevel(theme.LoadAppConfig().DimLevel)))
 	sc.SetDigits(0)
 	sc.SetRoundDigits(0)
-	sc.SetDrawValue(true)
-	sc.SetFormatValueFunc(func(_ *gtk.Scale, v float64) string { return fmt.Sprintf("%.0f%%", v) })
+	sc.SetDrawValue(false)
 	sc.SetHExpand(true)
 	sc.SetFocusable(true)
 	sc.SetTooltipText("Screen brightness while Dim is on, 20% to 90%")
-	label.SetMnemonicWidget(sc)
+	name.SetMnemonicWidget(sc)
 	saveGen := 0
 	sc.ConnectValueChanged(func() {
 		// Drags ignore the step increment; snap so the level is always a 5% step.
@@ -385,6 +396,7 @@ func (w *Window) buildDimRow() *gtk.Box {
 			sc.SetValue(float64(v)) // re-enters with the snapped value
 			return
 		}
+		w.dimValue.SetText(fmt.Sprintf("%d%%", v))
 		if w.dimSwitch.Active() {
 			w.requestDim(v)
 		}
@@ -403,12 +415,6 @@ func (w *Window) buildDimRow() *gtk.Box {
 	w.dimScale = sc
 	box.Append(sc)
 
-	detail := gtk.NewLabel("Darkens the screen below the lowest brightness. Lower is darker. Turns off at login.")
-	detail.SetHAlign(gtk.AlignStart)
-	detail.SetWrap(true)
-	detail.SetMaxWidthChars(30)
-	detail.AddCSSClass("setting-description")
-	box.Append(detail)
 	w.dimRow = box
 	return box
 }

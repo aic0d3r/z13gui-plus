@@ -59,10 +59,15 @@ func TestCardUnavailableFromCapabilities(t *testing.T) {
 	if !w.cardUnavailable("power.tuning") {
 		t.Error("power.tuning should hide when nothing can be tuned")
 	}
-	// Display card survives if any one control exists.
-	w.state.Capabilities = &api.Capabilities{BootSound: true}
-	if w.cardUnavailable("set.display") || w.cardUnavailable("set.bootsound") || !w.cardUnavailable("set.refresh") {
+	// Display card survives if any one of its controls exists.
+	w.state.Capabilities = &api.Capabilities{PanelOverdrive: true}
+	if w.cardUnavailable("set.display") || !w.cardUnavailable("set.refresh") {
 		t.Error("display card must follow its remaining controls")
+	}
+	// Boot Sound left the display card for SYSTEM; its capability drives its own card.
+	w.state.Capabilities = &api.Capabilities{BootSound: true}
+	if w.cardUnavailable("set.bootsound") || !w.cardUnavailable("set.display") {
+		t.Error("boot sound card must stand on its own")
 	}
 	if !w.cardUnavailable("set.camera") {
 		t.Error("camera card must hide without a camera")

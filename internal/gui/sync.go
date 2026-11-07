@@ -450,7 +450,9 @@ func (w *Window) setRefreshNote(pending int) {
 // the note says so; the wording stays count-neutral for any number of monitors.
 func refreshNoteText(state *api.State, rate int) string {
 	if state != nil && state.PanelOff {
-		return "Built-in panel is off. These buttons don't change other displays."
+		// One line states why the buttons are idle and what happens when the
+		// panel returns; the disabled styling carries the rest.
+		return "Built-in panel is off — changes apply when it's back."
 	}
 	if !slices.Contains(refreshRates, rate) {
 		// 0 means kscreen-doctor could not be read: the control still works,

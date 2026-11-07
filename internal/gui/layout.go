@@ -83,7 +83,7 @@ func (w *Window) cardUnavailable(id string) bool {
 		// Older daemons have no camera command, so a missing capability hides it too.
 		return c == nil || !c.Camera
 	case "set.display":
-		return c != nil && !c.Display && !c.PanelOverdrive && !c.BootSound
+		return c != nil && !c.Display && !c.PanelOverdrive && !w.dimSupported
 	case "power.boost":
 		return s.CPUPower == nil
 	case "tab.rgb":
@@ -167,6 +167,14 @@ func (w *Window) buildLayoutSection() *gtk.Box {
 	box.SetVisible(false)
 	header.ConnectToggled(func() { box.SetVisible(header.Active()) })
 	card.Append(box)
+	// One caption for the whole list instead of one per row — eleven identical
+	// lines under every switch would be noise. Keeps the row tooltip's advice
+	// visible on the touch surface.
+	intro := gtk.NewLabel("Hide cards you don't use. Cards for missing hardware stay hidden.")
+	intro.SetHAlign(gtk.AlignStart)
+	intro.SetWrap(true)
+	intro.AddCSSClass("setting-description")
+	box.Append(intro)
 	group := ""
 	for _, c := range layoutCards {
 		if c.tab != group {

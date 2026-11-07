@@ -222,7 +222,8 @@ func (w *Window) buildRGBTab() *gtk.ScrolledWindow {
 	return scroll
 }
 
-// buildSystemTab builds the System tab: panel overdrive and boot sound.
+// buildSystemTab builds the Settings tab: display, privacy, system, appearance,
+// layout, and about cards.
 func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	inner := gtk.NewBox(gtk.OrientationVertical, 6)
 	inner.SetMarginTop(2)
@@ -233,13 +234,14 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	// No summary pill on this card: the header cannot hold one at the drawer's width,
 	// and the refresh state belongs next to the control it describes (refreshNote).
 	display := titledCard("DISPLAY")
-	// The three display controls and the card itself are auto-hidden (layout.go)
+	// The display controls and the card itself are auto-hidden (layout.go)
 	// when the daemon reports no internal panel or no ASUS firmware attribute.
 	refresh := w.buildRefreshRateSection()
 	w.registerCard("set.refresh", refresh)
 	display.Append(refresh)
-	overdrive := gtk.NewBox(gtk.OrientationVertical, 0)
-	overdrive.Append(w.buildToggle("Panel Overdrive", "Enable panel overdrive for faster pixel response (may increase power use)", &w.overdriveSwitch, func(active bool) {
+	// Captions sit under each toggle: the drawer is a touch surface, so tooltip
+	// copy must be visible without a pointer (buildToggleWithCaption).
+	overdrive := w.buildToggleWithCaption("Panel Overdrive", "Faster pixel response with slightly higher power use", "Enable panel overdrive for faster pixel response (may increase power use)", &w.overdriveSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
@@ -251,17 +253,18 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 				w.state.PanelOverdrive = v
 			}
 		}, nil)
-	}))
-	overdriveDetail := gtk.NewLabel("Faster pixel response with slightly higher power use")
-	overdriveDetail.SetHAlign(gtk.AlignStart)
-	overdriveDetail.SetWrap(true)
-	overdriveDetail.AddCSSClass("setting-description")
-	overdrive.Append(overdriveDetail)
+	})
 	w.registerCard("set.overdrive", overdrive)
 	display.Append(overdrive)
-	// Boot sound is one switch, so it lives with the display toggles instead of
-	// getting its own card.
-	bootRow := w.buildToggle("Boot Sound", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
+	w.registerCard("set.dim", w.buildDimRow())
+	display.Append(w.dimRow)
+	w.registerCard("set.display", display)
+	inner.Append(display)
+	inner.Append(w.buildPrivacySection())
+	// Boot sound is firmware behavior, not a display property, so it gets its own
+	// card after Privacy instead of riding along in DISPLAY.
+	system := titledCard("SYSTEM")
+	bootRow := w.buildToggleWithCaption("Boot Sound", "Play startup sound when the laptop powers on", "Play startup sound when the laptop powers on", &w.bootSoundSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
@@ -274,13 +277,9 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 			}
 		}, nil)
 	})
-	w.registerCard("set.bootsound", bootRow)
-	display.Append(bootRow)
-	w.registerCard("set.dim", w.buildDimRow())
-	display.Append(w.dimRow)
-	w.registerCard("set.display", display)
-	inner.Append(display)
-	inner.Append(w.buildPrivacySection())
+	system.Append(bootRow)
+	w.registerCard("set.bootsound", system)
+	inner.Append(system)
 	inner.Append(w.buildAppearanceSection())
 	inner.Append(w.buildLayoutSection())
 	inner.Append(w.buildVersionSection())
@@ -297,7 +296,7 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 // (webcam and IR) and the daemon keeps it off across reboot and resume.
 func (w *Window) buildPrivacySection() *gtk.Box {
 	card := titledCard("PRIVACY")
-	card.Append(w.buildToggle("Camera", "Turn the built-in webcam and IR camera on or off", &w.cameraSwitch, func(active bool) {
+	card.Append(w.buildToggleWithCaption("Camera", "Disconnects the webcam and IR camera while off, and stays off after a restart", "Turn the built-in webcam and IR camera on or off", &w.cameraSwitch, func(active bool) {
 		v := 0
 		if active {
 			v = 1
@@ -315,24 +314,19 @@ func (w *Window) buildPrivacySection() *gtk.Box {
 			w.syncing = prev
 		})
 	}))
-	detail := gtk.NewLabel("Off disconnects the webcam and IR camera, and stays off after a restart")
-	detail.SetHAlign(gtk.AlignStart)
-	detail.SetWrap(true)
-	detail.AddCSSClass("setting-description")
-	card.Append(detail)
 	w.registerCard("set.camera", card)
 	return card
 }
 
 // buildAppearanceSection keeps theme selection with the other system settings.
+// The button label carries the current theme — the card has no summary pill,
+// so the state and the action are one control instead of two.
 func (w *Window) buildAppearanceSection() *gtk.Box {
-	box, summary := statusCard("APPEARANCE")
+	box := titledCard("APPEARANCE")
 	box.AddCSSClass("btn-group")
 
 	cfg := theme.LoadAppConfig()
-	w.appearanceSummary = summary
-	w.appearanceSummary.SetLabel(themeButtonLabel(cfg.Theme, cfg.Accent, w.isCustomTheme))
-	w.paletteBtn = gtk.NewButtonWithLabel("Choose Theme")
+	w.paletteBtn = gtk.NewButtonWithLabel(themeButtonLabel(cfg.Theme, cfg.Accent, w.isCustomTheme))
 	w.paletteBtn.SetTooltipText("Choose theme")
 	w.paletteBtn.ConnectClicked(func() { w.showThemeView() })
 	box.Append(w.paletteBtn)
@@ -358,6 +352,20 @@ func themeButtonLabel(themeID, accentID string, custom bool) string {
 		break
 	}
 	return name
+}
+
+// buildToggleWithCaption pairs a settings toggle with its visible caption. The
+// drawer is a touch surface — tooltips never show without a pointer — so every
+// Settings toggle explains itself as a caption line under the row.
+func (w *Window) buildToggleWithCaption(label, caption, tooltip string, sw **gtk.Switch, onChange func(bool)) *gtk.Box {
+	box := gtk.NewBox(gtk.OrientationVertical, 0)
+	box.Append(w.buildToggle(label, tooltip, sw, onChange))
+	detail := gtk.NewLabel(caption)
+	detail.SetHAlign(gtk.AlignStart)
+	detail.SetWrap(true)
+	detail.AddCSSClass("setting-description")
+	box.Append(detail)
+	return box
 }
 
 // buildToggle creates a compact label + switch pair for the bottom bar.
@@ -1507,15 +1515,6 @@ func (w *Window) systemTabFocusItems() []focusItem {
 		})
 		row++
 	}
-	if w.bootSoundSwitch != nil {
-		sw := w.bootSoundSwitch
-		items = append(items, focusItem{
-			widget: sw, row: row, col: 0,
-			section:    "system",
-			onActivate: func() { sw.SetActive(!sw.Active()) },
-		})
-		row++
-	}
 	if sw, sc := w.dimSwitch, w.dimScale; sw != nil && sc != nil {
 		left, right, get, set := scaleAdjust(sc, 5)
 		items = append(items,
@@ -1533,6 +1532,14 @@ func (w *Window) systemTabFocusItems() []focusItem {
 	if sw, card := w.cameraSwitch, w.layoutWidgets["set.camera"]; sw != nil && card != nil {
 		items = append(items, focusItem{
 			widget: sw, row: row, col: 0, section: "privacy", isVisible: gtk.BaseWidget(card).IsVisible,
+			onActivate: func() { sw.SetActive(!sw.Active()) },
+		})
+		row++
+	}
+	// Boot Sound sits in its own SYSTEM card after Privacy; mirror that order here.
+	if sw, card := w.bootSoundSwitch, w.layoutWidgets["set.bootsound"]; sw != nil && card != nil {
+		items = append(items, focusItem{
+			widget: sw, row: row, col: 0, section: "system", isVisible: gtk.BaseWidget(card).IsVisible,
 			onActivate: func() { sw.SetActive(!sw.Active()) },
 		})
 		row++
