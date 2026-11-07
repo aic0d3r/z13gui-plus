@@ -17,6 +17,8 @@ import (
 // Version is the z13gui-plus build version; main sets it before New.
 var Version = "dev"
 
+const repoURL = "https://github.com/aic0d3r/z13gui-plus"
+
 // buildVersionSection shows the GUI, daemon, and tablet kit versions. The
 // external lookups run off the main thread because they exec other programs.
 func (w *Window) buildVersionSection() *gtk.Box {
@@ -29,6 +31,15 @@ func (w *Window) buildVersionSection() *gtk.Box {
 	card.Append(guiRow)
 	card.Append(ctlRow)
 	card.Append(kitRow)
+
+	// Opens the repo page; where no handler exists (Gaming Mode) it does nothing.
+	star := gtk.NewButtonWithLabel("Enjoying Z13GUI+? Star it on GitHub.")
+	star.ConnectClicked(func() { gtk.ShowURI(nil, repoURL, 0) })
+	starBox := gtk.NewBox(gtk.OrientationVertical, 0)
+	starBox.AddCSSClass("btn-group")
+	starBox.Append(star)
+	card.Append(starBox)
+	w.starBtn = star
 
 	go func() {
 		ctl, kit := daemonVersion(), tabletKitVersion()

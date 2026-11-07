@@ -296,6 +296,7 @@ type Window struct {
 	colorHexLabel      *gtk.Label          // hex display in color view
 	colorSwatchProv    *gtk.CSSProvider    // color picker preview swatch CSS
 	paletteBtn         *gtk.Button         // Settings > Appearance: label shows the current theme
+	starBtn            *gtk.Button         // Settings > About: opens the GitHub repo
 	themeBackBtn       *gtk.Button         // back button in theme view
 	colorBackBtn       *gtk.Button         // back button in color picker view
 	colorPickerPresets []*gtk.Button       // preset buttons in color picker view

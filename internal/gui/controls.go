@@ -1570,6 +1570,13 @@ func (w *Window) systemTabFocusItems() []focusItem {
 		})
 		row++
 	}
+	if btn := w.starBtn; btn != nil {
+		items = append(items, focusItem{
+			widget: btn, row: row, col: 0,
+			section:    "about",
+			onActivate: func() { btn.Activate() },
+		})
+	}
 	return items
 }
 
