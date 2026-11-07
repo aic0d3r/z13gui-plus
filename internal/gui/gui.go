@@ -112,7 +112,6 @@ type Window struct {
 	presetsBackBtn      *gtk.Button
 	presetsList         *gtk.Box
 	automationSwitch    *gtk.Switch
-	automationViewSw    *gtk.Switch
 	presetSaveBtn       *gtk.Button
 	presetRestoreBtn    *gtk.Button
 	presetFocusItems    []focusItem

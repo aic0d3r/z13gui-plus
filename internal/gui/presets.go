@@ -205,11 +205,8 @@ func viewHeader(title string, back func()) (*gtk.Box, *gtk.Button, *gtk.Label) {
 // Apply/Edit and its AC/battery assignment, plus save-current and restore.
 func (w *Window) buildPresetsView() *gtk.Box {
 	view := gtk.NewBox(gtk.OrientationVertical, 0)
-	header, back, title := viewHeader("Presets", func() { w.showMainView() })
+	header, back, _ := viewHeader("Presets", func() { w.showMainView() })
 	w.presetsBackBtn = back
-	title.SetHExpand(true)
-	w.automationViewSw = w.newAutomationSwitch()
-	header.Append(w.automationViewSw)
 	view.Append(header)
 
 	content := gtk.NewBox(gtk.OrientationVertical, 8)
@@ -279,9 +276,6 @@ func (w *Window) syncPresets() {
 	ac, battery := powerPolicyAssignments(w.state)
 	if w.automationSwitch != nil {
 		syncSwitch(w.automationSwitch, enabled)
-	}
-	if w.automationViewSw != nil {
-		syncSwitch(w.automationViewSw, enabled)
 	}
 
 	acActive := enabled && w.state.PowerSource == "ac"
@@ -362,7 +356,6 @@ func (w *Window) rebuildPresetRows() {
 	}
 	w.presetFocusItems = []focusItem{
 		{widget: w.presetsBackBtn, row: 0, col: 0, section: "presets-header", onActivate: func() { w.presetsBackBtn.Activate() }},
-		{widget: w.automationViewSw, row: 0, col: 1, section: "presets-header", onActivate: func() { w.automationViewSw.SetActive(!w.automationViewSw.Active()) }},
 	}
 	enabled := currentPolicyEnabled(w.state)
 	row := 1
