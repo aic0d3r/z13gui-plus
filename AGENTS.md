@@ -466,5 +466,18 @@ Feature-complete for both KDE and gamescope modes:
   or when the user switches them off in Settings > Layout (`hidden = "..."` in config.toml).
   Risk guards (status strip, fan safety banner, 75 W caution) are never hideable. `Capabilities`
   needs a `z13ctl-plus` api tag newer than v1.8.0.
+- Dim (`internal/gui/dim.go`, Settings > Display, layout card `set.dim`): KDE-only
+  software darkening below the backlight floor. KWin's brightness/dimming only drive
+  the backlight on panels that have one, so Dim instead sets a generated sRGB ICC
+  profile with a scaled vcgt curve on the eDP output via kscreen-doctor, restoring the
+  previous profile setting (`~/.config/z13gui-plus/dim-restore`) when off. Never
+  persisted as on: startup undoes a leftover Dim profile. Hiding the card turns Dim
+  off first. The hardware-floor fix lives in the separate
+  [z13-backlight-quirk](https://github.com/aic0d3r/z13-backlight-quirk) DKMS package;
+  never bundle a kernel module with this repo's packages.
+- Camera switch (Settings > Privacy, card `set.camera`): `api.SendCameraSet`; the daemon
+  deauthorizes the USB camera and reapplies "off" at boot/resume. Hidden unless
+  `Capabilities.Camera` (also hidden for a nil `Capabilities`, since older daemons lack
+  the command). Switch on = camera on (`!State.CameraOff`).
 - goreleaser + GitHub Actions release pipeline (current release **v2.7.1**)
 - systemd user service with optional gamescope-environment loading

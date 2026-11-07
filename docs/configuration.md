@@ -17,6 +17,7 @@ accent = "sapphire"
 | `theme` | Built-in theme ID (see `z13gui-plus --list-themes` or [Theming](theming.md)) |
 | `accent` | Accent color variant for themes that support it; `""` uses the theme default |
 | `hidden` | Comma-separated card IDs switched off in **Settings → Layout**, e.g. `"overview.fans,tab.rgb"`. Cards for hardware the machine lacks are hidden automatically and are not listed here |
+| `dim_level` | Screen brightness in percent while **Settings → Display → Dim** is on (20–90, steps of 5; default 50). Whether Dim is on is never saved |
 
 If no config file exists, Z13GUI+ defaults to the `rog-dark` theme.
 
@@ -70,3 +71,7 @@ Z13GUI+ keeps its owned runtime files under
 embedded-font cache falls back to `/tmp/z13gui-plus/fonts`, while Steam
 frozen-process recovery follows the existing per-user convention at
 `/run/user/$UID/z13gui-plus/frozen-pid`.
+
+While Dim is on, its generated colour profiles live in the same directory
+(`dim-<level>.icc`), and the colour profile setting to restore is kept in
+`~/.config/z13gui-plus/dim-restore`. Both are removed when Dim turns off.

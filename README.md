@@ -88,6 +88,11 @@ the daemon; the daemon projects them to a runtime settings file the kit reads an
 applies live — no restarts required. The tablet chip in this drawer stays hidden
 until the kit's `z13-tablet-switch` reports a heartbeat.
 
+Optional: [z13-backlight-quirk](https://github.com/aic0d3r/z13-backlight-quirk)
+(AUR `z13-backlight-quirk-dkms`) lowers the Z13's minimum screen brightness with a
+kernel backlight quirk. Without it, **Settings → Display → Dim** darkens the screen
+in software instead.
+
 ## Interface
 
 <table>
@@ -163,7 +168,7 @@ The **Overview** shows live system state, with temperatures, power and fans firs
 details below; **Power** holds profile, fan mode, CPU Boost, automation, battery
 strategy, and a **Power tuning** view (TDP, fan curve, undervolt, CPU limits);
 **RGB** drives the keyboard and lightbar; **Settings** covers refresh rate, overdrive,
-boot sound, theme, and which cards to show. Hardware-control changes are sent to the
+boot sound, Dim, the camera switch, theme, and which cards to show. Hardware-control changes are sent to the
 `z13ctl-plus` daemon.
 
 ## Upgrading from v1

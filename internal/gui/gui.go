@@ -97,6 +97,7 @@ type Window struct {
 	refreshPendingUntil time.Time
 	overdriveSwitch     *gtk.Switch
 	bootSoundSwitch     *gtk.Switch
+	cameraSwitch        *gtk.Switch
 	refreshNote         *gtk.Label // shown when the firmware cannot report the live rate
 	appearanceSummary   *gtk.Label
 	presetsBtn          *gtk.Button
