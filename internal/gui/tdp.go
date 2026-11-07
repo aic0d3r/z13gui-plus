@@ -112,7 +112,8 @@ func (fc *fanCurveEditor) enforceConstraints(idx int) {
 
 // Coordinate mapping.
 func (fc *fanCurveEditor) tempToX(temp int) float64 {
-	return fc.chartX + (float64(temp-35)/70.0)*fc.chartW // 35–105°C range
+	// 35–105°C range; a preset may start below it (30°C), so pin it to the plot edge.
+	return fc.chartX + (float64(min(max(temp, 35), 105)-35)/70.0)*fc.chartW
 }
 func (fc *fanCurveEditor) pwmToY(pwm int) float64 {
 	return fc.chartY + fc.chartH - (float64(pwm)/255.0)*fc.chartH // inverted

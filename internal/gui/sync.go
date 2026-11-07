@@ -875,8 +875,8 @@ func (w *Window) syncCamera() {
 
 // fanPresetPoints returns the named preset encoded as the wire-format curve
 // string ("temp:pwm,..." with 8 points). Empty string for unknown presets.
-// Mirrors internal/cli/fan.go FanCurvePreset() in z13ctl-plus so the GUI does not
-// need a new daemon command.
+// The daemon has no preset table, so these curves are owned here; TestFanPresetPoints
+// guards the shape the daemon requires.
 func fanPresetPoints(name string) string {
 	var pts [][2]int
 	switch name {

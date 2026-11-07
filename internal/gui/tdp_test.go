@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/dahui/z13ctl/api"
@@ -65,5 +67,36 @@ func TestCurveMeetsHighTDPFloor(t *testing.T) {
 	}
 	if !curveMeetsHighTDPFloor(pts[:]) || curveMeetsHighTDPFloor(nil) {
 		t.Fatal("floor check wrong at boundary or for empty curve")
+	}
+}
+
+// The daemon requires 8 points, strictly rising temps and non-decreasing PWM.
+func TestFanPresetPoints(t *testing.T) {
+	for _, name := range fanPresets[1:] {
+		parts := strings.Split(fanPresetPoints(name), ",")
+		if len(parts) != 8 {
+			t.Fatalf("%s: %d points, want 8", name, len(parts))
+		}
+		prevT, prevP := -1, -1
+		for _, p := range parts {
+			var temp, pwm int
+			if _, err := fmt.Sscanf(p, "%d:%d", &temp, &pwm); err != nil {
+				t.Fatalf("%s: bad point %q", name, p)
+			}
+			if temp <= prevT || pwm < prevP || pwm > 255 {
+				t.Errorf("%s: point %q breaks ordering/range", name, p)
+			}
+			prevT, prevP = temp, pwm
+		}
+	}
+	if fanPresetPoints("nope") != "" {
+		t.Error("unknown preset should be empty")
+	}
+}
+
+func TestTempToXPinsOutOfRange(t *testing.T) {
+	fc := &fanCurveEditor{chartX: 10, chartW: 70}
+	if fc.tempToX(30) != fc.tempToX(35) || fc.tempToX(120) != fc.tempToX(105) {
+		t.Error("out-of-range temps must pin to the chart edges")
 	}
 }

@@ -59,6 +59,25 @@ func TestSaveAppConfig(t *testing.T) {
 	}
 }
 
+func TestSaveAppConfigKeepsUnknownLines(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", tmp)
+	dir := filepath.Join(tmp, "z13gui-plus")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "config.toml")
+	if err := os.WriteFile(path, []byte("# mine\ntheme = \"nord\"\nfuture = 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	SaveAppConfig(AppConfig{Theme: "dracula"})
+	data, _ := os.ReadFile(path)
+	want := "# mine\nfuture = 1\ntheme = \"dracula\"\n"
+	if string(data) != want {
+		t.Errorf("config = %q, want %q", data, want)
+	}
+}
+
 func TestXDGConfigHome(t *testing.T) {
 	t.Run("environment", func(t *testing.T) {
 		t.Setenv("XDG_CONFIG_HOME", "/custom/config")

@@ -128,9 +128,10 @@ type Window struct {
 	dimSwitch    *gtk.Switch
 	dimScale     *gtk.Scale
 	dimRow       *gtk.Box
-	dimValue     *gtk.Label // live DIM LEVEL readout, right of the section label
-	dimSupported bool       // set once kscreen-doctor detection succeeds
-	dimReq       chan int   // pending level for the kscreen-doctor worker; nil = unsupported
+	dimValue     *gtk.Label    // live DIM LEVEL readout, right of the section label
+	dimSupported bool          // set once kscreen-doctor detection succeeds
+	dimReq       chan int      // pending level for the kscreen-doctor worker; nil = unsupported
+	dimDone      chan struct{} // worker signals after each level-100 (restore) request
 
 	// Optional tablet companion controls. They remain hidden until a heartbeat arrives.
 	tabletChip                *gtk.ToggleButton
@@ -586,13 +587,11 @@ func (w *Window) subscribeLoop() {
 		if err != nil || ch == nil {
 			slog.Info("daemon disconnected, retrying", "backoff", backoff)
 			time.Sleep(backoff)
-			if backoff < 3*time.Second {
-				backoff *= 2
-			}
+			backoff = min(backoff*2, 4*time.Second)
 			continue
 		}
 		slog.Info("daemon connected")
-		backoff = time.Second
+		connectedAt := time.Now()
 		for event := range ch {
 			if event != "gui-toggle" {
 				continue
@@ -612,6 +611,13 @@ func (w *Window) subscribeLoop() {
 			glib.MainContextDefault().Wakeup()
 		}
 		cancel()
+		// A daemon that accepts and drops at once must not cause a tight reconnect loop.
+		if time.Since(connectedAt) < 5*time.Second {
+			time.Sleep(backoff)
+			backoff = min(backoff*2, 4*time.Second)
+		} else {
+			backoff = time.Second
+		}
 	}
 }
 

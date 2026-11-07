@@ -67,7 +67,23 @@ func SaveAppConfig(cfg AppConfig) {
 		slog.Warn("failed to create config dir", "path", dir, "err", err)
 		return
 	}
-	content := "# Z13GUI+ app configuration\ntheme = \"" + cfg.Theme + "\"\n"
+	path := filepath.Join(dir, "config.toml")
+	// Keep comments and keys this version doesn't own; only the known keys are rewritten.
+	content := ""
+	if old, err := os.ReadFile(path); err == nil {
+		for _, line := range strings.Split(strings.TrimRight(string(old), "\n"), "\n") {
+			k, _, _ := strings.Cut(line, "=")
+			switch strings.TrimSpace(k) {
+			case "theme", "accent", "hidden", "dim_level":
+				continue
+			}
+			content += line + "\n"
+		}
+	}
+	if content == "" {
+		content = "# Z13GUI+ app configuration\n"
+	}
+	content += "theme = \"" + cfg.Theme + "\"\n"
 	if cfg.Accent != "" {
 		content += "accent = \"" + cfg.Accent + "\"\n"
 	}
@@ -78,7 +94,6 @@ func SaveAppConfig(cfg AppConfig) {
 		content += "dim_level = " + strconv.Itoa(cfg.DimLevel) + "\n"
 	}
 	// Write-then-rename so a crash mid-write can't leave an empty config.
-	path := filepath.Join(dir, "config.toml")
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, []byte(content), 0o644); err != nil {
 		slog.Warn("failed to write config", "err", err)

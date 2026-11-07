@@ -299,6 +299,7 @@ func (w *Window) startDimmer() {
 		return
 	}
 	w.dimReq = make(chan int, 1)
+	w.dimDone = make(chan struct{}, 1)
 	go func() {
 		out, err := runKscreen("-o")
 		name, prof, ok := internalOutput(out)
@@ -325,8 +326,32 @@ func (w *Window) startDimmer() {
 			if err := d.apply(pct); err != nil {
 				slog.Warn("dim failed", "pct", pct, "err", err)
 			}
+			if pct >= 100 {
+				select {
+				case w.dimDone <- struct{}{}:
+				default:
+				}
+			}
 		}
 	}()
+}
+
+// Shutdown undoes Dim and waits briefly for the restore. Safe from any
+// goroutine; call it before exiting so a stopped service never leaves the
+// screen on a Dim profile.
+func (w *Window) Shutdown() {
+	if w.dimReq == nil {
+		return
+	}
+	select {
+	case <-w.dimDone: // stale ack
+	default:
+	}
+	w.requestDim(100)
+	select {
+	case <-w.dimDone:
+	case <-time.After(4 * time.Second):
+	}
 }
 
 // requestDim queues a dim level (100 = off). Main thread only.

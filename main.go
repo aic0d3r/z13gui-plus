@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/aic0d3r/z13gui-plus/internal/gui"
@@ -93,12 +94,17 @@ func main() {
 		}
 	}
 
-	// Signal handler: thaw Steam before exit on SIGTERM/SIGINT.
+	var win atomic.Pointer[gui.Window]
+
+	// Signal handler: thaw Steam and undo Dim before exit on SIGTERM/SIGINT.
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
 		<-sigCh
 		gamepad.ThawFrozen()
+		if w := win.Load(); w != nil {
+			w.Shutdown()
+		}
 		os.Exit(0)
 	}()
 
@@ -106,7 +112,6 @@ func main() {
 	// second launch forwards its command line to the running instance instead of
 	// starting another drawer. The launcher passes --toggle so the first launch
 	// opens immediately; the service starts without it and remains hidden.
-	var win *gui.Window
 	openOnFirstActivate := false
 	app := gtk.NewApplication("io.github.aic0d3r.z13gui_plus", gio.ApplicationHandlesCommandLine)
 	app.ConnectCommandLine(func(commandLine *gio.ApplicationCommandLine) int {
@@ -125,9 +130,9 @@ func main() {
 		return 0
 	})
 	app.ConnectActivate(func() {
-		if win != nil {
+		if w := win.Load(); w != nil {
 			slog.Info("re-activated, toggling existing drawer")
-			win.Toggle()
+			w.Toggle()
 			return
 		}
 		// Thaw any Steam process left frozen from a previous crash. Done here,
@@ -135,10 +140,11 @@ func main() {
 		// instance can't unfreeze Steam while the drawer is open.
 		gamepad.ThawFrozen()
 		gui.Version = Version
-		win = gui.New(app)
+		w := gui.New(app)
+		win.Store(w)
 		if openOnFirstActivate {
 			slog.Info("launcher activation, opening drawer")
-			win.Toggle()
+			w.Toggle()
 		}
 	})
 	os.Exit(app.Run(gtkArgs))
