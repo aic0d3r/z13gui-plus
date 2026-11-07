@@ -125,11 +125,12 @@ type Window struct {
 	stateActionQueue    []stateAction
 	stateRequestGen     uint64
 
-	// Dim chip (dim.go): KWin software dimming below the backlight floor.
-	dimChip     *gtk.ToggleButton
-	dimScale    *gtk.Scale
-	dimLevelRow *gtk.Box
-	dimReq      chan int // pending level for the kscreen-doctor worker; nil = unsupported
+	// Dim (dim.go): software darkening below the backlight floor, Settings > Display.
+	dimSwitch    *gtk.Switch
+	dimScale     *gtk.Scale
+	dimRow       *gtk.Box
+	dimSupported bool     // set once kscreen-doctor detection succeeds
+	dimReq       chan int // pending level for the kscreen-doctor worker; nil = unsupported
 
 	// Optional tablet companion controls. They remain hidden until a heartbeat arrives.
 	tabletChip                *gtk.ToggleButton

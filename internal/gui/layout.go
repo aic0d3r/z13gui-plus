@@ -31,6 +31,7 @@ var layoutCards = []layoutCard{
 	{"power.battery", "POWER", "Battery strategy"},
 	{"power.tuning", "POWER", "Power tuning"},
 	{"tab.rgb", "TABS", "RGB tab"},
+	{"set.dim", "SETTINGS", "Dim"},
 }
 
 // registerCard remembers a card so applyLayout can show or hide it.
@@ -52,6 +53,9 @@ func hiddenCards(list string) map[string]bool {
 // cardUnavailable reports hardware that is absent. Unknown state counts as present.
 // IDs missing from layoutCards (power.profile, set.*) are hidden only by hardware.
 func (w *Window) cardUnavailable(id string) bool {
+	if id == "set.dim" { // decided by kscreen-doctor detection, not the daemon
+		return !w.dimSupported
+	}
 	s := w.state
 	if s == nil {
 		return false

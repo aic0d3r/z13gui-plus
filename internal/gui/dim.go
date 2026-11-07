@@ -1,6 +1,7 @@
 package gui
 
-// dim.go — "Dim" chip: darkens the built-in panel below the backlight floor.
+// dim.go — Settings > Display "Dim": darkens the built-in panel below the
+// backlight floor.
 //
 // The firmware clamps the amdgpu backlight to a minimum, and KWin's own
 // brightness and dimming only drive that backlight when the panel has one
@@ -10,8 +11,9 @@ package gui
 // on the eDP output with kscreen-doctor; turning Dim off restores the colour
 // profile settings that were active before.
 //
-// KDE only: the chip stays hidden without kscreen-doctor, an eDP output, or
-// ICC support, and in gamescope. The on/off state is never kept: profiles live
+// KDE only: the row stays hidden without kscreen-doctor, an eDP output, or
+// ICC support, and in gamescope; users can also hide it in Settings > Layout
+// (useful once a kernel backlight quirk already lowers the floor). The on/off state is never kept: profiles live
 // in the runtime dir and startup undoes a Dim profile left by a previous
 // session, so a too-dark screen is always fixed by logging in again. Only the
 // level is persisted (config.toml dim_level).
@@ -313,8 +315,9 @@ func (w *Window) startDimmer() {
 			slog.Info("dim reset from previous session")
 		}
 		glib.TimeoutAdd(0, func() bool {
-			w.dimChip.SetVisible(true)
-			w.dimLevelRow.SetVisible(true)
+			w.dimSupported = true
+			w.applyLayout()
+			w.buildMainFocusList()
 			return false
 		})
 		glib.MainContextDefault().Wakeup()
@@ -338,27 +341,28 @@ func (w *Window) requestDim(pct int) {
 	w.dimReq <- pct
 }
 
-func (w *Window) buildDimChip() *gtk.ToggleButton {
-	chip := gtk.NewToggleButtonWithLabel("Dim")
-	chip.AddCSSClass("pill")
-	chip.AddCSSClass("tablet-chip")
-	chip.SetTooltipText("Darken the screen below the lowest backlight level. Turns off at login.")
-	chip.SetVisible(false)
-	chip.ConnectToggled(func() {
-		if chip.Active() {
+// buildDimRow is the Settings > Display block: the Dim switch and its level
+// slider. Visibility is owned by applyLayout (card "set.dim").
+func (w *Window) buildDimRow() *gtk.Box {
+	box := gtk.NewBox(gtk.OrientationVertical, 2)
+	box.Append(w.buildToggle("Dim", "Darken the screen below the lowest backlight level", &w.dimSwitch, func(on bool) {
+		if on {
 			w.requestDim(int(w.dimScale.Value()))
 		} else {
 			w.requestDim(100)
 		}
+	}))
+	// Hiding the row in Settings > Layout must not leave the screen dimmed with no
+	// way to undo it. applyLayout runs with syncing set, so call requestDim directly.
+	box.Connect("notify::visible", func() {
+		if !box.Visible() && w.dimSwitch.Active() {
+			w.dimSwitch.SetActive(false)
+			w.requestDim(100)
+		}
 	})
-	w.dimChip = chip
-	return chip
-}
 
-// buildDimLevelRow is the Settings > Display slider that sets how dark Dim gets.
-func (w *Window) buildDimLevelRow() *gtk.Box {
-	box := gtk.NewBox(gtk.OrientationVertical, 2)
 	label := gtk.NewLabel("DIM LEVEL")
+	label.SetMarginTop(6)
 	label.SetHAlign(gtk.AlignStart)
 	label.AddCSSClass("scale-name")
 	box.Append(label)
@@ -381,7 +385,7 @@ func (w *Window) buildDimLevelRow() *gtk.Box {
 			sc.SetValue(float64(v)) // re-enters with the snapped value
 			return
 		}
-		if w.dimChip.Active() {
+		if w.dimSwitch.Active() {
 			w.requestDim(v)
 		}
 		// Save once the drag settles instead of rewriting config.toml per step.
@@ -399,13 +403,12 @@ func (w *Window) buildDimLevelRow() *gtk.Box {
 	w.dimScale = sc
 	box.Append(sc)
 
-	detail := gtk.NewLabel("How dark the Dim chip makes the screen. Lower is darker.")
+	detail := gtk.NewLabel("Darkens the screen below the lowest brightness. Lower is darker. Turns off at login.")
 	detail.SetHAlign(gtk.AlignStart)
 	detail.SetWrap(true)
 	detail.SetMaxWidthChars(30)
 	detail.AddCSSClass("setting-description")
 	box.Append(detail)
-	box.SetVisible(false)
-	w.dimLevelRow = box
+	w.dimRow = box
 	return box
 }

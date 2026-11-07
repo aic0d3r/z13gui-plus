@@ -51,9 +51,6 @@ func (w *Window) buildContent() gtk.Widgetter {
 	titleLabel.AddCSSClass("drawer-title")
 	titleRow.Append(titleLabel)
 	titleRow.Append(w.buildTabletChip())
-	dimChip := w.buildDimChip()
-	dimChip.SetMarginStart(6)
-	titleRow.Append(dimChip)
 
 	// Main tab row — Overview / Power / RGB / System. Active tab persists across drawer opens.
 	tabRow := w.buildMainTabRow()
@@ -279,7 +276,8 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	})
 	w.registerCard("set.bootsound", bootRow)
 	display.Append(bootRow)
-	display.Append(w.buildDimLevelRow())
+	w.registerCard("set.dim", w.buildDimRow())
+	display.Append(w.dimRow)
 	w.registerCard("set.display", display)
 	inner.Append(display)
 	inner.Append(w.buildAppearanceSection())
@@ -1238,12 +1236,6 @@ func newCollapsibleHeader(label string, summary *gtk.Label, defaultOpen bool) *g
 // Items are arranged by visual row/col matching the drawer layout.
 func (w *Window) buildMainFocusList() {
 	items := w.tabletFocusItems()
-	if c := w.dimChip; c != nil {
-		items = append(items, focusItem{
-			widget: c, row: -12, col: 1, section: "tablet", isVisible: c.Visible,
-			onActivate: func() { c.SetActive(!c.Active()) },
-		})
-	}
 
 	// Top-level tab row — always at row 0.
 	for col, name := range []string{"overview", "power", "rgb", "system"} {
@@ -1492,14 +1484,19 @@ func (w *Window) systemTabFocusItems() []focusItem {
 		})
 		row++
 	}
-	if sc := w.dimScale; sc != nil {
+	if sw, sc := w.dimSwitch, w.dimScale; sw != nil && sc != nil {
 		left, right, get, set := scaleAdjust(sc, 5)
-		items = append(items, focusItem{
-			widget: sc, row: row, col: 0, section: "dim-level", editable: true,
-			isVisible: w.dimLevelRow.Visible,
-			onLeft:    left, onRight: right, getValue: get, setValue: set,
-		})
-		row++
+		items = append(items,
+			focusItem{
+				widget: sw, row: row, col: 0, section: "system", isVisible: w.dimRow.IsVisible,
+				onActivate: func() { sw.SetActive(!sw.Active()) },
+			},
+			focusItem{
+				widget: sc, row: row + 1, col: 0, section: "dim-level", editable: true,
+				isVisible: w.dimRow.IsVisible,
+				onLeft:    left, onRight: right, getValue: get, setValue: set,
+			})
+		row += 2
 	}
 	if w.paletteBtn != nil {
 		btn := w.paletteBtn
