@@ -30,7 +30,7 @@ Press it again, click anywhere outside the drawer, or press **Escape** to close 
 | **Panel Overdrive** | Toggle faster pixel response (may cause slight ghosting) |
 | **Boot Sound** | Enable or disable the startup POST sound |
 | **Dim** | KDE only. Darkens the built-in screen below its lowest brightness, set by **Dim Level** (20–90%). It works by applying a colour profile, so it does not save battery, and it turns off at every login. For a darker hardware minimum, install the optional [z13-backlight-quirk](https://github.com/aic0d3r/z13-backlight-quirk) (AUR `z13-backlight-quirk-dkms`); you can then hide Dim in **Layout**. |
-| **Camera** | In Settings > Privacy. Off disconnects the built-in webcam and IR camera, so no app can use them, and it stays off after a restart until you turn it back on. Needs z13ctl-plus with camera support; hidden otherwise. |
+| **Camera** | In Settings > Privacy. Off disconnects the built-in webcam and IR camera, so no app can use them, and it stays off after a restart until you turn it back on. Needs z13ctl-plus v2.6.0 or newer; hidden otherwise. |
 | **Tablet kit chip** | When the optional tablet companion is detected, open its posture, health, touchscreen, touchpad, and scrolling controls. |
 
 Changes take effect immediately and are sent to the z13ctl-plus daemon. Saved
