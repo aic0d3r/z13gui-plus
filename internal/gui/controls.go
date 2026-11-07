@@ -280,7 +280,6 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	display.Append(w.dimRow)
 	w.registerCard("set.display", display)
 	inner.Append(display)
-	inner.Append(w.buildPrivacySection())
 	inner.Append(w.buildAppearanceSection())
 	inner.Append(w.buildLayoutSection())
 	inner.Append(w.buildVersionSection())
@@ -291,37 +290,6 @@ func (w *Window) buildSystemTab() *gtk.ScrolledWindow {
 	scroll.SetChild(inner)
 	w.systemScroll = scroll
 	return scroll
-}
-
-// buildPrivacySection holds the camera switch. Off disconnects the USB camera
-// (webcam and IR) and the daemon keeps it off across reboot and resume.
-func (w *Window) buildPrivacySection() *gtk.Box {
-	card := titledCard("PRIVACY")
-	card.Append(w.buildToggle("Camera", "Turn the built-in webcam and IR camera on or off", &w.cameraSwitch, func(active bool) {
-		v := 0
-		if active {
-			v = 1
-		}
-		w.runStateActionApplied("camera", func() (bool, error) {
-			return api.SendCameraSet(v)
-		}, func() {
-			if w.state != nil {
-				w.state.CameraOff = v == 0
-			}
-		}, func(error) {
-			prev := w.syncing
-			w.syncing = true
-			w.syncCamera()
-			w.syncing = prev
-		})
-	}))
-	detail := gtk.NewLabel("Off disconnects the webcam and IR camera, and stays off after a restart")
-	detail.SetHAlign(gtk.AlignStart)
-	detail.SetWrap(true)
-	detail.AddCSSClass("setting-description")
-	card.Append(detail)
-	w.registerCard("set.camera", card)
-	return card
 }
 
 // buildAppearanceSection keeps theme selection with the other system settings.
@@ -1529,13 +1497,6 @@ func (w *Window) systemTabFocusItems() []focusItem {
 				onLeft:    left, onRight: right, getValue: get, setValue: set,
 			})
 		row += 2
-	}
-	if sw, card := w.cameraSwitch, w.layoutWidgets["set.camera"]; sw != nil && card != nil {
-		items = append(items, focusItem{
-			widget: sw, row: row, col: 0, section: "privacy", isVisible: gtk.BaseWidget(card).IsVisible,
-			onActivate: func() { sw.SetActive(!sw.Active()) },
-		})
-		row++
 	}
 	if w.paletteBtn != nil {
 		btn := w.paletteBtn

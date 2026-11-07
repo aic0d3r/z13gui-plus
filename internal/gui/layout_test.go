@@ -64,21 +64,10 @@ func TestCardUnavailableFromCapabilities(t *testing.T) {
 	if w.cardUnavailable("set.display") || w.cardUnavailable("set.bootsound") || !w.cardUnavailable("set.refresh") {
 		t.Error("display card must follow its remaining controls")
 	}
-	if !w.cardUnavailable("set.camera") {
-		t.Error("camera card must hide without a camera")
-	}
-	w.state.Capabilities = &api.Capabilities{Camera: true}
-	if w.cardUnavailable("set.camera") {
-		t.Error("camera card must show with a camera")
-	}
-	// Older daemon: no capabilities means everything is present, except the
-	// camera, whose command such a daemon does not have.
+	// Older daemon: no capabilities means everything is present.
 	w.state.Capabilities = nil
 	if w.cardUnavailable("power.fan") || w.cardUnavailable("set.display") {
 		t.Error("missing capabilities must read as all present")
-	}
-	if !w.cardUnavailable("set.camera") {
-		t.Error("camera card must hide for a daemon without the camera command")
 	}
 }
 
