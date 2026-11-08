@@ -200,6 +200,10 @@ Full documentation at **<https://aic0d3r.github.io/z13gui-plus>**
 - [Changelog](https://aic0d3r.github.io/z13gui-plus/changelog/)
 - [Contributing](https://aic0d3r.github.io/z13gui-plus/contributing/)
 
+## Say thanks
+
+If Z13GUI+ makes your Z13 nicer to live with, [star it on GitHub](https://github.com/aic0d3r/z13gui-plus). That helps other Z13 owners find it. If you want to chip in, you can [sponsor me on GitHub](https://github.com/sponsors/aic0d3r).
+
 ## License
 
 [Apache 2.0](LICENSE)
