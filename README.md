@@ -84,10 +84,9 @@ Z13. Install the other two repos alongside it:
 - **Z13GUI+** (this repo) — GTK4 overlay drawer exposing live posture/health and
   the tablet toggles
 
-Flow: the kit detects posture and publishes it to the daemon, which applies the
-display changes; this drawer shows that state and persists settings back through
-the daemon; the daemon projects them to a runtime settings file the kit reads and
-applies live — no restarts required. The tablet chip in this drawer stays hidden
+Flow: kit detects posture → the daemon applies display changes → this drawer
+shows state and persists settings → the kit applies them live — no restarts
+required. The tablet chip in this drawer stays hidden
 until the kit's `z13-tablet-switch` reports a heartbeat.
 
 Optional: [z13-backlight-quirk](https://github.com/aic0d3r/z13-backlight-quirk)
@@ -97,14 +96,16 @@ in software instead.
 
 ## Interface
 
+The hero above is the **Overview** tab; four more tabs, captured on this machine:
+
 <table>
   <tr>
-    <td align="center"><strong>Power</strong><br><img src="assets/z13gui-plus-power.avif" alt="Z13GUI+ Power tab"></td>
-    <td align="center"><strong>RGB</strong><br><img src="assets/z13gui-plus-rgb.avif" alt="Z13GUI+ RGB tab"></td>
+    <td align="center"><strong>Power</strong><br><img src="assets/z13gui-plus-power.avif" width="320" alt="Power tab: profile, fan mode, CPU Boost, automation, battery strategy, and tuning cards"></td>
+    <td align="center"><strong>RGB</strong><br><img src="assets/z13gui-plus-rgb.avif" width="320" alt="RGB tab: per-device lighting toggle for keyboard and lightbar"></td>
   </tr>
   <tr>
-    <td align="center"><strong>Power Tuning</strong><br><img src="assets/z13gui-plus-power-tuning.avif" alt="Z13GUI+ Power Tuning view"></td>
-    <td align="center"><strong>Settings</strong><br><img src="assets/z13gui-plus-system.avif" alt="Z13GUI+ Settings tab"></td>
+    <td align="center"><strong>Power Tuning</strong><br><img src="assets/z13gui-plus-power-tuning.avif" width="320" alt="Power Tuning view: TDP sliders for PL1, PL2, and PL3 with a high-TDP caution"></td>
+    <td align="center"><strong>Settings</strong><br><img src="assets/z13gui-plus-system.avif" width="320" alt="Settings tab: display, camera, boot sound, theme, and layout cards"></td>
   </tr>
 </table>
 
@@ -150,9 +151,6 @@ sudo install -Dm755 z13gui-plus /usr/local/bin/z13gui-plus
 systemctl --user enable --now z13gui-plus.service
 ```
 
-On KDE Plasma, **Meta+Z** also toggles the drawer (rebind it under System Settings →
-Shortcuts → Z13GUI+).
-
 See the [Installation guide](https://aic0d3r.github.io/z13gui-plus/installation/) for
 runtime dependencies, gamepad input blocking, source builds, and uninstall
 instructions. Packages leave the GUI service disabled; enable only the GUI that
@@ -160,18 +158,25 @@ matches the controller daemon you selected.
 
 ## Quick Start
 
-```sh
-# Armoury Crate button on the Z13 opens and closes the drawer
-systemctl --user enable --now z13ctl-plus.socket z13ctl-plus.service
-systemctl --user enable --now z13gui-plus.service
-```
+1. One-time: enable the daemon and the drawer. Packages leave both disabled, so
+   this line is what starts them now and on every login:
 
-The **Overview** shows live system state, with temperatures, power and fans first and
-details below; **Power** holds profile, fan mode, CPU Boost, automation, battery
-strategy, and a **Power tuning** view (TDP, fan curve, undervolt, CPU limits);
-**RGB** drives the keyboard and lightbar; **Settings** covers refresh rate, overdrive,
-boot sound, Dim, the camera switch, theme, and which cards to show. Hardware-control changes are sent to the
-`z13ctl-plus` daemon.
+   ```sh
+   systemctl --user enable --now z13ctl-plus.socket z13ctl-plus.service z13gui-plus.service
+   ```
+
+2. Open the drawer with the **Armoury Crate button**; on KDE Plasma **Meta+Z** also
+   works (rebind it under System Settings → Shortcuts → Z13GUI+).
+
+The tabs, roughly in the order you'll use them:
+
+- **Overview** — live temperatures, power draw, fans, memory, and battery
+- **Power** — profile, fan mode, CPU Boost, automation, battery strategy
+- **Power tuning** — TDP, fan curve, undervolt, and CPU frequency limits
+- **RGB** — keyboard and lightbar lighting
+- **Settings** — refresh rate, overdrive, boot sound, Dim, camera, theme, layout
+
+Hardware-control changes are sent to the `z13ctl-plus` daemon.
 
 ## Upgrading from v1
 
@@ -202,10 +207,10 @@ Full documentation at **<https://aic0d3r.github.io/z13gui-plus>**
 - [Changelog](https://aic0d3r.github.io/z13gui-plus/changelog/)
 - [Contributing](https://aic0d3r.github.io/z13gui-plus/contributing/)
 
-## Say thanks
-
-If Z13GUI+ makes your Z13 nicer to live with, [star it on GitHub](https://github.com/aic0d3r/z13gui-plus). That helps other Z13 owners find it. If you want to chip in, you can [sponsor me on GitHub](https://github.com/sponsors/aic0d3r).
-
 ## License
 
 [Apache 2.0](LICENSE)
+
+## Say thanks
+
+If Z13GUI+ makes your Z13 nicer to live with, [star it on GitHub](https://github.com/aic0d3r/z13gui-plus). That helps other Z13 owners find it. If you want to chip in, you can [sponsor me on GitHub](https://github.com/sponsors/aic0d3r).

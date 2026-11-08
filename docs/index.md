@@ -7,12 +7,15 @@ lighting, battery charge limit, and refresh rate from a touch- and gamepad-frien
 GTK4 overlay on KDE Plasma, other Wayland desktops, and Steam Gaming Mode. Powered by
 the **z13ctl-plus** daemon.
 
+<p align="center">
+  <img src="assets/z13gui-plus.avif" width="380" alt="The Z13GUI+ drawer slid in over the desktop, Overview tab with temperatures, power, memory, and battery">
+</p>
+
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/aic0d3r/z13gui-plus/blob/main/LICENSE)
 
 Z13GUI+ is an independently named fork of
 [dahui/z13gui](https://github.com/dahui/z13gui) targeting
-[z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus). It preserves intentional
-API and UI compatibility, not runtime-name compatibility. Starting with v2.0.0,
+[z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus). Starting with v2.0.0,
 the command, service, configuration/runtime paths, desktop and udev filenames,
 GApplication ID, and Go module all use the Plus namespace. The only installed
 command is `z13gui-plus`.
@@ -44,6 +47,12 @@ Hardware-control changes are sent through the `z13ctl-plus` daemon.
   GNOME works through a [beta overlay backend](#gnome-support-beta).
 - GTK 4 and gtk4-layer-shell libraries (see [Installation](installation.md#runtime-dependencies) for distro package names)
 - [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) daemon running
+
+On Arch, the package and this one-liner are all you need:
+
+```sh
+yay -S z13gui-plus-bin
+```
 
 The Plus and upstream packages can coexist. Installation does not enable the
 GUI service or manage either controller service; explicitly enable only the GUI
