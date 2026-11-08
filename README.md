@@ -51,7 +51,9 @@ first. The installed command is `z13gui-plus`; no `z13gui` alias is provided.
 > exposes everything this drawer shows plus presets and scripting, and is required
 > by Z13GUI+. This repo is the touch interface on top of it.
 
-![Z13GUI+ control drawer for the ASUS ROG Flow Z13 on Linux](assets/z13gui-plus.avif)
+<p align="center">
+  <img src="assets/z13gui-plus.avif" width="380" alt="Z13GUI+ control drawer for the ASUS ROG Flow Z13 on Linux">
+</p>
 
 ## What Plus Adds
 
