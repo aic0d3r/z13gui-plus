@@ -18,7 +18,6 @@
 [Compatibility](#compatibility) •
 [Install](#install) •
 [Quick Start](#quick-start) •
-[Upgrading from v1](#upgrading-from-v1) •
 [Documentation](#documentation) •
 [License](#license)
 
@@ -177,24 +176,6 @@ The tabs, roughly in the order you'll use them:
 - **Settings** — refresh rate, overdrive, boot sound, Dim, camera, theme, layout
 
 Hardware-control changes are sent to the `z13ctl-plus` daemon.
-
-## Upgrading from v1
-
-After installing v2.0.0 or later, copy the complete legacy configuration only if the
-new Plus configuration directory does not exist:
-
-```sh
-systemctl --user disable --now z13gui.service
-z13gui-plus --migrate-config
-systemctl --user enable --now z13gui-plus.service
-```
-
-Migration copies `$XDG_CONFIG_HOME/z13gui` to
-`$XDG_CONFIG_HOME/z13gui-plus`; it leaves the source untouched and does not
-change services or remove artifacts. Run the disable command only when the old
-service is known to be from this fork. Legacy names may belong to upstream, so
-remove old files only after verifying their provenance. See the
-[migration guide](https://aic0d3r.github.io/z13gui-plus/installation/#migrating-from-v1-to-v2).
 
 ## Documentation
 
