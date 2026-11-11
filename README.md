@@ -29,8 +29,15 @@ desktops, and Steam Gaming Mode.
 - **RGB** — keyboard and lightbar
 - **Display & battery** — 60/180 Hz, overdrive, charge limit, live telemetry
 
-Needs the [`z13ctl-plus`](https://github.com/aic0d3r/z13ctl-plus) daemon. Other
-Strix Halo machines are experimental; GNOME is an untested beta. Fork of
+Part of a three-repo Z13 stack:
+
+| Repo | Role |
+|------|------|
+| [`z13ctl-plus`](https://github.com/aic0d3r/z13ctl-plus) | Daemon + CLI that owns the hardware (**required**) |
+| **Z13GUI+** (this repo) | Touch drawer on top of it |
+| [`z13-tablet-kit`](https://github.com/aic0d3r/z13-tablet-kit) | Dock/folio/tablet posture, touch scrolling, context menus (optional) |
+
+Other Strix Halo machines are experimental; GNOME is an untested beta. Fork of
 [`dahui/z13gui`](https://github.com/dahui/z13gui) that installs alongside upstream.
 [More](https://aic0d3r.github.io/z13gui-plus/overview/).
 
