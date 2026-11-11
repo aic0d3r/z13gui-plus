@@ -90,6 +90,7 @@ X11 sessions are not supported by this backend.
 
 ## Next steps
 
+- [**Overview**](overview.md) — screenshots, compatibility, tablet stack, darker screen
 - [**Installation**](installation.md) — download the binary or build from source
 - [**Quick Start**](getting-started.md) — open the drawer and explore the controls
 - [**Configuration**](configuration.md) — config file, environment variables

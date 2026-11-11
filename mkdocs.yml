@@ -51,6 +51,7 @@ nav:
   - Getting Started:
     - Installation: installation.md
     - Quick Start: getting-started.md
+  - Overview: overview.md
   - Reference:
     - Configuration: configuration.md
     - Theming: theming.md

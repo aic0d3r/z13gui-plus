@@ -4,7 +4,7 @@
 
 </div>
 
-# Z13GUI+ — power, thermals & RGB control drawer for the ASUS ROG Flow Z13 and AMD Strix Halo on Linux
+# Z13GUI+ — ROG Flow Z13 control panel for Linux
 
 <div align="center">
 
@@ -12,122 +12,31 @@
 [![AUR](https://img.shields.io/aur/version/z13gui-plus-bin)](https://aur.archlinux.org/packages/z13gui-plus-bin)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-[What Plus Adds](#what-plus-adds) •
-[Tablet stack](#tablet-stack) •
-[Interface](#interface) •
-[Compatibility](#compatibility) •
 [Install](#install) •
+[Darker screen](#darker-screen) •
 [Quick Start](#quick-start) •
-[Documentation](#documentation) •
-[License](#license)
+[Docs](#documentation)
 
 </div>
 
-GTK4 control drawer for the **2025 ASUS ROG Flow Z13** (GZ302, Ryzen AI Max /
-Strix Halo): power profiles and AC/battery automation, TDP and fan-curve tuning,
-CPU undervolt, RGB keyboard and lightbar lighting, battery charge limit, panel
-refresh rate and overdrive, and live telemetry — slid in from the screen edge with
-the Armoury Crate button. Works on KDE Plasma and other layer-shell Wayland
-desktops, and inside Steam Gaming Mode (gamescope), with touch and gamepad
-navigation. GNOME support is an **untested beta**
-([details](https://aic0d3r.github.io/z13gui-plus/#gnome-support-beta)).
+A touch- and gamepad-friendly drawer for the **2025 ASUS ROG Flow Z13** (Strix Halo),
+opened with the Armoury Crate button. Works on KDE Plasma, other layer-shell Wayland
+desktops, and Steam Gaming Mode.
 
-Built for the Flow Z13 and **adapts to the hardware it finds**: on an AMD Strix
-Halo machine without a battery, RGB, or ASUS firmware controls, those cards and
-tabs disappear instead of showing controls that cannot work. See
-[Compatibility](#compatibility).
+- **Power** — profiles, AC/battery presets, TDP, fan curves, undervolt
+- **Darker screen** — [z13-backlight-quirk](https://github.com/aic0d3r/z13-backlight-quirk)
+  lowers the Z13's minimum brightness; built-in **Dim** covers the rest
+- **RGB** — keyboard and lightbar
+- **Display & battery** — 60/180 Hz, overdrive, charge limit, live telemetry
 
-`Z13GUI+` is an independently named fork of
-[`dahui/z13gui`](https://github.com/dahui/z13gui) with its own command, service,
-configuration, runtime, desktop, and application-ID namespaces, so it installs
-alongside upstream; enable only one GUI at a time. It talks only to
-[`z13ctl-plus`](https://github.com/aic0d3r/z13ctl-plus) — install that daemon
-first. The installed command is `z13gui-plus`; no `z13gui` alias is provided.
-
-> [!TIP]
-> **Need the CLI or scripting? Install
-> [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus).** It owns the hardware,
-> exposes everything this drawer shows plus presets and scripting, and is required
-> by Z13GUI+. This repo is the touch interface on top of it.
+Needs the [`z13ctl-plus`](https://github.com/aic0d3r/z13ctl-plus) daemon. Other
+Strix Halo machines are experimental; GNOME is an untested beta. Fork of
+[`dahui/z13gui`](https://github.com/dahui/z13gui) that installs alongside upstream.
+[More](https://aic0d3r.github.io/z13gui-plus/overview/).
 
 <p align="center">
   <img src="assets/z13gui-plus.avif" width="380" alt="Z13GUI+ control drawer for the ASUS ROG Flow Z13 on Linux">
 </p>
-
-## What Plus Adds
-
-- **Power automation** — save named configurations and assign separate presets
-  for plugged-in and battery operation
-- **Independent CPU policy** — control minimum CPU frequency, AMD EPP, and boost
-  without coupling them to GPU clocks
-- **Expanded telemetry** — monitor CPU, GPU, NPU, memory, battery, power, clocks,
-  temperatures, and both fans from a dedicated Overview
-- **Battery insight** — see health, energy capacity, system draw, charge state,
-  and direction-aware runtime estimates
-- **Direct display control** — switch the internal panel between 60 Hz and 180 Hz
-- **Safer tuning feedback** — identify unsaved overrides, high-TDP fan safety,
-  the live fan-curve operating point, and reset all tuning overrides together
-- **Faster fan control** — select Auto, Balanced, or Turbo without editing a curve
-
-## Tablet stack
-
-`Z13GUI+` is the settings and status surface in a three-repo tablet stack for the
-Z13. Install the other two repos alongside it:
-
-- [z13-tablet-kit](https://github.com/aic0d3r/z13-tablet-kit) — detects
-  dock/folio/tablet posture, toggles the touchscreen, and provides touch
-  scrolling and two-finger context menus
-- [z13ctl-plus](https://github.com/aic0d3r/z13ctl-plus) — owns internal-panel
-  scale/rotation/refresh changes and persists tablet settings (desktop touch
-  policy, two-finger hold, folio touchpad opt-in, scroll speed, keep display scale)
-- **Z13GUI+** (this repo) — GTK4 overlay drawer exposing live posture/health and
-  the tablet toggles
-
-Flow: kit detects posture → the daemon applies display changes → this drawer
-shows state and persists settings → the kit applies them live — no restarts
-required. The tablet chip in this drawer stays hidden
-until the kit's `z13-tablet-switch` reports a heartbeat.
-
-Optional: [z13-backlight-quirk](https://github.com/aic0d3r/z13-backlight-quirk)
-(AUR `z13-backlight-quirk-dkms`) lowers the Z13's minimum screen brightness with a
-kernel backlight quirk. Without it, **Settings → Display → Dim** darkens the screen
-in software instead.
-
-## Interface
-
-The hero above is the **Overview** tab; four more tabs, captured on this machine:
-
-<table>
-  <tr>
-    <td align="center"><strong>Power</strong><br><img src="assets/z13gui-plus-power.avif" width="320" alt="Power tab: profile, fan mode, CPU Boost, automation, battery strategy, and tuning cards"></td>
-    <td align="center"><strong>RGB</strong><br><img src="assets/z13gui-plus-rgb.avif" width="320" alt="RGB tab: per-device lighting toggle for keyboard and lightbar"></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>Power Tuning</strong><br><img src="assets/z13gui-plus-power-tuning.avif" width="320" alt="Power Tuning view: TDP sliders for PL1, PL2, and PL3 with a high-TDP caution"></td>
-    <td align="center"><strong>Settings</strong><br><img src="assets/z13gui-plus-system.avif" width="320" alt="Settings tab: display, camera, boot sound, theme, and layout cards"></td>
-  </tr>
-</table>
-
-## Compatibility
-
-The drawer shows only what the [`z13ctl-plus`](https://github.com/aic0d3r/z13ctl-plus)
-daemon reports for your machine. Cards for missing hardware are hidden
-automatically, and **Settings → Layout** lets you hide any other card.
-
-| Machine | Status |
-|---------|--------|
-| ASUS ROG Flow Z13 (2025, GZ302) | **Supported** — every control |
-| Other AMD Strix Halo laptop or mini PC | **Experimental** — telemetry and CPU policy should work; fan curves, TDP, boot sound and panel overdrive need ASUS interfaces and are hidden when absent |
-| Anything else | Not supported |
-
-Without a battery, the Battery cards disappear; without RGB devices, the RGB tab
-disappears; without an internal panel, the refresh-rate control disappears. A
-daemon older than v2.5.0 does not report capabilities, and the drawer then shows
-everything.
-
-Running it on a non-Z13 machine? Please open a
-[compatibility report](https://github.com/aic0d3r/z13gui-plus/issues/new?template=compatibility_report.md)
-so this table can be filled in from real results.
 
 ## Install
 
@@ -145,53 +54,42 @@ sudo dnf install ./z13gui-plus_*.rpm
 wget https://github.com/aic0d3r/z13gui-plus/releases/download/v2.8.0/z13gui-plus_2.8.0_linux_amd64.tar.gz
 tar xzf z13gui-plus_2.8.0_linux_amd64.tar.gz
 sudo install -Dm755 z13gui-plus /usr/local/bin/z13gui-plus
-
-# With z13ctl-plus set up
-systemctl --user enable --now z13gui-plus.service
 ```
 
 See the [Installation guide](https://aic0d3r.github.io/z13gui-plus/installation/) for
-runtime dependencies, gamepad input blocking, source builds, and uninstall
-instructions. Packages leave the GUI service disabled; enable only the GUI that
-matches the controller daemon you selected.
+dependencies, gamepad input blocking, source builds, and uninstall. Packages leave
+the service disabled.
+
+## Darker screen
+
+The Z13's panel is still bright at 0%. Install
+[z13-backlight-quirk](https://github.com/aic0d3r/z13-backlight-quirk), a DKMS
+kernel quirk that lowers the floor, then reboot:
+
+```sh
+yay -S z13-backlight-quirk-dkms
+```
+
+Without it, **Settings → Display → Dim** darkens the screen in software (KDE).
 
 ## Quick Start
 
-1. One-time: enable the daemon and the drawer. Packages leave both disabled, so
-   this line is what starts them now and on every login:
+```sh
+systemctl --user enable --now z13ctl-plus.socket z13ctl-plus.service z13gui-plus.service
+```
 
-   ```sh
-   systemctl --user enable --now z13ctl-plus.socket z13ctl-plus.service z13gui-plus.service
-   ```
-
-2. Open the drawer with the **Armoury Crate button**; on KDE Plasma **Meta+Z** also
-   works (rebind it under System Settings → Shortcuts → Z13GUI+).
-
-The tabs, roughly in the order you'll use them:
-
-- **Overview** — live temperatures, power draw, fans, memory, and battery
-- **Power** — profile, fan mode, CPU Boost, automation, battery strategy
-- **Power tuning** — TDP, fan curve, undervolt, and CPU frequency limits
-- **RGB** — keyboard and lightbar lighting
-- **Settings** — refresh rate, overdrive, boot sound, Dim, camera, theme, layout
-
-Hardware-control changes are sent to the `z13ctl-plus` daemon.
+Press the **Armoury Crate button** (or **Meta+Z** on KDE) to open the drawer.
 
 ## Documentation
 
-Full documentation at **<https://aic0d3r.github.io/z13gui-plus>**
-
-- [Installation](https://aic0d3r.github.io/z13gui-plus/installation/)
-- [Quick Start](https://aic0d3r.github.io/z13gui-plus/getting-started/)
-- [Configuration](https://aic0d3r.github.io/z13gui-plus/configuration/)
-- [Theming](https://aic0d3r.github.io/z13gui-plus/theming/)
-- [Changelog](https://aic0d3r.github.io/z13gui-plus/changelog/)
-- [Contributing](https://aic0d3r.github.io/z13gui-plus/contributing/)
+Full docs: **<https://aic0d3r.github.io/z13gui-plus>** —
+[Overview & compatibility](https://aic0d3r.github.io/z13gui-plus/overview/) ·
+[Installation](https://aic0d3r.github.io/z13gui-plus/installation/) ·
+[Quick Start](https://aic0d3r.github.io/z13gui-plus/getting-started/) ·
+[Configuration](https://aic0d3r.github.io/z13gui-plus/configuration/) ·
+[Theming](https://aic0d3r.github.io/z13gui-plus/theming/) ·
+[Changelog](https://aic0d3r.github.io/z13gui-plus/changelog/)
 
 ## License
 
-[Apache 2.0](LICENSE)
-
-## Say thanks
-
-If Z13GUI+ makes your Z13 nicer to live with, [star it on GitHub](https://github.com/aic0d3r/z13gui-plus). That helps other Z13 owners find it. If you want to chip in, you can [sponsor me on GitHub](https://github.com/sponsors/aic0d3r).
+[Apache 2.0](LICENSE) · If it helps, [star it](https://github.com/aic0d3r/z13gui-plus) or [sponsor me](https://github.com/sponsors/aic0d3r).
