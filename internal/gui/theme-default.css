@@ -121,11 +121,6 @@ window.z13-drawer-window {
     color: @z13-accent;
 }
 
-/* Slider descriptions — dimmer than value readouts */
-.scale-desc {
-    color: @z13-text-faint;
-}
-
 /* Slider name labels */
 .scale-name {
     color: @z13-text-dim;
@@ -177,17 +172,6 @@ window.z13-drawer-window {
 
 .drawer .btn-group button.preset-chip.high-tdp:not(.active) {
     color: @z13-warning;
-}
-
-/* Quiet secondary action, e.g. Reapply after a manual change. */
-.drawer button.outline-btn {
-    background: transparent;
-    border: 1px solid alpha(@z13-accent, 0.55);
-    color: @z13-accent;
-}
-
-.drawer button.outline-btn:hover {
-    background: alpha(@z13-accent, 0.1);
 }
 
 .drawer button.subtle-btn {
@@ -379,10 +363,6 @@ window.z13-drawer-window {
 
 .drawer .drawer-status {
     color: @z13-text-dim;
-}
-
-.drawer .secondary-metric {
-    opacity: 0.72;
 }
 
 .drawer .battery-summary-value {
@@ -670,19 +650,6 @@ window.z13-drawer-window {
 .drawer button.destructive-action:hover {
     background: alpha(@z13-danger, 0.2);
     border-color: alpha(@z13-danger, 0.6);
-}
-
-/* Advanced checkbox in custom view */
-.drawer .advanced-check {
-    background: @z13-surface;
-    color: @z13-text;
-    border: 1px solid @z13-border;
-    font-weight: 700;
-}
-
-.drawer .advanced-check:checked {
-    background: linear-gradient(180deg, @z13-accent, shade(@z13-accent, 0.85));
-    color: #ffffff;
 }
 
 /* Gamepad focus indicator */

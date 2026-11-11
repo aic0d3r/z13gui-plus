@@ -94,6 +94,29 @@ func TestFanPresetPoints(t *testing.T) {
 	}
 }
 
+func TestTdpSetArgs(t *testing.T) {
+	for _, tc := range []struct {
+		name                 string
+		advanced             bool
+		basic, pl1, pl2, pl3 int
+		watts, p1, p2, p3    string
+		force                bool
+	}{
+		{"basic", false, 45, 10, 99, 99, "45", "", "", "", false},
+		{"advanced safe", true, 0, 50, 60, 75, "50", "50", "60", "75", false},
+		{"advanced pl3 above safe", true, 0, 50, 60, 76, "50", "50", "60", "76", true},
+		{"advanced pl1 max", true, 0, 93, 60, 60, "93", "93", "60", "60", true},
+	} {
+		watts, p1, p2, p3, force := tdpSetArgs(tc.advanced, tc.basic, tc.pl1, tc.pl2, tc.pl3)
+		if watts == "" {
+			t.Errorf("%s: watts must never be empty (the daemon rejects it)", tc.name)
+		}
+		if watts != tc.watts || p1 != tc.p1 || p2 != tc.p2 || p3 != tc.p3 || force != tc.force {
+			t.Errorf("%s: got %q %q %q %q %v", tc.name, watts, p1, p2, p3, force)
+		}
+	}
+}
+
 func TestTempToXPinsOutOfRange(t *testing.T) {
 	fc := &fanCurveEditor{chartX: 10, chartW: 70}
 	if fc.tempToX(30) != fc.tempToX(35) || fc.tempToX(120) != fc.tempToX(105) {

@@ -134,6 +134,9 @@ func (w *Window) switchTab(name string) {
 	w.activeTab = name
 	w.tabStack.SetVisibleChildName(name)
 	setActiveButton(w.mainTabBtns, name)
+	if name == "power" && w.state != nil {
+		w.syncPowerState(true) // the poll skips the preset card while another tab is open
+	}
 	w.buildMainFocusList()
 	w.swapFocusList(w.mainFocusItems)
 }
@@ -869,27 +872,27 @@ var speeds = []string{"slow", "normal", "fast"}
 // controls already show the state (the highlighted mode button names the mode). The
 // pill used to sit here truncated "STATIC" to "STAT…" at the drawer's width.
 func titledCard(title string) *gtk.Box {
-	card := gtk.NewBox(gtk.OrientationVertical, 6)
+	card, _ := cardWithHeader(title)
+	return card
+}
+
+// cardWithHeader builds the card shell and returns its header row so callers can
+// append to it.
+func cardWithHeader(title string) (card, header *gtk.Box) {
+	card = gtk.NewBox(gtk.OrientationVertical, 6)
 	card.AddCSSClass("card")
-	header := gtk.NewBox(gtk.OrientationHorizontal, 6)
+	header = gtk.NewBox(gtk.OrientationHorizontal, 6)
 	label := gtk.NewLabel(title)
 	label.SetHAlign(gtk.AlignStart)
 	label.SetHExpand(true)
 	label.AddCSSClass("card-title")
 	header.Append(label)
 	card.Append(header)
-	return card
+	return card, header
 }
 
 func statusCard(title string) (*gtk.Box, *gtk.Label) {
-	card := gtk.NewBox(gtk.OrientationVertical, 6)
-	card.AddCSSClass("card")
-	header := gtk.NewBox(gtk.OrientationHorizontal, 6)
-	label := gtk.NewLabel(title)
-	label.SetHAlign(gtk.AlignStart)
-	label.SetHExpand(true)
-	label.AddCSSClass("card-title")
-	header.Append(label)
+	card, header := cardWithHeader(title)
 	summary := gtk.NewLabel("—")
 	summary.SetMaxWidthChars(18)
 	summary.SetEllipsize(pango.EllipsizeEnd)

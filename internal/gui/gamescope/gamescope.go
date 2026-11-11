@@ -277,7 +277,6 @@ func (b *Backend) scaledCSS() string {
 .drawer .automation-summary-row .preset-summary { font-size: %.0fpx; }
 .drawer .automation-detail, .drawer .pill { font-size: %.0fpx; }
 .drawer .preset-name { font-size: %.0fpx; }
-.drawer .outline-btn { min-height: %.0fpx; font-size: %.0fpx; }
 .drawer .settings-row .toggle-label { font-size: %.0fpx; letter-spacing: %.1fpx; }
 .drawer .settings-row switch, .drawer switch.automation-switch { min-height: %.0fpx; min-width: %.0fpx; border-radius: %.0fpx; }
 .drawer .settings-row switch slider, .drawer switch.automation-switch slider { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
@@ -289,7 +288,6 @@ func (b *Backend) scaledCSS() string {
 .tdp-warning { font-size: %.0fpx; margin-top: %.0fpx; margin-bottom: %.0fpx; }
 .fan-curve-area { min-height: %.0fpx; border-radius: %.0fpx; }
 .custom-actions button { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
-.advanced-check { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
 .telemetry-value { font-size: %.0fpx; }
 .tuning-telemetry { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
 .color-preview { min-width: %.0fpx; min-height: %.0fpx; }
@@ -317,10 +315,9 @@ func (b *Backend) scaledCSS() string {
 		2*s,                 // accent-dot-active border
 		28*s, 2*s, 6*s, 6*s, // automation-summary-row
 		10*s, 1*s, // automation-source
-		11*s,       // automation preset summary
-		10*s,       // automation-detail, pill
-		14*s,       // preset-name
-		40*s, 12*s, // outline-btn
+		11*s,        // automation preset summary
+		10*s,        // automation-detail, pill
+		14*s,        // preset-name
 		10*s, 0.5*s, // toggle-label
 		22*s, 40*s, 11*s, // settings-row switch (height, width, border-radius)
 		18*s, 18*s, 9*s, // switch slider (width, height, border-radius)
@@ -332,7 +329,6 @@ func (b *Backend) scaledCSS() string {
 		10*s, 4*s, 4*s, // tdp-warning (font-size, margin-top, margin-bottom)
 		240*s, 6*s, // fan-curve-area (min-height, border-radius)
 		40*s, 4*s, 8*s, 6*s, // custom-actions button (min-height, padding-v, padding-h, border-radius)
-		40*s, 4*s, 10*s, 6*s, // advanced-check (min-height, padding-v, padding-h, border-radius)
 		13*s,                 // telemetry-value font-size
 		40*s, 4*s, 10*s, 8*s, // tuning-telemetry
 		64*s, 40*s, // color-preview (min-width, min-height)

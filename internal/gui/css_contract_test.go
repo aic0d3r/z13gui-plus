@@ -24,7 +24,6 @@ const touchFloor = 40
 // gesture (see addTouchActivate in controls.go).
 var touchFloors = map[string]int{
 	".drawer .action-btn":                 touchFloor,
-	".drawer .outline-btn":                touchFloor,
 	".drawer .subtle-btn":                 touchFloor,
 	".drawer .btn-group button":           touchFloor,
 	".drawer .main-tab-row button":        touchFloor,
@@ -32,7 +31,6 @@ var touchFloors = map[string]int{
 	".drawer .mode-grid.btn-group button": touchFloor,
 	".drawer .settings-row":               touchFloor,
 	".custom-actions button":              touchFloor,
-	".advanced-check":                     touchFloor,
 	".tab-btn":                            touchFloor,
 	".color-swatch":                       touchFloor,
 	".color-preset":                       touchFloor,

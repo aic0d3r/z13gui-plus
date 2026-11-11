@@ -301,6 +301,7 @@ func (w *Window) startDimmer() {
 	w.dimReq = make(chan int, 1)
 	w.dimDone = make(chan struct{}, 1)
 	go func() {
+		defer close(w.dimDone) // Shutdown must not wait for a worker that never started
 		out, err := runKscreen("-o")
 		name, prof, ok := internalOutput(out)
 		if err != nil || !ok {

@@ -177,13 +177,17 @@ Z13GUI+ supports two blocking methods and selects the best one automatically:
 | **BPF blocker** (preferred) | `CAP_BPF` + `CAP_PERFMON` on the binary | Blocks PS / Nintendo controller reads at the kernel level via a BPF LSM hook | None — Steam and the game keep running normally |
 | **SIGSTOP fallback** | No extra capabilities | Pauses the Steam process with SIGSTOP / SIGCONT | Game also pauses; PipeWire frame delivery stops |
 
-The AUR, `.deb`, and `.rpm` packages grant the required capabilities
-automatically during installation. If you installed from source or from the
-release binary, grant them manually:
+Packages do not grant the capabilities: a file capability lets any local
+program that starts the binary inherit them. Gaming Mode users who want the
+BPF blocker grant them manually (use `/usr/bin/z13gui-plus` for a package
+install):
 
 ```sh
 sudo setcap cap_bpf,cap_perfmon+ep /usr/local/bin/z13gui-plus
 ```
+
+A package upgrade replaces the binary and drops the capabilities, so repeat
+the command afterwards.
 
 ??? note "What are these capabilities and are they safe?"
 

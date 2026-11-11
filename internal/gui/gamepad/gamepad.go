@@ -286,16 +286,7 @@ const (
 // readLoop reads events from a gamepad device. Runs until the device
 // disconnects or the reader is stopped.
 func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
-	defer func() {
-		r.mu.Lock()
-		if r.grabbed {
-			_ = dev.Ungrab()
-		}
-		delete(r.devices, path)
-		r.mu.Unlock()
-		_ = dev.Close()
-		slog.Info("gamepad: disconnected", "path", path)
-	}()
+	defer r.release(path, dev, "gamepad: disconnected")
 
 	var repeatMu sync.Mutex
 	var repeatTimer *time.Timer
@@ -399,19 +390,22 @@ func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
 	}
 }
 
+// release drops a disconnected device: ungrab, forget, close.
+func (r *Reader) release(path string, dev *evdev.InputDevice, msg string) {
+	r.mu.Lock()
+	if r.grabbed {
+		_ = dev.Ungrab()
+	}
+	delete(r.devices, path)
+	r.mu.Unlock()
+	_ = dev.Close()
+	slog.Info(msg, "path", path)
+}
+
 // holdLoop holds a grab-only device open (e.g. PS touchpad). Reads and
 // discards events to detect disconnect for cleanup.
 func (r *Reader) holdLoop(path string, dev *evdev.InputDevice) {
-	defer func() {
-		r.mu.Lock()
-		if r.grabbed {
-			_ = dev.Ungrab()
-		}
-		delete(r.devices, path)
-		r.mu.Unlock()
-		_ = dev.Close()
-		slog.Info("gamepad: grab-only disconnected", "path", path)
-	}()
+	defer r.release(path, dev, "gamepad: grab-only disconnected")
 
 	for {
 		_, err := dev.ReadOne()

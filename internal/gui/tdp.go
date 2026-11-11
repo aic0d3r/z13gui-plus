@@ -5,6 +5,7 @@ package gui
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/dahui/z13ctl/api"
@@ -848,7 +849,10 @@ func (w *Window) refreshTuningDirty() {
 	if w.tdpClampWarn != nil {
 		w.tdpClampWarn.SetVisible(clamped)
 	}
-	w.saveTdpBtn.SetSensitive(tdpDirty && !clamped)
+	// With no override active the sliders show a placeholder 50 W, so Save stays
+	// available to set exactly that; the MODIFIED mark still follows real edits.
+	noOverride := w.state != nil && !w.state.TDPActive
+	w.saveTdpBtn.SetSensitive((tdpDirty || noOverride) && !clamped)
 	toggleMark(w.tdpDirtyMark, tdpDirty && !clamped)
 	if w.tdpWarnLabel != nil {
 		high := w.tdpPL1Scale.Value() > 75 || w.tdpPL2Scale.Value() > 75 || w.tdpPL3Scale.Value() > 75
@@ -988,20 +992,23 @@ func (w *Window) syncTuningTelemetry(state *api.State) {
 	}
 }
 
-func (w *Window) saveCustomTdp() {
-	if w.tdpAdvancedCheck != nil && w.tdpAdvancedCheck.Active() {
-		pl1 := fmt.Sprintf("%d", int(w.tdpPL1Scale.Value()))
-		pl2 := fmt.Sprintf("%d", int(w.tdpPL2Scale.Value()))
-		pl3 := fmt.Sprintf("%d", int(w.tdpPL3Scale.Value()))
-		maxPL := int(math.Max(w.tdpPL1Scale.Value(), math.Max(w.tdpPL2Scale.Value(), w.tdpPL3Scale.Value())))
-		w.runStateAction("save TDP override", func() (bool, error) {
-			return api.SendTdpSet(pl1, pl1, pl2, pl3, maxPL > tdpMaxSafe)
-		})
-		return
+// tdpSetArgs maps the editor values to SendTdpSet arguments. The daemon parses
+// watts before it looks at the PL fields, so advanced mode passes PL1 there; force
+// is needed once any limit exceeds the safe ceiling.
+func tdpSetArgs(advanced bool, basic, pl1, pl2, pl3 int) (watts, p1, p2, p3 string, force bool) {
+	if !advanced {
+		return strconv.Itoa(basic), "", "", "", false
 	}
-	watts := fmt.Sprintf("%d", int(w.tdpBasicScale.Value()))
+	return strconv.Itoa(pl1), strconv.Itoa(pl1), strconv.Itoa(pl2), strconv.Itoa(pl3),
+		max(pl1, pl2, pl3) > tdpMaxSafe
+}
+
+func (w *Window) saveCustomTdp() {
+	advanced := w.tdpAdvancedCheck != nil && w.tdpAdvancedCheck.Active()
+	watts, pl1, pl2, pl3, force := tdpSetArgs(advanced, int(w.tdpBasicScale.Value()),
+		int(w.tdpPL1Scale.Value()), int(w.tdpPL2Scale.Value()), int(w.tdpPL3Scale.Value()))
 	w.runStateAction("save TDP override", func() (bool, error) {
-		return api.SendTdpSet(watts, "", "", "", false)
+		return api.SendTdpSet(watts, pl1, pl2, pl3, force)
 	})
 }
 

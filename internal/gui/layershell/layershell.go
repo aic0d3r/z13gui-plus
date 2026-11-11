@@ -99,7 +99,10 @@ func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 				return true // compositor hasn't configured yet, retry
 			}
 			b.hiddenMargin = -(w - 1)
-			b.setMargin(b.hiddenMargin)
+			// A Show() before the first configure must not be parked back off-screen.
+			if !isVisible() {
+				b.setMargin(b.hiddenMargin)
+			}
 			return false
 		})
 	})

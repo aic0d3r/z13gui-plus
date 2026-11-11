@@ -444,7 +444,7 @@ func (w *Window) rebuildPresetDetail() {
 	remove := gtk.NewButtonWithLabel("Delete Preset")
 	remove.AddCSSClass("destructive-action")
 	remove.ConnectClicked(func() {
-		w.showConfirmation("Delete Preset", fmt.Sprintf("Delete %q? Current hardware settings will not change.", name), "Delete", "presets", true, func() {
+		w.showConfirmation("Delete Preset", fmt.Sprintf("Delete %q? Current hardware settings will not change.", name), "Delete", "preset-detail", true, func() {
 			w.runStateAction("delete preset", func() (bool, error) { return api.SendPresetDelete(name) })
 		})
 	})

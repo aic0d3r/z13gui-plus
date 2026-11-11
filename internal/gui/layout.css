@@ -58,14 +58,6 @@
     padding: 2px 7px;
 }
 
-.drawer .outline-btn {
-    /* Was 32px: the only tap target under the drawer's 40px floor (it is the
-       preset "Reapply" button). Guarded by TestTouchTargetsKeepTheFloor. */
-    min-height: 40px;
-    padding: 2px 12px;
-    font-size: 12px;
-}
-
 .drawer .subtle-btn {
     min-height: 40px;
     font-size: 12px;
@@ -141,13 +133,6 @@
 .drawer switch.automation-switch {
     min-width: 40px;
     min-height: 22px;
-}
-
-.drawer .card.card-inactive {
-    /* Inactive must stay readable: at 0.55 the whole RGB effect card (labels, mode
-       names, hex) fell below a legible contrast while lighting was off, which is the
-       state the drawer is in most of the time. */
-    opacity: 0.75;
 }
 
 /* Card title — small caps mono */
@@ -236,13 +221,6 @@
 }
 
 .custom-actions button {
-    min-height: 40px;
-    padding: 4px 8px;
-    border-radius: 8px;
-}
-
-/* Advanced checkbox — touch target */
-.advanced-check {
     min-height: 40px;
     padding: 4px 8px;
     border-radius: 8px;
@@ -573,13 +551,6 @@
 
 .drawer .tuning-telemetry .telemetry-value {
     font-size: 11px;
-}
-
-/* Slider descriptions — subordinate to value readouts. */
-.drawer .scale-desc {
-    font-size: 10px;
-    font-weight: 400;
-    color: @z13-text-faint;
 }
 
 /* Color preview — larger than preset swatches. */
