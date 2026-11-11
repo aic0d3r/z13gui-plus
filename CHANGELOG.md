@@ -3,6 +3,17 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## v2.8.1 (2026-11-11)
+
+- Packages no longer grant `cap_bpf`/`cap_perfmon` to the binary on install;
+  run `make setcap` to opt in to the gamepad blocker.
+- Fix the drawer waiting 4 s on shutdown where Dim is unsupported.
+- Fix the first-open timer parking a drawer that was already opened (KDE).
+- The Power tab refreshes the automation card when you switch to it, and
+  cancelling a preset delete returns to the editor.
+- Advanced Tuning keeps Save enabled when no override is active.
+- Remove unused CSS and add colour/TDP tests.
+
 ## v2.8.0 (2026-11-07)
 
 - The preset editor is tabbed: Setup, Power, CPU and Display hold the fields,
