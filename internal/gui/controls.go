@@ -931,6 +931,11 @@ func (w *Window) buildBatterySection() *gtk.Box {
 	box, summary := statusCard("BATTERY STRATEGY")
 	w.batterySummary = summary
 	box.Append(w.buildBatteryPresets())
+	batteryNote := gtk.NewLabel("Charging stops at the limit — lower caps extend battery lifespan")
+	batteryNote.SetHAlign(gtk.AlignStart)
+	batteryNote.SetWrap(true)
+	batteryNote.AddCSSClass("setting-description")
+	box.Append(batteryNote)
 	return box
 }
 
@@ -995,6 +1000,11 @@ func (w *Window) buildFanPresetSection() *gtk.Box {
 		row.Append(btn)
 	}
 	box.Append(row)
+	fanNote := gtk.NewLabel("Auto returns fan control to the firmware; Turbo cools hardest and is loudest")
+	fanNote.SetHAlign(gtk.AlignStart)
+	fanNote.SetWrap(true)
+	fanNote.AddCSSClass("setting-description")
+	box.Append(fanNote)
 	w.fanSafetyLabel = gtk.NewLabel("")
 	w.fanSafetyLabel.SetHAlign(gtk.AlignStart)
 	w.fanSafetyLabel.SetWrap(true)
@@ -1173,7 +1183,9 @@ func (w *Window) buildBoostRow() *gtk.Box {
 	// No wrapping card: the switch row is already a surface, and a card around it
 	// read as a box inside a box.
 	card := gtk.NewBox(gtk.OrientationVertical, 0)
-	card.Append(w.buildToggle("CPU Boost", "Allow frequencies above the nominal maximum: higher peak performance, more power and heat", &w.cpuBoostSwitch, func(enabled bool) {
+	// Caption, not tooltip: the drawer is a touch surface, so the heat/power
+	// cost must be readable without a pointer.
+	card.Append(w.buildToggleWithCaption("CPU Boost", "Allow frequencies above the nominal maximum: higher peak performance, more power and heat", &w.cpuBoostSwitch, func(enabled bool) {
 		w.runStateAction("set CPU boost", func() (bool, error) { return api.SendCPUBoostSet(enabled) })
 	}))
 	// Hidden when the daemon reports no cpu_power.
