@@ -617,7 +617,7 @@ func (w *Window) buildConfirmationView() *gtk.Box {
 	w.confirmMessage = gtk.NewLabel("")
 	w.confirmMessage.SetHAlign(gtk.AlignStart)
 	w.confirmMessage.SetWrap(true)
-	w.confirmMessage.SetMaxWidthChars(38)
+	w.confirmMessage.SetMaxWidthChars(34) // not scrolled: natural width sizes the 360px drawer
 	w.confirmMessage.AddCSSClass("confirm-message")
 	content.Append(w.confirmMessage)
 	w.confirmBtn = gtk.NewButtonWithLabel("Confirm")

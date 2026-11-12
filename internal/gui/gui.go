@@ -34,7 +34,7 @@ var defaultThemeCSS string
 var defaultThemeTOML string
 
 const (
-	drawerWidth = 320 // drawer panel width in pixels
+	drawerWidth = 360 // drawer panel width in pixels; content must fit it (see layershell Show, #3)
 
 	// daemonToggleDebounce suppresses hardware-duplicated gui-toggle events: some
 	// firmware revisions report a single Armoury Crate press twice within the same

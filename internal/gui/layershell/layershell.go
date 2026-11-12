@@ -34,6 +34,7 @@ type Backend struct {
 	animGen       uint64    // incremented to cancel in-flight animations
 	pointerInside bool      // true when pointer is over the drawer surface
 	showTime      time.Time // when Show() was last called; used to ignore early focus loss
+	warnedWide    bool      // drawer-wider-than-drawerWidth warning already logged
 }
 
 // New creates a layer-shell backend. drawerWidth is the drawer panel width in pixels.
@@ -207,6 +208,12 @@ func (b *Backend) Hide() {
 	slog.Debug("backend.Hide", "startMargin", b.margin, "rightNeighbor", b.hasRightNeighbor())
 	if w := b.gtkWin.Width(); w > 0 {
 		b.hiddenMargin = -(w - 1)
+		// Content wider than drawerWidth makes Show's clamp (issue #3) pop that
+		// extra width in at once: some row needs shrinking.
+		if w > b.drawerWidth && !b.warnedWide {
+			b.warnedWide = true
+			slog.Warn("drawer content wider than drawerWidth", "width", w, "drawerWidth", b.drawerWidth)
+		}
 	}
 	gtk4layershell.SetKeyboardMode(b.gtkWin, gtk4layershell.LayerShellKeyboardModeNone)
 	b.pointerInside = false // clear stale state; surface stays mapped off-screen

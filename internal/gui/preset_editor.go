@@ -451,6 +451,7 @@ func (w *Window) rebuildPresetDetail() {
 	hint := gtk.NewLabel("Assign another preset before deleting this one.")
 	hint.SetHAlign(gtk.AlignStart)
 	hint.SetWrap(true)
+	hint.SetMaxWidthChars(40) // not scrolled: natural width sizes the 360px drawer
 	hint.AddCSSClass("card-sub")
 	actionsRow := gtk.NewBox(gtk.OrientationHorizontal, 4)
 	actionsRow.SetHomogeneous(true)

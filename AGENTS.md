@@ -154,7 +154,7 @@ contrib/
   compositors clip overflow; KWin does NOT clip, see conditional fade below).
 - **Keyboard mode**: `LayerShellKeyboardModeOnDemand` — gets focus when visible.
 - **Animation**: layer-shell right-margin animation (`gtk4layershell.SetMargin`).
-  `margin=0` → on-screen; `margin=-320` → off-screen to the right.
+  `margin=0` → on-screen; `margin=-(drawerWidth-1)` → off-screen to the right.
   Avoids GTK Revealer which causes pixman errors and smearing artifacts in Wayland.
 - **Window visibility**: window is kept `SetVisible(true)` at all times after creation.
   It's "hidden" by setting margin = -(width-1) (off-screen) and opacity = 0, not by
@@ -169,7 +169,12 @@ contrib/
   `hasRightNeighbor()` uses the monitor pinned at realize: on Wayland
   `MonitorAtSurface` is the last *entered* output, i.e. the right neighbor itself
   while parked over it.
-- **Width**: `SetSizeRequest(320, -1)`. Height is natural (content-driven, scrolled).
+- **Width**: `SetSizeRequest(drawerWidth, -1)`, `drawerWidth = 360`. Height is natural
+  (content-driven, scrolled). The size request is only a minimum: any row wider than
+  360 widens the drawer, and then `Show()`'s MangoWM clamp (issue #3) pops the extra
+  width in at once. `Hide()` logs `drawer content wider than drawerWidth` when that
+  happens. Overflowing button rows wrap to two equal columns (Battery Strategy);
+  unscrolled wrapping labels need `SetMaxWidthChars`.
 - **Show/hide animation**: smoothstep easing via `AddTickCallback` (VSync-synced),
   with a shared `animGen` generation counter so a show cancels an in-flight hide
   (and vice versa). Two paths, chosen per Show/Hide by `hasRightNeighbor()`:

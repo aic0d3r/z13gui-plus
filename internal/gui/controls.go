@@ -949,12 +949,18 @@ var batteryPresets = []struct {
 	{60, "Max Life"},
 }
 
-// buildBatteryPresets creates the Standard / Balanced / Max Life preset row.
-func (w *Window) buildBatteryPresets() *gtk.Box {
-	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
-	row.AddCSSClass("btn-group")
-	row.SetHomogeneous(true)
-	for _, p := range batteryPresets {
+// batteryPresetCols: three one-line labels overflow the 360px drawer, so the
+// presets wrap to two equal columns; the last one spans the row.
+const batteryPresetCols = 2
+
+// buildBatteryPresets creates the Standard / Balanced / Max Life preset grid.
+func (w *Window) buildBatteryPresets() *gtk.Grid {
+	grid := gtk.NewGrid()
+	grid.SetColumnSpacing(4)
+	grid.SetRowSpacing(4)
+	grid.SetColumnHomogeneous(true)
+	grid.AddCSSClass("btn-group")
+	for i, p := range batteryPresets {
 		btn := gtk.NewButtonWithLabel(fmt.Sprintf("%s %d%%", p.label, p.pct))
 		btn.ConnectClicked(func() {
 			if w.syncing {
@@ -965,9 +971,13 @@ func (w *Window) buildBatteryPresets() *gtk.Box {
 			})
 		})
 		w.battPresetBtns[p.pct] = btn
-		row.Append(btn)
+		span := 1
+		if i == len(batteryPresets)-1 && i%batteryPresetCols == 0 {
+			span = batteryPresetCols
+		}
+		grid.Attach(btn, i%batteryPresetCols, i/batteryPresetCols, span, 1)
 	}
-	return row
+	return grid
 }
 
 // fanPresets defines firmware Auto followed by the named custom curves.
@@ -1387,15 +1397,15 @@ func (w *Window) powerTabFocusItems() []focusItem {
 	}
 
 	// Battery strategy buttons.
-	for col, p := range batteryPresets {
+	for i, p := range batteryPresets {
 		btn := w.battPresetBtns[p.pct]
 		items = append(items, focusItem{
-			widget: btn, row: row, col: col,
+			widget: btn, row: row + i/batteryPresetCols, col: i % batteryPresetCols,
 			section:    "battery-preset",
 			onActivate: func() { btn.Activate() },
 		})
 	}
-	row++
+	row += (len(batteryPresets)-1)/batteryPresetCols + 1
 
 	if w.tuningBtn != nil {
 		btn := w.tuningBtn
