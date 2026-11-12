@@ -899,8 +899,7 @@ func statusCard(title string) (*gtk.Box, *gtk.Label) {
 	summary.AddCSSClass("pill")
 	summary.Connect("notify::label", func() { summary.SetTooltipText(summary.Label()) })
 	header.Append(summary)
-	card.Append(header)
-	return card, summary
+	return card, summary // header is already in the card (cardWithHeader)
 }
 
 // buildProfileSection creates the stock profile button row.
