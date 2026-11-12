@@ -190,6 +190,12 @@ func (b *Backend) Show() {
 		b.setOpacity(0)
 		b.fadeOpacity(1, nil)
 	} else {
+		// MangoWM (#3): the measured hiddenMargin can leave the surface fully
+		// off-screen, so no frame callbacks arrive and the tick-driven slide never
+		// starts. Moving to the nominal 1px-visible margin forces a commit.
+		if start := -(b.drawerWidth - 1); b.margin < start {
+			b.setMargin(start)
+		}
 		b.setOpacity(1)
 		b.slideMargin(0, nil)
 	}

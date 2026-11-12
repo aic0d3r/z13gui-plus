@@ -3,6 +3,11 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
+## Unreleased
+
+- Fix the drawer only opening once on MangoWM: the slide-in now starts from
+  the nominal hidden margin, so the compositor resumes frame callbacks (#3).
+
 ## v2.8.1 (2026-11-11)
 
 - Packages no longer grant `cap_bpf`/`cap_perfmon` to the binary on install;
