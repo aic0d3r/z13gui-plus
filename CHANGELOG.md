@@ -5,8 +5,9 @@ release-notes.md (gitignored) is the scratch file for the next entry.
 
 ## Unreleased
 
-- Fix the drawer only opening once on MangoWM: the slide-in now starts from
-  the nominal hidden margin, so the compositor resumes frame callbacks (#3).
+- Fix the drawer not opening on MangoWM (#3). MangoWM sends no frame
+  callbacks to the hidden drawer, so the slide never started; if no frame
+  arrives within 100 ms the drawer now jumps to its end state instead.
 - The drawer is a fixed 360 px wide. It used to request 320 px but grew to
   393 px once content loaded. Battery Strategy wraps to two rows to fit, and
   a warning is logged if content ever widens the drawer again.

@@ -19,6 +19,7 @@ const (
 	animDuration   = 200 * time.Millisecond // slide animation duration
 	showSettleTime = 500 * time.Millisecond // ignore focus loss within this window after Show
 	focusLossDelay = 200                    // ms; confirmation delay before auto-hide
+	firstTickWait  = 100                    // ms; jump to the end state if no frame arrived by then
 )
 
 // Backend manages the layer-shell overlay drawer on Wayland compositors.
@@ -239,8 +240,27 @@ func (b *Backend) animate(kind string, apply func(float64), onDone func()) {
 	b.animGen++
 	gen := b.animGen
 	started := time.Now()
+	ticked := false
+
+	// MangoWM (#3) never sends frame callbacks to the hidden drawer's 1px sliver,
+	// so the tick callback below never runs. Apply the end state directly: the
+	// layer-shell margin change forces a commit, the drawer appears, and frame
+	// callbacks resume for the next animation.
+	glib.TimeoutAdd(firstTickWait, func() bool {
+		if b.animGen == gen && !ticked {
+			b.animGen++ // cancel the stalled tick callback
+			slog.Debug("anim stalled, no frame callback", "kind", kind, "gen", gen)
+			apply(1)
+			b.invalidateSurface()
+			if onDone != nil {
+				onDone()
+			}
+		}
+		return false
+	})
 
 	b.gtkWin.AddTickCallback(func(_ gtk.Widgetter, _ gdk.FrameClocker) bool {
+		ticked = true
 		if b.animGen != gen {
 			slog.Debug("anim cancelled", "kind", kind, "gen", gen, "currentGen", b.animGen)
 			return false
