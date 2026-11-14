@@ -5,9 +5,9 @@ release-notes.md (gitignored) is the scratch file for the next entry.
 
 ## Unreleased
 
-- Fix the drawer not opening on MangoWM (#3). MangoWM sends no frame
-  callbacks to the hidden drawer, so the slide never started; if no frame
-  arrives within 100 ms the drawer now jumps to its end state instead.
+- Fix the drawer getting stuck half open on MangoWM (#3). MangoWM can stop
+  sending frame callbacks to a partly visible surface, so the slide stalled
+  mid-way; every animation now finishes on a deadline even if frames stop.
 - The drawer is a fixed 360 px wide. It used to request 320 px but grew to
   393 px once content loaded. Battery Strategy wraps to two rows to fit, and
   a warning is logged if content ever widens the drawer again.
