@@ -185,7 +185,7 @@ func (b *Backend) WrapContent(drawer gtk.Widgetter) gtk.Widgetter {
 // and checks whether the compositor delivers a frame callback to it.
 // Result is stored in b.supportsSlide.
 func (b *Backend) probeFrameSupport() {
-	if b.probeDone == true {
+	if b.probeDone {
 		return
 	}
 	b.probeDone = true
@@ -201,8 +201,7 @@ func (b *Backend) probeFrameSupport() {
 	gotFrame := false
 
 	// Request a frame via the tick callback / frame clock
-	var tickID uint
-	tickID = b.gtkWin.AddTickCallback(func(_ gtk.Widgetter, _ gdk.FrameClocker) bool {
+	var tickID = b.gtkWin.AddTickCallback(func(_ gtk.Widgetter, _ gdk.FrameClocker) bool {
 		gotFrame = true
 		return false // one-shot
 	})
@@ -212,7 +211,7 @@ func (b *Backend) probeFrameSupport() {
 	b.appWin.Present()
 
 	// Wait a short time
-	//slog.Debug("backend.probeFrameSupport", "SupportsSlide", gotFrame)
+	slog.Debug("backend.probeFrameSupport", "SupportsSlide", gotFrame)
 	glib.TimeoutAdd(100, func() bool {
 		b.supportsSlide = gotFrame
 		slog.Info("frame probe result", "supportsSlide", b.supportsSlide)
@@ -229,19 +228,20 @@ func (b *Backend) probeFrameSupport() {
 	})
 }
 
+// Show starts the slide-in animation using a smoothstep easing curve.
 func (b *Backend) Show() {
 	slog.Debug("backend.Show", "startMargin", b.margin, "rightNeighbor", b.hasRightNeighbor())
 	b.showTime = time.Now()
 	b.setParked(false)
 	gtk4layershell.SetKeyboardMode(b.gtkWin, gtk4layershell.LayerShellKeyboardModeOnDemand)
 
-	if b.probeDone == false {
+	if !b.probeDone {
 		b.probeFrameSupport()
 		// For the very first show we can either wait for the probe
 		// or just fall through to the safe path.
 	}
 
-	if b.supportsSlide == true {
+	if b.supportsSlide {
 		// Original slide path
 		if start := -(b.drawerWidth - 1); b.margin < start {
 			b.setMargin(start)
@@ -305,7 +305,6 @@ func (b *Backend) animate(kind string, apply func(float64), onDone func()) {
 			b.animGen++ // cancel the stalled tick callback
 			slog.Debug("anim stalled, no frame callback", "kind", kind, "gen", gen)
 			apply(1)
-			//b.setOpacity(1)
 			b.invalidateSurface()
 			if onDone != nil {
 				onDone()
