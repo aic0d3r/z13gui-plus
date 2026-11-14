@@ -36,6 +36,10 @@ type Backend struct {
 	pointerInside bool      // true when pointer is over the drawer surface
 	showTime      time.Time // when Show() was last called; used to ignore early focus loss
 	warnedWide    bool      // drawer-wider-than-drawerWidth warning already logged
+
+	// Probe results
+	probeDone     bool
+	supportsSlide bool // true = safe to use margin slide, false = use opacity
 }
 
 // New creates a layer-shell backend. drawerWidth is the drawer panel width in pixels.
@@ -177,30 +181,85 @@ func (b *Backend) WrapContent(drawer gtk.Widgetter) gtk.Widgetter {
 	return drawer
 }
 
-// Show starts the slide-in animation using a smoothstep easing curve.
-func (b *Backend) Show() {
-	slog.Debug("backend.Show", "startMargin", b.margin, "rightNeighbor", b.hasRightNeighbor())
-	b.showTime = time.Now()
-	b.setParked(false) // back to Overlay before the first animation frame
+// probeFrameSupport creates a temporary almost-off-screen layer surface
+// and checks whether the compositor delivers a frame callback to it.
+// Result is stored in b.supportsSlide.
+func (b *Backend) probeFrameSupport() {
+	if b.probeDone == true {
+		return
+	}
+	b.probeDone = true
 
+	// We can reuse the existing window for the probe by temporarily
+	// moving it off-screen, or create a tiny secondary window.
+	// Reusing is simpler and avoids extra layer-shell objects.
+
+	originalMargin := b.margin
+	originalOpacity := b.opacity
+	//originalLayer := /* remember current layer */
+
+	// Park it almost off-screen
+	b.setMargin(originalMargin)
+	b.setOpacity(1) // almost invisible but still "present"
+	b.setParked(false) // keep on Overlay so it is eligible for frames
+
+	gotFrame := false
+	gen := b.animGen
+
+	// Request a frame via the tick callback / frame clock
+	b.gtkWin.AddTickCallback(func(_ gtk.Widgetter, _ gdk.FrameClocker) bool {
+		if b.animGen != gen {
+			return false
+		}
+		gotFrame = true
+		return false // one-shot
+	})
+
+	// Also force a commit so the compositor sees the surface
+	b.invalidateSurface()
+	b.appWin.Present()
+
+	// Wait a short time
+	glib.TimeoutAdd(100, func() bool {
+		b.supportsSlide = gotFrame
+		slog.Info("frame probe result", "supportsSlide", b.supportsSlide)
+
+		// Restore
+		b.setMargin(originalMargin)
+		b.setOpacity(originalOpacity)
+		b.Hide()
+		b.Show()
+		// restore layer if needed
+
+		return false
+	})
+}
+
+func (b *Backend) Show() {
+	b.showTime = time.Now()
+	b.setParked(false)
 	gtk4layershell.SetKeyboardMode(b.gtkWin, gtk4layershell.LayerShellKeyboardModeOnDemand)
-	if b.hasRightNeighbor() {
-		// A monitor sits to the right: a rightward slide-off would cross onto it
-		// while opaque (KWin does not clip layer-surface overflow to the assigned
-		// output). Fade in place at margin 0, fully on the primary instead.
-		b.setMargin(0)
-		b.setOpacity(0)
-		b.fadeOpacity(1, nil)
-	} else {
-		// MangoWM (#3): the measured hiddenMargin can leave the surface fully
-		// off-screen, so no frame callbacks arrive and the tick-driven slide never
-		// starts. Moving to the nominal 1px-visible margin forces a commit.
+
+	if b.probeDone == false {
+		b.probeFrameSupport()
+		// For the very first show we can either wait for the probe
+		// or just fall through to the safe path.
+	}
+
+	if b.supportsSlide == true {
+		// Original slide path
 		if start := -(b.drawerWidth - 1); b.margin < start {
 			b.setMargin(start)
 		}
 		b.setOpacity(1)
-		b.slideMargin(0, nil)
+		b.slideMargin(1, nil)
+	} else {
+		// Safe path that works everywhere (including Mango)
+		b.setMargin(0)
+		b.setOpacity(0)
+		b.fadeOpacity(1, nil)
 	}
+
 	b.appWin.Present()
 }
 
@@ -251,6 +310,7 @@ func (b *Backend) animate(kind string, apply func(float64), onDone func()) {
 			b.animGen++ // cancel the stalled tick callback
 			slog.Debug("anim stalled, no frame callback", "kind", kind, "gen", gen)
 			apply(1)
+			//b.setOpacity(1)
 			b.invalidateSurface()
 			if onDone != nil {
 				onDone()
