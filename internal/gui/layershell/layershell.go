@@ -189,28 +189,20 @@ func (b *Backend) probeFrameSupport() {
 		return
 	}
 	b.probeDone = true
-
-	// We can reuse the existing window for the probe by temporarily
-	// moving it off-screen, or create a tiny secondary window.
-	// Reusing is simpler and avoids extra layer-shell objects.
-
+	
 	originalMargin := b.margin
 	originalOpacity := b.opacity
-	//originalLayer := /* remember current layer */
 
 	// Park it almost off-screen
-	b.setMargin(originalMargin)
+	b.setMargin(-(b.drawerWidth - 2))
 	b.setOpacity(1) // almost invisible but still "present"
 	b.setParked(false) // keep on Overlay so it is eligible for frames
 
 	gotFrame := false
-	gen := b.animGen
 
 	// Request a frame via the tick callback / frame clock
-	b.gtkWin.AddTickCallback(func(_ gtk.Widgetter, _ gdk.FrameClocker) bool {
-		if b.animGen != gen {
-			return false
-		}
+	var tickID uint
+	tickID = b.gtkWin.AddTickCallback(func(_ gtk.Widgetter, _ gdk.FrameClocker) bool {
 		gotFrame = true
 		return false // one-shot
 	})
@@ -220,22 +212,25 @@ func (b *Backend) probeFrameSupport() {
 	b.appWin.Present()
 
 	// Wait a short time
+	//slog.Debug("backend.probeFrameSupport", "SupportsSlide", gotFrame)
 	glib.TimeoutAdd(100, func() bool {
 		b.supportsSlide = gotFrame
 		slog.Info("frame probe result", "supportsSlide", b.supportsSlide)
+		b.gtkWin.RemoveTickCallback(tickID)
+
 
 		// Restore
 		b.setMargin(originalMargin)
 		b.setOpacity(originalOpacity)
 		b.Hide()
 		b.Show()
-		// restore layer if needed
 
 		return false
 	})
 }
 
 func (b *Backend) Show() {
+	slog.Debug("backend.Show", "startMargin", b.margin, "rightNeighbor", b.hasRightNeighbor())
 	b.showTime = time.Now()
 	b.setParked(false)
 	gtk4layershell.SetKeyboardMode(b.gtkWin, gtk4layershell.LayerShellKeyboardModeOnDemand)
@@ -252,7 +247,7 @@ func (b *Backend) Show() {
 			b.setMargin(start)
 		}
 		b.setOpacity(1)
-		b.slideMargin(1, nil)
+		b.slideMargin(0, nil)
 	} else {
 		// Safe path that works everywhere (including Mango)
 		b.setMargin(0)
