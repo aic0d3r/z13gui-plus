@@ -50,7 +50,6 @@ static void ungrab_keyboard(void *xdisplay) {
 import "C" //nolint:gocritic // cgo requires standalone import
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
@@ -58,6 +57,8 @@ import (
 
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
+
+	"github.com/aic0d3r/z13gui-plus/internal/cssscale"
 )
 
 const (
@@ -73,6 +74,7 @@ type Backend struct {
 	appWin      *gtk.ApplicationWindow
 	gtkWin      *gtk.Window
 	drawerWidth int
+	layoutCSS   string // structural sheet scaled by scaledCSS
 
 	xdisplay unsafe.Pointer
 	xid      C.ulong
@@ -83,12 +85,14 @@ type Backend struct {
 	onDismiss    func()
 }
 
-// New creates a gamescope backend. drawerWidth is the drawer panel width in pixels.
-func New(appWin *gtk.ApplicationWindow, drawerWidth int) *Backend {
+// New creates a gamescope backend. drawerWidth is the drawer panel width in
+// pixels; layoutCSS is the structural sheet to scale for the output.
+func New(appWin *gtk.ApplicationWindow, drawerWidth int, layoutCSS string) *Backend {
 	return &Backend{
 		appWin:      appWin,
 		gtkWin:      &appWin.Window,
 		drawerWidth: drawerWidth,
+		layoutCSS:   layoutCSS,
 		scale:       initialScale(), // used as-is if realize can't find a monitor
 	}
 }
@@ -201,9 +205,7 @@ func (b *Backend) WrapContent(drawer gtk.Widgetter) gtk.Widgetter {
 	wrapper.Append(backdrop)
 	wrapper.Append(panel)
 
-	// Inject gamescope CSS overrides. At scale=1.0 the pixel values match
-	// layout.css but the higher priority ensures they override any GTK theme
-	// defaults that differ between KDE and gamescope environments.
+	// Inject the scaled copy of layout.css (see scaledCSS).
 	css := gtk.NewCSSProvider()
 	css.LoadFromString(b.scaledCSS())
 	gtk.StyleContextAddProviderForDisplay(
@@ -250,93 +252,10 @@ func (b *Backend) setCardinal(name string, value uint32) {
 	C.set_cardinal(b.xdisplay, b.xid, cname, C.uint32_t(value))
 }
 
-// scaledCSS returns CSS rules that override layout.css pixel values scaled by
-// the gamescope resolution factor. Loaded at PRIORITY_APPLICATION+1 so it
-// overrides the base layout.css and any GTK theme defaults that differ between
-// desktop and gamescope environments.
+// scaledCSS returns layout.css with every pixel length multiplied by the
+// gamescope resolution factor, plus the base font the desktop gets from its
+// GTK theme. Loaded at PRIORITY_APPLICATION+1 so it overrides layout.css and
+// any GTK theme defaults that differ between desktop and gamescope.
 func (b *Backend) scaledCSS() string {
-	s := b.scale
-	return fmt.Sprintf(`/* Gamescope resolution scaling (%.1fx) */
-.drawer { font-family: 'Inter', sans-serif; font-size: %.0fpx; }
-.drawer .btn-group button { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
-.drawer .action-btn { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
-.drawer checkbutton { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
-.drawer .mode-grid.btn-group button { min-height: %.0fpx; }
-.tab-btn { min-height: %.0fpx; }
-.drawer scale slider { min-width: %.0fpx; min-height: %.0fpx; }
-.drawer scale value { margin-bottom: %.0fpx; }
-.drawer-title { font-size: %.0fpx; letter-spacing: %.0fpx; }
-.section-label { font-size: %.0fpx; letter-spacing: %.0fpx; margin-top: %.0fpx; margin-bottom: %.0fpx; }
-.scale-value { font-size: %.0fpx; margin-top: %.0fpx; margin-bottom: %.0fpx; }
-.scale-name { font-size: %.0fpx; margin-top: %.0fpx; }
-.color-swatch { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
-.color-preset { padding: 0; min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
-.accent-dot-active { border-width: %.0fpx; }
-.drawer .automation-summary-row { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
-.drawer .automation-source { font-size: %.0fpx; letter-spacing: %.0fpx; }
-.drawer .automation-summary-row .preset-summary { font-size: %.0fpx; }
-.drawer .automation-detail, .drawer .pill { font-size: %.0fpx; }
-.drawer .preset-name { font-size: %.0fpx; }
-.drawer .settings-row .toggle-label { font-size: %.0fpx; letter-spacing: %.1fpx; }
-.drawer .settings-row switch, .drawer switch.automation-switch { min-height: %.0fpx; min-width: %.0fpx; border-radius: %.0fpx; }
-.drawer .settings-row switch slider, .drawer switch.automation-switch slider { min-width: %.0fpx; min-height: %.0fpx; border-radius: %.0fpx; }
-.drawer .overview-system-card .scale-value, .drawer .battery-metric-value { font-size: %.0fpx; }
-.drawer .battery-time-metric .battery-metric-value { font-size: %.0fpx; }
-.view-back-btn { min-width: %.0fpx; min-height: %.0fpx; padding: %.0fpx; }
-.gamepad-focus { outline-width: %.0fpx; outline-offset: %.0fpx; }
-.gamepad-editing { outline-width: %.0fpx; outline-offset: %.0fpx; }
-.tdp-warning { font-size: %.0fpx; margin-top: %.0fpx; margin-bottom: %.0fpx; }
-.fan-curve-area { min-height: %.0fpx; border-radius: %.0fpx; }
-.custom-actions button { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
-.telemetry-value { font-size: %.0fpx; }
-.tuning-telemetry { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
-.color-preview { min-width: %.0fpx; min-height: %.0fpx; }
-.drawer .section-collapse { min-height: %.0fpx; padding: %.0fpx %.0fpx; border-radius: %.0fpx; }
-.drawer .section-collapse-label { font-size: %.0fpx; letter-spacing: %.0fpx; }
-.drawer .section-collapse-summary { font-size: %.0fpx; }
-.drawer .section-collapse-action { font-size: %.0fpx; letter-spacing: %.0fpx; }
-.drawer .disclosure-icon { -gtk-icon-size: %.0fpx; }
-.drawer .drawer-status { min-height: %.0fpx; font-size: %.0fpx; }`,
-		s,
-		14*s,                 // .drawer font-size
-		48*s, 4*s, 10*s, 6*s, // btn-group button
-		48*s, 4*s, 10*s, 6*s, // action-btn
-		48*s, 4*s, 10*s, 6*s, // checkbutton
-		52*s,       // mode-grid btn-group button
-		48*s,       // tab-btn
-		24*s, 24*s, // scale slider
-		6*s,       // scale value margin
-		11*s, 3*s, // drawer-title
-		11*s, 1*s, 6*s, 2*s, // section-label
-		10*s, 2*s, 2*s, // scale-value
-		10*s, 4*s, // scale-name
-		40*s, 40*s, 6*s, // color-swatch
-		32*s, 32*s, 4*s, // color-preset
-		2*s,                 // accent-dot-active border
-		28*s, 2*s, 6*s, 6*s, // automation-summary-row
-		10*s, 1*s, // automation-source
-		11*s,        // automation preset summary
-		10*s,        // automation-detail, pill
-		14*s,        // preset-name
-		10*s, 0.5*s, // toggle-label
-		22*s, 40*s, 11*s, // settings-row switch (height, width, border-radius)
-		18*s, 18*s, 9*s, // switch slider (width, height, border-radius)
-		15*s,            // overview/battery metric values
-		18*s,            // battery time metric value
-		40*s, 40*s, 4*s, // view-back-btn
-		2*s, 2*s, // gamepad-focus (outline-width, outline-offset)
-		2*s, 2*s, // gamepad-editing (outline-width, outline-offset)
-		10*s, 4*s, 4*s, // tdp-warning (font-size, margin-top, margin-bottom)
-		240*s, 6*s, // fan-curve-area (min-height, border-radius)
-		40*s, 4*s, 8*s, 6*s, // custom-actions button (min-height, padding-v, padding-h, border-radius)
-		13*s,                 // telemetry-value font-size
-		40*s, 4*s, 10*s, 8*s, // tuning-telemetry
-		64*s, 40*s, // color-preview (min-width, min-height)
-		44*s, 6*s, 10*s, 8*s, // section-collapse (min-height, padding-v, padding-h, border-radius)
-		13*s, 2*s, // section-collapse-label (font-size, letter-spacing)
-		12*s,      // section-collapse-summary font-size
-		11*s, 1*s, // section-collapse-action (font-size, letter-spacing)
-		18*s,       // disclosure-icon size
-		18*s, 11*s, // drawer-status (min-height, font-size)
-	)
+	return cssscale.Px(".drawer { font-family: 'Inter', sans-serif; font-size: 14px; }\n"+b.layoutCSS, b.scale)
 }

@@ -362,7 +362,7 @@ func New(app *gtk.Application) *Window {
 	// window. Ask before using it and fall back to the overlay backend.
 	switch {
 	case w.gamescope:
-		w.backend = gamescope.New(w.win, drawerWidth)
+		w.backend = gamescope.New(w.win, drawerWidth, layoutCSS)
 	case layerShellUsable() || !waylandDisplay():
 		w.backend = layershell.New(w.win, drawerWidth)
 	default:

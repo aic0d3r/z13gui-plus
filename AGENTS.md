@@ -115,6 +115,9 @@ internal/gui/overlay/
                                 click-through outside the drawer (GNOME/Mutter)
 internal/panelgeom/
   panelgeom.go                  Pure-Go panel rectangle + slide easing for the overlay
+internal/cssscale/
+  cssscale.go                   Pure-Go px multiplier; gamescope's scaled sheet is layout.css
+                                run through it (never hand-maintain a second sheet)
 internal/theme/
   theme.go                      Theme types, TOML parsing, CSS generation, config persistence
   builtins.go                   15 built-in themes (8 dark, 7 light) with accent variants
