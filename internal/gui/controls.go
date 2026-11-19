@@ -923,6 +923,7 @@ func (w *Window) buildProfileSection() *gtk.Box {
 		prof := p
 		btn := gtk.NewButtonWithLabel(strings.Title(prof)) //nolint:staticcheck // strings.Title is fine for ASCII-only labels
 		btn.ConnectClicked(func() {
+			setActiveButton(w.profileBtns, prof) // optimistic; the post-write sync corrects it
 			w.runStateAction("set profile", func() (bool, error) { return api.SendProfileSet(prof) })
 		})
 		w.profileBtns[prof] = btn
@@ -973,6 +974,7 @@ func (w *Window) buildBatteryPresets() *gtk.Grid {
 			if w.syncing {
 				return
 			}
+			setActiveButton(w.battPresetBtns, p.pct) // optimistic; the post-write sync corrects it
 			w.runStateAction("set battery strategy", func() (bool, error) {
 				return api.SendBatteryLimitSet(p.pct)
 			})
@@ -1006,6 +1008,7 @@ func (w *Window) buildFanPresetSection() *gtk.Box {
 			if w.syncing {
 				return
 			}
+			setActiveButton(w.fanPresetBtns, name) // optimistic; the post-write sync corrects it
 			if name == "auto" {
 				w.runStateAction("restore automatic fan control", api.SendFanCurveReset)
 				return

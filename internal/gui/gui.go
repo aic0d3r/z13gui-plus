@@ -433,6 +433,9 @@ func New(app *gtk.Application) *Window {
 	return w
 }
 
+// daemonDownStatus is shown on open when the daemon can't be reached.
+const daemonDownStatus = "z13ctl-plus isn't responding. Start the daemon to change settings."
+
 // Toggle shows or hides the drawer. Must be called from the GTK main thread.
 func (w *Window) Toggle() {
 	slog.Debug("toggle entered", "visible", w.visible)
@@ -454,12 +457,23 @@ func (w *Window) Toggle() {
 						return
 					}
 					slog.Debug("syncState dispatched", "totalElapsed", time.Since(fetchStart))
+					if w.statusLine != nil && w.statusLine.Label() == daemonDownStatus {
+						w.setPresetStatus("")
+					}
 					w.state = state
 					w.syncState()
 				})
-			} else if err != nil {
+				return
+			}
+			if err != nil {
 				slog.Warn("get state failed", "err", err)
 			}
+			// Say so on open: otherwise every tab looks live with nothing highlighted.
+			glib.IdleAdd(func() {
+				if gen == w.stateRequestGen && !w.stateActionBusy {
+					w.setPresetStatus(daemonDownStatus)
+				}
+			})
 		}()
 	}
 }
