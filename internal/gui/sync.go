@@ -87,7 +87,9 @@ func (w *Window) syncState() {
 	w.syncFanPreset()
 	w.syncCPUPower()
 	w.syncRefreshRate()
-	w.refreshRateProbe()
+	if w.state.RefreshRate == 0 {
+		w.refreshRateProbe() // daemons before refresh_rate was in get_state
+	}
 	w.syncOverdrive()
 	w.syncBootSound()
 	w.syncCamera()
@@ -380,9 +382,8 @@ func tuningStatus(state *api.State) string {
 	return fmt.Sprintf("%s · TDP %s · UV %s", cpu, tdp, uv)
 }
 
-// refreshRateProbe reads the live eDP-1 rate from the daemon. GetState does not carry
-// it (refresh_rate is only answered by refresh_rate_get), so without this the System tab
-// shows no active rate and a "—" pill until you tap one. Read off the GTK thread and
+// refreshRateProbe reads the live eDP-1 rate from daemons whose GetState does not
+// carry it, so the System tab doesn't show a "—" pill until you tap a rate. Read off the GTK thread and
 // applied back on it, like every other daemon round-trip.
 func (w *Window) refreshRateProbe() {
 	go func() {
