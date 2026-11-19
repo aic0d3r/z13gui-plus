@@ -5,7 +5,8 @@ package gui
 // Items are arranged in a grid (row + col). D-pad up/down moves between rows
 // (preserving column where possible), left/right moves within a row. A activates
 // buttons/switches or enters edit mode for sliders (D-pad left/right adjusts,
-// A commits, B cancels). Shoulder buttons jump between sections.
+// A commits, B cancels). Shoulder buttons switch main tabs, or jump between
+// sections in sub-views.
 //
 // Per-view focus lists: main, theme, and color views each have their own item
 // list. swapFocusList switches between them on view change.
@@ -158,6 +159,43 @@ func (w *Window) moveHorizontal(dir int) {
 
 	next := (pos + dir + len(rowItems)) % len(rowItems)
 	w.setFocusIdx(rowItems[next])
+}
+
+// bump handles a shoulder button: on the main view it cycles the visible main
+// tabs (the Steam convention), elsewhere it jumps between sections.
+func (w *Window) bump(dir int) {
+	if w.viewStack == nil || w.viewStack.VisibleChildName() != "main" {
+		w.jumpSection(dir)
+		return
+	}
+	var tabs []string
+	cur := 0
+	for _, name := range mainTabs {
+		if btn := w.mainTabBtns[name]; btn != nil && btn.IsVisible() {
+			if name == w.activeTab {
+				cur = len(tabs)
+			}
+			tabs = append(tabs, name)
+		}
+	}
+	if len(tabs) > 1 {
+		w.switchTab(tabs[(cur+dir+len(tabs))%len(tabs)])
+	}
+}
+
+// focusMainTab puts gamepad focus on the active tab's button, so a tab switch
+// does not throw focus back to the first item.
+func (w *Window) focusMainTab() {
+	btn := w.mainTabBtns[w.activeTab]
+	if !w.gamepadActive || btn == nil {
+		return
+	}
+	for i := range w.focusItems {
+		if w.focusItems[i].widget == gtk.Widgetter(btn) {
+			w.setFocusIdx(i)
+			return
+		}
+	}
 }
 
 // jumpSection jumps to the first visible item of the next (dir=+1) or

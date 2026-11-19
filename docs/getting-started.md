@@ -64,12 +64,12 @@ Z13GUI+ supports full gamepad control for use in Steam Gaming Mode:
 
 | Input | Action |
 |-------|--------|
-| D-pad | Navigate between controls |
+| D-pad or left stick | Navigate between controls |
 | A (Cross) | Activate buttons/switches, or enter edit mode for sliders |
 | Left/Right (in edit mode) | Adjust a slider value |
 | A (in edit mode) | Commit the value |
 | B (Circle) | Cancel edit, go back, or close the drawer |
-| L1/R1 (shoulder) | Jump between sections |
+| L1/R1 (shoulder) | Switch tabs (Overview, Power, RGB, Settings); jump between sections in sub-views |
 
 Gamepad focus (indicated by a highlight border) is automatically hidden when
 the mouse moves. To disable gamepad input entirely, set

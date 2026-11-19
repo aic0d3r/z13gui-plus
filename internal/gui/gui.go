@@ -578,12 +578,12 @@ func (w *Window) handleGamepadAction(action gamepad.Action) {
 		if w.focusEditing {
 			w.exitEditMode(true)
 		}
-		w.jumpSection(-1)
+		w.bump(-1)
 	case gamepad.ActionBumpR:
 		if w.focusEditing {
 			w.exitEditMode(true)
 		}
-		w.jumpSection(1)
+		w.bump(1)
 	}
 }
 

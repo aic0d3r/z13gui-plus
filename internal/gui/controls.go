@@ -105,6 +105,9 @@ func (w *Window) buildContent() gtk.Widgetter {
 	return outer
 }
 
+// mainTabs are the main tab names in row order.
+var mainTabs = []string{"overview", "power", "rgb", "system"}
+
 // buildMainTabRow creates the top-level Power / RGB / System tab buttons.
 func (w *Window) buildMainTabRow() *gtk.Box {
 	row := gtk.NewBox(gtk.OrientationHorizontal, 4)
@@ -147,6 +150,7 @@ func (w *Window) switchTab(name string) {
 	}
 	w.buildMainFocusList()
 	w.swapFocusList(w.mainFocusItems)
+	w.focusMainTab()
 }
 
 // buildPowerTab builds the Power tab. Telemetry lives on Overview; this tab
@@ -1313,7 +1317,7 @@ func (w *Window) buildMainFocusList() {
 	items := w.tabletFocusItems()
 
 	// Top-level tab row — always at row 0.
-	for col, name := range []string{"overview", "power", "rgb", "system"} {
+	for col, name := range mainTabs {
 		btn := w.mainTabBtns[name]
 		items = append(items, focusItem{
 			widget: btn, row: 0, col: col,

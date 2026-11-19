@@ -309,6 +309,9 @@ func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
 	}
 	defer stopRepeat()
 
+	absInfo, _ := dev.AbsInfos() // stick ranges; nil leaves the stick unmapped
+	stick := map[evdev.EvCode]int{} // last zone per left-stick axis
+
 	startRepeat := func(a Action) {
 		repeatMu.Lock()
 		if repeatTimer != nil {
@@ -385,6 +388,30 @@ func (r *Reader) readLoop(path string, dev *evdev.InputDevice) {
 				default:
 					stopRepeat(ActionLeft, ActionRight)
 				}
+			case evdev.ABS_X, evdev.ABS_Y:
+				info, ok := absInfo[ev.Code]
+				if !ok {
+					break
+				}
+				zone := stickZone(ev.Value, info, stick[ev.Code])
+				if zone == stick[ev.Code] {
+					break
+				}
+				stick[ev.Code] = zone
+				neg, pos := ActionLeft, ActionRight
+				if ev.Code == evdev.ABS_Y {
+					neg, pos = ActionUp, ActionDown
+				}
+				switch zone {
+				case -1:
+					r.emit(neg)
+					startRepeat(neg)
+				case 1:
+					r.emit(pos)
+					startRepeat(pos)
+				default:
+					stopRepeat(neg, pos)
+				}
 			}
 		}
 	}
@@ -447,6 +474,26 @@ func buttonToAction(code evdev.EvCode) (Action, bool) {
 	default:
 		return 0, false
 	}
+}
+
+// stickZone maps an analog stick axis to -1, 0 or +1. A deflection past half
+// travel enters a direction; it is left only below 30%, so a stick resting near
+// the threshold does not chatter.
+func stickZone(v int32, info evdev.AbsInfo, prev int) int {
+	half := float64(info.Maximum-info.Minimum) / 2
+	if half <= 0 {
+		return 0
+	}
+	d := (float64(v) - float64(info.Minimum) - half) / half
+	switch {
+	case d <= -0.5:
+		return -1
+	case d >= 0.5:
+		return 1
+	case prev != 0 && d*float64(prev) >= 0.3:
+		return prev
+	}
+	return 0
 }
 
 // isDirectional returns true for actions that should auto-repeat when held.

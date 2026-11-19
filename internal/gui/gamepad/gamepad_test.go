@@ -6,6 +6,35 @@ import (
 	evdev "github.com/holoplot/go-evdev"
 )
 
+func TestStickZone(t *testing.T) {
+	xbox := evdev.AbsInfo{Minimum: -32768, Maximum: 32767}
+	unsigned := evdev.AbsInfo{Minimum: 0, Maximum: 255}
+	tests := []struct {
+		name string
+		v    int32
+		info evdev.AbsInfo
+		prev int
+		want int
+	}{
+		{"centre", 0, xbox, 0, 0},
+		{"small drift", 8000, xbox, 0, 0},
+		{"full left", -32768, xbox, 0, -1},
+		{"past half right", 20000, xbox, 0, 1},
+		{"held right below enter threshold", 12000, xbox, 1, 1},
+		{"released right", 5000, xbox, 1, 0},
+		{"flicked from right to left", -30000, xbox, 1, -1},
+		{"unsigned centre", 128, unsigned, 0, 0},
+		{"unsigned full up", 0, unsigned, 0, -1},
+		{"unsigned full down", 255, unsigned, 0, 1},
+		{"no range", 5, evdev.AbsInfo{}, 0, 0},
+	}
+	for _, tt := range tests {
+		if got := stickZone(tt.v, tt.info, tt.prev); got != tt.want {
+			t.Errorf("%s: stickZone(%d) = %d, want %d", tt.name, tt.v, got, tt.want)
+		}
+	}
+}
+
 func TestClassifyCapabilities(t *testing.T) {
 	tests := []struct {
 		name       string
