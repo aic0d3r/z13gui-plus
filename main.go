@@ -71,8 +71,11 @@ func main() {
 	// Disable GTK4 accessibility bridge (AT-SPI). Z13GUI+ is a hardware overlay
 	// controlled by a physical button — no accessibility consumers. Without this,
 	// GTK4 sends D-Bus events on every widget state change, which can timeout
-	// under systemd where the AT-SPI bus may not be available.
-	_ = os.Setenv("GTK_A11Y", "none")
+	// under systemd where the AT-SPI bus may not be available. An explicit
+	// GTK_A11Y (e.g. a service drop-in setting it to atspi) wins.
+	if _, set := os.LookupEnv("GTK_A11Y"); !set {
+		_ = os.Setenv("GTK_A11Y", "none")
+	}
 
 	// Gamescope advertises Wayland layer-shell but doesn't implement
 	// anchoring/margins. Force GTK4 to use X11 so we can set gamescope

@@ -291,8 +291,8 @@ func (b *Backend) slideTo(target float64, onDone func()) {
 //
 // This correction is load-bearing. GtkFixed allocates every child its *natural*
 // size, and SetSizeRequest only sets a minimum, so the drawer comes out wider
-// than drawerWidth once .drawer's border and padding are added — about 337px for
-// a 320px request. Positioning at monW-320 then pushes that extra width off the
+// than drawerWidth once .drawer's border and padding are added (about 17px more
+// than the request). Positioning at monW-drawerWidth then pushes that extra width off the
 // right of the screen, clipping the second column of every button row.
 //
 // The layer-shell backend never has to think about this because the compositor

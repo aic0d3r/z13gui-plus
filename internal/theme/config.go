@@ -19,6 +19,8 @@ type AppConfig struct {
 	Hidden string
 	// DimLevel is the Dim chip's screen brightness in percent; 0 = default.
 	DimLevel int
+	// Tab is the main tab the drawer last showed; "" = Overview.
+	Tab string
 }
 
 // LoadAppConfig reads config.toml from the z13gui-plus config directory.
@@ -55,6 +57,8 @@ func LoadAppConfig() AppConfig {
 			cfg.Hidden = v
 		case "dim_level":
 			cfg.DimLevel, _ = strconv.Atoi(v)
+		case "tab":
+			cfg.Tab = v
 		}
 	}
 	return cfg
@@ -74,7 +78,7 @@ func SaveAppConfig(cfg AppConfig) {
 		for _, line := range strings.Split(strings.TrimRight(string(old), "\n"), "\n") {
 			k, _, _ := strings.Cut(line, "=")
 			switch strings.TrimSpace(k) {
-			case "theme", "accent", "hidden", "dim_level":
+			case "theme", "accent", "hidden", "dim_level", "tab":
 				continue
 			}
 			content += line + "\n"
@@ -92,6 +96,9 @@ func SaveAppConfig(cfg AppConfig) {
 	}
 	if cfg.DimLevel != 0 {
 		content += "dim_level = " + strconv.Itoa(cfg.DimLevel) + "\n"
+	}
+	if cfg.Tab != "" {
+		content += "tab = \"" + cfg.Tab + "\"\n"
 	}
 	// Write-then-rename so a crash mid-write can't leave an empty config.
 	tmp := path + ".tmp"

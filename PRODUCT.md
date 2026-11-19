@@ -65,7 +65,7 @@ overrides.
   focus, and pointer; touch targets at least 40 px.
 - **No popovers, dropdowns, or separate windows**: gamescope does not composite
   them. Use stack view switching and inline buttons.
-- **Fixed 320 px drawer** on the right edge; height is content-driven and
+- **Fixed 360 px drawer** on the right edge; height is content-driven and
   scrolls. Gamescope scales it by output resolution.
 - **User themes must keep working**: 15 built-in themes with accent variants and
   custom `theme.toml`; colors come only from `@define-color` tokens in

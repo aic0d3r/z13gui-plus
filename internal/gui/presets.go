@@ -109,7 +109,7 @@ func (w *Window) syncPresetChips() {
 }
 
 // chipColumns uses three chips per row, or two when any name would be cut
-// short at a third of the 320 px drawer.
+// short at a third of the 360 px drawer.
 func chipColumns(names []string) int {
 	for _, name := range names {
 		if len([]rune(name)) > 10 {

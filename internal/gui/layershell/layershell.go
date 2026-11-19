@@ -123,7 +123,6 @@ func (b *Backend) Configure(isVisible func() bool, onDismiss func()) {
 	b.gtkWin.AddController(motion)
 
 	// Hide when the window loses focus, but only if:
-	//   - focus was actually received since the last Show (focusedSinceShow)
 	//   - enough time has passed since Show for the compositor to settle (showSettleTime)
 	//   - pointer is outside the drawer (genuine click-outside, not spurious KDE drop)
 	b.appWin.Connect("notify::is-active", func() {

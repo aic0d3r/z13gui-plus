@@ -43,6 +43,7 @@ func TestSaveAppConfig(t *testing.T) {
 		{Theme: "nord"},
 		{Theme: "nord", Hidden: "power.fan,tab.rgb"},
 		{Theme: "dracula", DimLevel: 35},
+		{Theme: "nord", Tab: "power"},
 	} {
 		t.Run(want.Theme, func(t *testing.T) {
 			tmp := t.TempDir()

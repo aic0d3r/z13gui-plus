@@ -56,7 +56,7 @@ type Window struct {
 	gamescope bool       // true when running under gamescope (X11 overlay mode)
 	state     *api.State // latest daemon state; nil until first successful fetch
 	tab       string     // active device tab: "keyboard" or "lightbar"
-	activeTab string     // active main tab: "overview", "power", "rgb", "system" (persisted)
+	activeTab string     // active main tab: "overview", "power", "rgb", "system" (saved as config.toml "tab")
 	visible   bool       // true when the drawer is on-screen or animating in
 
 	swatchProvider *gtk.CSSProvider // dynamic swatch background colors
@@ -358,7 +358,7 @@ func New(app *gtk.Application) *Window {
 
 	// Select display backend. gtk4-layer-shell is a wlroots extension, and
 	// Mutter does not implement it: InitForWindow only logs a warning and every
-	// anchor call afterwards silently no-ops, which leaves an unanchored 320 px
+	// anchor call afterwards silently no-ops, which leaves an unanchored 360 px
 	// window. Ask before using it and fall back to the overlay backend.
 	switch {
 	case w.gamescope:

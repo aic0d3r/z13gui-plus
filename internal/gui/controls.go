@@ -64,6 +64,9 @@ func (w *Window) buildContent() gtk.Widgetter {
 	w.tabStack.AddNamed(w.buildPowerTab(), "power")
 	w.tabStack.AddNamed(w.buildRGBTab(), "rgb")
 	w.tabStack.AddNamed(w.buildSystemTab(), "system")
+	if saved := theme.LoadAppConfig().Tab; saved != "" && w.tabStack.ChildByName(saved) != nil {
+		w.activeTab = saved
+	}
 	w.tabStack.SetVisibleChildName(w.activeTab)
 	setActiveButton(w.mainTabBtns, w.activeTab)
 
@@ -130,6 +133,11 @@ func (w *Window) buildMainTabRow() *gtk.Box {
 func (w *Window) switchTab(name string) {
 	if w.tabStack == nil {
 		return
+	}
+	if name != w.activeTab {
+		cfg := theme.LoadAppConfig()
+		cfg.Tab = name
+		theme.SaveAppConfig(cfg)
 	}
 	w.activeTab = name
 	w.tabStack.SetVisibleChildName(name)
