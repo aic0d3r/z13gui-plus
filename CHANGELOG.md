@@ -11,6 +11,16 @@ release-notes.md (gitignored) is the scratch file for the next entry.
 - The drawer is a fixed 360 px wide. It used to request 320 px but grew to
   393 px once content loaded. Battery Strategy wraps to two rows to fit, and
   a warning is logged if content ever widens the drawer again.
+- The drawer reopens on the tab you last used, also after a restart.
+- Gaming Mode scales every size in the drawer; card titles, captions and
+  Overview numbers used to stay small at native resolution.
+- Profile, fan mode and battery buttons highlight as soon as you tap them.
+- Opening the drawer says so when `z13ctl-plus` isn't responding.
+- Gamepad: L1/R1 switch tabs, focus stays on the tab you switched to, and
+  the left stick navigates like the D-pad.
+- An explicit `GTK_A11Y` (for example `atspi` for a screen reader) is no
+  longer overridden.
+- The AUR package installs the app icon.
 
 ## v2.8.1 (2026-11-11)
 
