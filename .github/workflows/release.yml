@@ -32,19 +32,19 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    container: archlinux:latest
+    container: archlinux:latest@sha256:d4594bb2300cba11f41c2f27923eb56f63d9988909c402f9c95517d1e362c899
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.release)
     steps:
       - name: Install dependencies
         run: pacman -Syu --noconfirm git base-devel gtk4 gtk4-layer-shell gobject-introspection
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.tag || github.ref }}
       - name: Fix git ownership
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: go.mod
       - name: Test
@@ -54,9 +54,9 @@ jobs:
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
           awk -v t="## $TAG " 'index($0,t)==1{f=1;next} /^## /{f=0} f' CHANGELOG.md | sed '/./,$!d' > /tmp/notes.md
           test -s /tmp/notes.md || { echo "No CHANGELOG.md section for $TAG"; exit 1; }
-      - uses: goreleaser/goreleaser-action@v6
+      - uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6
         with:
-          version: latest
+          version: v2.17.1
           args: release --clean --release-notes=/tmp/notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -73,7 +73,7 @@ jobs:
         (github.event_name == 'workflow_dispatch' && inputs.aur && (needs.release.result == 'success' || needs.release.result == 'skipped'))
       )
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Get version, sha256, and pkgrel
         id: meta
@@ -105,7 +105,7 @@ jobs:
 
       - name: Generate .SRCINFO
         run: |
-          docker run --rm -v "$PWD/contrib/aur:/pkg" archlinux:latest \
+          docker run --rm -v "$PWD/contrib/aur:/pkg" archlinux:latest@sha256:d4594bb2300cba11f41c2f27923eb56f63d9988909c402f9c95517d1e362c899 \
             bash -c "useradd -m builder && chown -R builder /pkg && su builder -c 'cd /pkg && makepkg --printsrcinfo > .SRCINFO'"
 
       - name: Configure SSH
@@ -159,9 +159,9 @@ jobs:
         (github.event_name == 'workflow_dispatch' && inputs.docs && (needs.release.result == 'success' || needs.release.result == 'skipped'))
       )
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: 3.x
 
