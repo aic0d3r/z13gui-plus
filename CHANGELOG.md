@@ -5,6 +5,9 @@ release-notes.md (gitignored) is the scratch file for the next entry.
 
 ## Unreleased
 
+- New **Disable touchscreen in laptop mode** switch in the Tablet Kit card
+  (z13-tablet-kit #3). Off by default; tablet mode always keeps touch on.
+  Needs z13ctl-plus and z13-tablet-kit with `disable_touchscreen_in_laptop`.
 - Fix the drawer getting stuck half open on MangoWM (#3). MangoWM can stop
   sending frame callbacks to a partly visible surface, so the slide stalled
   mid-way; every animation now finishes on a deadline even if frames stop.

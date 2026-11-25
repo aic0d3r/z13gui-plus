@@ -146,6 +146,7 @@ type Window struct {
 	tabletTouchpadNote        *gtk.Label
 	tabletScrollNote          *gtk.Label
 	tabletDesktopSwitch       *gtk.Switch
+	tabletLaptopSwitch        *gtk.Switch
 	tabletTwoFingerHoldSwitch *gtk.Switch
 	tabletKeepScaleSwitch     *gtk.Switch
 	tabletTouchpadRow         *gtk.Box
