@@ -50,17 +50,21 @@ func FindSteamPID() int {
 	return 0
 }
 
-// FreezeProc sends SIGSTOP to suspend a process and writes the PID to a
-// state file for crash recovery.
+// FreezeProc writes the PID to a state file for crash recovery, then sends
+// SIGSTOP. The record comes first so a crash never leaves Steam frozen with
+// nothing to thaw it.
 func FreezeProc(pid int) error {
 	path := pidFilePath()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
-	if err := syscall.Kill(pid, syscall.SIGSTOP); err != nil {
+	if err := os.WriteFile(path, []byte(strconv.Itoa(pid)), 0o600); err != nil {
 		return err
 	}
-	_ = os.WriteFile(path, []byte(strconv.Itoa(pid)), 0o600)
+	if err := syscall.Kill(pid, syscall.SIGSTOP); err != nil {
+		_ = os.Remove(path)
+		return err
+	}
 	return nil
 }
 
