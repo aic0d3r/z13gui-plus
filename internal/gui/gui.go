@@ -160,6 +160,7 @@ type Window struct {
 	tabletResetBtn            *gtk.Button
 	tabletFeedback            *gtk.Label
 	tabletPendingSettings     *api.TabletSettings
+	tabletDebounce            *time.Timer // coalesces held-stick slider steps into one write
 
 	statusLine             *gtk.Label // one fixed feedback line at the drawer bottom
 	presetDetailName       string

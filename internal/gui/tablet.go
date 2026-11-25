@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/dahui/z13ctl/api"
+	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
 )
 
@@ -458,6 +459,15 @@ func (w *Window) changeTabletSettings(change func(*api.TabletSettings)) {
 	w.syncing = true
 	w.syncTablet()
 	w.syncing = false
+	debounceValue(&w.tabletDebounce, 200*time.Millisecond, payload, func(payload api.TabletSettings) {
+		glib.IdleAdd(func() bool {
+			w.sendTabletSettings(payload)
+			return false
+		})
+	})
+}
+
+func (w *Window) sendTabletSettings(payload api.TabletSettings) {
 	w.runStateActionQuiet("tablet settings", func() (bool, error) {
 		return api.SendTabletSettingsSet(payload)
 	}, func() {
