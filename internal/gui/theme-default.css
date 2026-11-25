@@ -62,7 +62,6 @@ window.z13-drawer-window {
         radial-gradient(circle at 0% 100%, rgba(80, 80, 200, 0.04), transparent 60%),
         @z13-bg;
     color: @z13-text;
-    border-radius: 14px;
     font-family: "Cantarell", sans-serif;
 }
 
@@ -218,7 +217,6 @@ window.z13-drawer-window {
     background: alpha(@z13-text, 0.04);
     border: 1px solid @z13-border;
     color: @z13-text;
-    font-size: 15px;
     line-height: 1.4;
 }
 
@@ -298,11 +296,6 @@ window.z13-drawer-window {
     color: #ffffff;
     border-color: @z13-accent;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-
-/* Mode grid buttons — slightly taller, more important */
-.drawer .mode-grid.btn-group button {
-    min-height: 42px;
 }
 
 /* Premium card — used for hero widgets (battery, gauges) */

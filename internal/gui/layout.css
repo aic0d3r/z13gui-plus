@@ -10,6 +10,7 @@
 /* Drawer outer container */
 .drawer {
     padding: 0;
+    border-radius: 14px;
 }
 
 /* Premium structural typography — Cantarell + Meslo numerals. */
@@ -67,6 +68,7 @@
 .drawer .confirm-message {
     padding: 10px;
     border-radius: 8px;
+    font-size: 15px;
 }
 
 /* Touch targets — 40px floor (touch-friendly), slimmer horizontal padding */
@@ -100,9 +102,9 @@
     border-radius: 8px;
 }
 
-/* Mode grid buttons — 40px touch floor */
+/* Mode grid buttons — slightly taller than the 40px floor, more important */
 .drawer .mode-grid.btn-group button {
-    min-height: 40px;
+    min-height: 42px;
     border-radius: 8px;
     font-weight: 700;
 }
