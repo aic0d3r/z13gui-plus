@@ -24,7 +24,3 @@ internal/gui/gamepad/hidblocker/vmlinux.h
 PROGRESS.md
 .progress-log/
 
-# Release notes staged for git tag annotation (passed via `git tag -a -F`)
-release-notes.md
-# Generated documentation artifacts
-site/

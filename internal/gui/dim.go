@@ -20,14 +20,12 @@ package gui
 
 import (
 	"bytes"
-	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"log/slog"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -43,6 +41,7 @@ const (
 	dimCeil         = 90
 	dimDefaultLevel = 50
 	dimFilePrefix   = "dim-" // profile names: <runtime>/z13gui-plus/dim-<pct>.icc
+	kscreenTimeout  = 3 * time.Second
 )
 
 var (
@@ -214,16 +213,6 @@ func loadDimRestore() colorProfile {
 	return colorProfile{source: source, icc: icc}
 }
 
-func runKscreen(args ...string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	out, err := exec.CommandContext(ctx, "kscreen-doctor", args...).CombinedOutput()
-	if err != nil {
-		err = fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
-	}
-	return string(out), err
-}
-
 // dimmer is owned by the worker goroutine started in startDimmer.
 type dimmer struct {
 	output string
@@ -231,7 +220,7 @@ type dimmer struct {
 }
 
 func (d *dimmer) setProfile(p colorProfile) error {
-	_, err := runKscreen(
+	_, err := runCmd(kscreenTimeout, "kscreen-doctor",
 		fmt.Sprintf("output.%s.colorProfileSource.%s", d.output, p.source),
 		fmt.Sprintf("output.%s.iccprofile.%s", d.output, p.icc),
 	)
@@ -261,7 +250,7 @@ func (d *dimmer) apply(pct int) error {
 	}
 	if !d.active {
 		// Record what to restore, read fresh in case it changed since startup.
-		out, err := runKscreen("-o")
+		out, err := runCmd(kscreenTimeout, "kscreen-doctor", "-o")
 		if err != nil {
 			return err
 		}
@@ -302,7 +291,7 @@ func (w *Window) startDimmer() {
 	w.dimDone = make(chan struct{}, 1)
 	go func() {
 		defer close(w.dimDone) // Shutdown must not wait for a worker that never started
-		out, err := runKscreen("-o")
+		out, err := runCmd(kscreenTimeout, "kscreen-doctor", "-o")
 		name, prof, ok := internalOutput(out)
 		if err != nil || !ok {
 			slog.Info("dim unavailable", "err", err, "output", name)

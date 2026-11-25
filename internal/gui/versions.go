@@ -4,6 +4,7 @@ package gui
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -51,15 +52,25 @@ func (w *Window) buildVersionSection() *gtk.Box {
 	return card
 }
 
-// runVersion runs a command with a short timeout and returns trimmed stdout.
-func runVersion(name string, args ...string) string {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+// runCmd runs a command with a timeout and returns its trimmed stdout. On
+// failure the error carries the command's stderr.
+func runCmd(timeout time.Duration, name string, args ...string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	out, err := exec.CommandContext(ctx, name, args...).Output()
+	if ee, ok := err.(*exec.ExitError); ok {
+		err = fmt.Errorf("%w: %s", err, strings.TrimSpace(string(ee.Stderr)))
+	}
+	return strings.TrimSpace(string(out)), err
+}
+
+// runVersion runs a version query, returning "" on any failure.
+func runVersion(name string, args ...string) string {
+	out, err := runCmd(2*time.Second, name, args...)
 	if err != nil {
 		return ""
 	}
-	return strings.TrimSpace(string(out))
+	return out
 }
 
 // daemonVersion parses "z13ctl-plus version X" from the installed daemon binary.

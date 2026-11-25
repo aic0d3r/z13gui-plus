@@ -836,7 +836,6 @@ func (w *Window) syncCustomView() {
 	w.refreshTuningDirty()
 }
 
-// saveCustomTdp commits only the TDP values.
 // refreshTuningDirty updates Save sensitivity, dirty markers, and conditional
 // banners based on whether each section's widgets differ from the saved state.
 func (w *Window) refreshTuningDirty() {
@@ -1003,6 +1002,7 @@ func tdpSetArgs(advanced bool, basic, pl1, pl2, pl3 int) (watts, p1, p2, p3 stri
 		max(pl1, pl2, pl3) > tdpMaxSafe
 }
 
+// saveCustomTdp commits only the TDP values.
 func (w *Window) saveCustomTdp() {
 	advanced := w.tdpAdvancedCheck != nil && w.tdpAdvancedCheck.Active()
 	watts, pl1, pl2, pl3, force := tdpSetArgs(advanced, int(w.tdpBasicScale.Value()),

@@ -19,6 +19,7 @@ import (
 	"github.com/aic0d3r/z13gui-plus/internal/theme"
 	"github.com/aic0d3r/z13gui-plus/internal/togglegate"
 	"github.com/dahui/z13ctl/api"
+	"github.com/diamondburned/gotk4-layer-shell/pkg/gtk4layershell"
 	"github.com/diamondburned/gotk4/pkg/gdk/v4"
 	"github.com/diamondburned/gotk4/pkg/glib/v2"
 	"github.com/diamondburned/gotk4/pkg/gtk/v4"
@@ -364,7 +365,7 @@ func New(app *gtk.Application) *Window {
 	switch {
 	case w.gamescope:
 		w.backend = gamescope.New(w.win, drawerWidth, layoutCSS)
-	case layerShellUsable() || !waylandDisplay():
+	case gtk4layershell.IsSupported() || !waylandDisplay():
 		w.backend = layershell.New(w.win, drawerWidth)
 	default:
 		slog.Warn("layer-shell unavailable, using the overlay backend "+
