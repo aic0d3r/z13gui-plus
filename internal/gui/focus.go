@@ -307,14 +307,23 @@ func (w *Window) adjustFocus(dir int) {
 	}
 }
 
+// focusTarget is the widget that carries the focus highlight: a switch lights
+// up its whole settings row, matching keyboard focus.
+func focusTarget(widget gtk.Widgetter) *gtk.Widget {
+	if parent := gtk.BaseWidget(widget).Parent(); parent != nil && gtk.BaseWidget(parent).HasCSSClass("settings-row") {
+		return gtk.BaseWidget(parent)
+	}
+	return gtk.BaseWidget(widget)
+}
+
 // setFocusIdx updates the focus index and moves the CSS highlight.
 func (w *Window) setFocusIdx(idx int) {
 	if w.focusIdx < len(w.focusItems) {
-		gtk.BaseWidget(w.focusItems[w.focusIdx].widget).RemoveCSSClass("gamepad-focus")
+		focusTarget(w.focusItems[w.focusIdx].widget).RemoveCSSClass("gamepad-focus")
 	}
 	w.focusIdx = idx
 	if idx < len(w.focusItems) {
-		gtk.BaseWidget(w.focusItems[idx].widget).AddCSSClass("gamepad-focus")
+		focusTarget(w.focusItems[idx].widget).AddCSSClass("gamepad-focus")
 		w.ensureVisible(w.focusItems[idx].widget)
 		slog.Debug("gamepad: focus", "idx", idx,
 			"row", w.focusItems[idx].row, "col", w.focusItems[idx].col,
@@ -346,7 +355,7 @@ func (w *Window) hideGamepadFocus() {
 	}
 	w.gamepadActive = false
 	if w.focusIdx < len(w.focusItems) {
-		gtk.BaseWidget(w.focusItems[w.focusIdx].widget).RemoveCSSClass("gamepad-focus")
+		focusTarget(w.focusItems[w.focusIdx].widget).RemoveCSSClass("gamepad-focus")
 	}
 }
 
@@ -359,7 +368,7 @@ func (w *Window) swapFocusList(items []focusItem) {
 		return
 	}
 	if w.focusIdx < len(w.focusItems) {
-		gtk.BaseWidget(w.focusItems[w.focusIdx].widget).RemoveCSSClass("gamepad-focus")
+		focusTarget(w.focusItems[w.focusIdx].widget).RemoveCSSClass("gamepad-focus")
 		gtk.BaseWidget(w.focusItems[w.focusIdx].widget).RemoveCSSClass("gamepad-editing")
 	}
 	w.focusEditing = false

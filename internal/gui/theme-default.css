@@ -266,14 +266,33 @@ window.z13-drawer-window {
     box-shadow: inset 0 -2px 0 @z13-accent;
 }
 
-/* Keyboard (Tab) focus: the same ring as gamepad focus, on every control. */
-.drawer *:focus-visible {
-    outline: 2px solid @z13-accent;
+/* Focus, keyboard (Tab) and gamepad alike: the focused row or button lifts and
+   takes a solid accent border. GTK also marks every ancestor :focus-visible, so
+   :focus / :focus-within pin the style to the control itself, not its card. */
+.drawer .settings-row:focus-within:focus-visible,
+.drawer .settings-row.gamepad-focus,
+.drawer button:focus:focus-visible,
+.drawer button.gamepad-focus,
+.drawer checkbutton:focus:focus-visible,
+.drawer checkbutton.gamepad-focus {
+    background-color: alpha(@z13-text, 0.08);
+    border-color: @z13-accent;
+    outline-style: none;
+}
+
+.drawer .settings-row.toggle-active:focus-within:focus-visible,
+.drawer .settings-row.toggle-active.gamepad-focus {
+    background-color: alpha(@z13-accent, 0.16);
+}
+
+/* Controls with no row or frame to lift (sliders, swatches, fan curve) keep a thin ring. */
+.drawer scale:focus:focus-visible {
+    outline: 1px solid @z13-accent;
     outline-offset: 2px;
 }
 
-/* One ring only: while focused (keyboard or gamepad), the ring replaces the
-   active underline, which otherwise reads as a second inner red border. */
+/* One accent edge only: while focused, the border replaces the active
+   underline, which otherwise reads as a second inner red line. */
 .drawer .main-tab-row button.active:focus-visible,
 .drawer .main-tab-row button.active.gamepad-focus {
     box-shadow: none;
@@ -646,9 +665,10 @@ window.z13-drawer-window {
     border-color: alpha(@z13-danger, 0.6);
 }
 
-/* Gamepad focus indicator */
+/* Gamepad focus indicator (thin ring; rows and buttons override it above) */
 .gamepad-focus {
-    outline-color: @z13-accent;
+    outline: 1px solid @z13-accent;
+    outline-offset: 2px;
 }
 
 /* Gamepad editing indicator (slider adjust mode) */
