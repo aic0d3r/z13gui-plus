@@ -1550,11 +1550,12 @@ func (w *Window) systemTabFocusItems() []focusItem {
 	row := 1
 
 	// Refresh rate buttons.
+	refreshVisible := gtk.BaseWidget(w.layoutWidgets["set.refresh"]).IsVisible
 	for col, hz := range refreshRates {
 		btn := w.refreshBtns[hz]
 		items = append(items, focusItem{
 			widget: btn, row: row, col: col,
-			section:    "refresh-rate",
+			section:    "refresh-rate", isVisible: refreshVisible,
 			onActivate: func() { btn.Activate() },
 		})
 	}
@@ -1564,7 +1565,7 @@ func (w *Window) systemTabFocusItems() []focusItem {
 		sw := w.overdriveSwitch
 		items = append(items, focusItem{
 			widget: sw, row: row, col: 0,
-			section:    "system",
+			section:    "system", isVisible: gtk.BaseWidget(w.layoutWidgets["set.overdrive"]).IsVisible,
 			onActivate: func() { sw.SetActive(!sw.Active()) },
 		})
 		row++

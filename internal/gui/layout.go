@@ -31,7 +31,11 @@ var layoutCards = []layoutCard{
 	{"power.battery", "POWER", "Battery strategy"},
 	{"power.tuning", "POWER", "Power tuning"},
 	{"tab.rgb", "TABS", "RGB tab"},
+	{"set.refresh", "SETTINGS", "Refresh rate"},
+	{"set.overdrive", "SETTINGS", "Panel overdrive"},
 	{"set.dim", "SETTINGS", "Dim"},
+	{"set.camera", "SETTINGS", "Camera"},
+	{"set.bootsound", "SETTINGS", "Boot sound"},
 }
 
 // registerCard remembers a card so applyLayout can show or hide it.
@@ -51,7 +55,7 @@ func hiddenCards(list string) map[string]bool {
 }
 
 // cardUnavailable reports hardware that is absent. Unknown state counts as present.
-// IDs missing from layoutCards (power.profile, set.*) are hidden only by hardware.
+// IDs missing from layoutCards (power.profile, set.display) are hidden only by hardware.
 func (w *Window) cardUnavailable(id string) bool {
 	if id == "set.dim" { // decided by kscreen-doctor detection, not the daemon
 		return !w.dimSupported
@@ -109,6 +113,14 @@ func (w *Window) applyLayout() {
 	defer func() { w.syncing = prev }()
 	for id, widget := range w.layoutWidgets {
 		gtk.BaseWidget(widget).SetVisible(!hidden[id] && !w.cardUnavailable(id))
+	}
+	// DISPLAY is only a frame: drop it once every row in it is hidden.
+	if display := w.layoutWidgets["set.display"]; display != nil {
+		show := false
+		for _, id := range []string{"set.refresh", "set.overdrive", "set.dim"} {
+			show = show || (!hidden[id] && !w.cardUnavailable(id))
+		}
+		gtk.BaseWidget(display).SetVisible(show)
 	}
 	shown, off := 0, 0
 	for id, sw := range w.layoutSwitches {

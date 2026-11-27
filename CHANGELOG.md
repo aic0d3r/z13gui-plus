@@ -5,6 +5,9 @@ release-notes.md (gitignored) is the scratch file for the next entry.
 
 ## Unreleased
 
+- Settings > Layout can now hide Refresh rate, Panel overdrive, Camera and
+  Boot sound. The DISPLAY card disappears once all of its rows are hidden,
+  and gamepad focus skips hidden rows.
 - New **Disable touchscreen in laptop mode** switch in the Tablet Kit card
   (z13-tablet-kit #3). Off by default; tablet mode always keeps touch on.
   Needs z13ctl-plus and z13-tablet-kit with `disable_touchscreen_in_laptop`.
