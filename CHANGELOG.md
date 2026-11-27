@@ -3,14 +3,15 @@
 All notable changes. Newest first. Bodies mirror the GitHub release notes;
 release-notes.md (gitignored) is the scratch file for the next entry.
 
-## Unreleased
+## v2.9.0 (2026-11-27)
 
 - Settings > Layout can now hide Refresh rate, Panel overdrive, Camera and
   Boot sound. The DISPLAY card disappears once all of its rows are hidden,
   and gamepad focus skips hidden rows.
 - New **Disable touchscreen in laptop mode** switch in the Tablet Kit card
   (z13-tablet-kit #3). Off by default; tablet mode always keeps touch on.
-  Needs z13ctl-plus and z13-tablet-kit with `disable_touchscreen_in_laptop`.
+  Needs z13ctl-plus v2.7.0 or newer and a z13-tablet-kit with
+  `disable_touchscreen_in_laptop`.
 - Keyboard navigation is visible and explained: every control gets the
   accent focus ring on Tab, a footer line lists the keys (Tab / Shift+Tab,
   Space, Esc), and Esc now closes the drawer.
