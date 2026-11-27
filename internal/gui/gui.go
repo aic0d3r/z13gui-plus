@@ -427,6 +427,11 @@ func New(app *gtk.Application) *Window {
 		switch keyval {
 		case gdk.KEY_Up, gdk.KEY_Down, gdk.KEY_Left, gdk.KEY_Right:
 			return !w.tabletScaleFocused()
+		case gdk.KEY_Escape:
+			if w.visible {
+				w.Toggle()
+				return true
+			}
 		}
 		return false
 	})

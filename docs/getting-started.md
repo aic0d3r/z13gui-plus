@@ -58,6 +58,19 @@ swatch updates in real time.
 
 ---
 
+## Keyboard navigation
+
+The drawer footer lists these keys:
+
+| Key | Action |
+|-----|--------|
+| Tab / Shift+Tab | Move to the next / previous control (an accent ring marks it) |
+| Space | Toggle a switch or press a button |
+| Left/Right | Adjust a focused tablet slider |
+| Esc | Close the drawer |
+
+---
+
 ## Gamepad navigation
 
 Z13GUI+ supports full gamepad control for use in Steam Gaming Mode:

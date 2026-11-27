@@ -98,12 +98,27 @@ func (w *Window) buildContent() gtk.Widgetter {
 	w.statusLine.AddCSSClass("drawer-status")
 	outer.Append(w.statusLine)
 
+	// Keyboard navigation is otherwise undiscoverable. Gamescope is driven by
+	// gamepad, so the hint would be noise there.
+	if !w.gamescope {
+		hint := gtk.NewLabel(keyboardHint)
+		hint.SetHAlign(gtk.AlignStart)
+		hint.SetWrap(true)
+		hint.SetMarginStart(14)
+		hint.SetMarginEnd(14)
+		hint.SetMarginBottom(6)
+		hint.AddCSSClass("drawer-status")
+		outer.Append(hint)
+	}
+
 	w.applyLayout()
 	w.buildMainFocusList()
 	w.focusItems = w.mainFocusItems
 
 	return outer
 }
+
+const keyboardHint = "Tab / Shift+Tab move · Space selects · Esc closes"
 
 // mainTabs are the main tab names in row order.
 var mainTabs = []string{"overview", "power", "rgb", "system"}
